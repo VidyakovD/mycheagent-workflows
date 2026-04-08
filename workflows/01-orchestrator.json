@@ -68,7 +68,12 @@
       "parameters": {
         "url": "={{ 'https://api.telegram.org/file/bot' + $env.TELEGRAM_BOT_TOKEN + '/' + $json.result.file_path }}",
         "options": {
-          "response": { "response": { "responseFormat": "file" } }
+          "response": {
+            "response": {
+              "responseFormat": "file",
+              "outputPropertyName": "data"
+            }
+          }
         }
       },
       "id": "n5",
@@ -91,9 +96,10 @@
         "contentType": "multipart-form-data",
         "bodyParameters": {
           "parameters": [
-            { "name": "model",    "value": "whisper-1", "parameterType": "formData" },
-            { "name": "language", "value": "ru",        "parameterType": "formData" },
-            { "name": "file",     "value": "data",      "parameterType": "formBinaryData" }
+            { "name": "model",    "value": "whisper-1",        "parameterType": "formData" },
+            { "name": "language", "value": "ru",               "parameterType": "formData" },
+            { "name": "file",     "value": "data",             "parameterType": "formBinaryData",
+              "inputDataFieldName": "data" }
           ]
         },
         "options": {}
@@ -233,21 +239,19 @@
     },
     {
       "parameters": {
-        "chatId": "={{ $json.chatId }}",
-        "text":   "={{ $json.text }}",
-        "additionalFields": {}
+        "method": "POST",
+        "url": "={{ 'https://api.telegram.org/bot' + $env.TELEGRAM_BOT_TOKEN + '/sendMessage' }}",
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "application/json",
+        "body": "={{ JSON.stringify({ chat_id: $json.chatId, text: $json.text }) }}",
+        "options": {}
       },
       "id": "n15",
       "name": "Send Text Reply",
-      "type": "n8n-nodes-base.telegram",
-      "typeVersion": 1.2,
-      "position": [2620, 460],
-      "credentials": {
-        "telegramApi": {
-          "id": "yhUMiv9LjfkcOqFE",
-          "name": "Telegram account"
-        }
-      }
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [2620, 460]
     }
   ],
   "connections": {

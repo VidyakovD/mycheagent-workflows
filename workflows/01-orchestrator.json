@@ -126,7 +126,7 @@
     },
     {
       "parameters": {
-        "jsCode": "const d = $input.first().json;\nconst body = JSON.stringify({\n  model: 'claude-opus-4-6',\n  max_tokens: 1024,\n  system: 'Ты умный персональный ассистент по имени Мичи. Отвечай кратко, по-русски, дружелюбно. Помогаешь с вопросами, задачами и напоминаниями.',\n  messages: [{ role: 'user', content: d.userText }]\n});\nreturn [{ json: { ...d, claudeBody: body }}];"
+        "jsCode": "const d = $input.first().json;\nconst body = JSON.stringify({\n  model: 'claude-opus-4-6',\n  max_tokens: 1024,\n  stream: false,\n  system: 'Ты умный персональный ассистент по имени Мичи. Отвечай кратко, по-русски, дружелюбно. Помогаешь с вопросами, задачами и напоминаниями.',\n  messages: [{ role: 'user', content: d.userText }]\n});\nreturn [{ json: { ...d, claudeBody: body }}];"
       },
       "id": "n9",
       "name": "Build Claude Request",

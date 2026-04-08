@@ -1,0 +1,278 @@
+{
+  "name": "01-orchestrator",
+  "nodes": [
+    {
+      "parameters": {
+        "updates": ["message"],
+        "additionalFields": {}
+      },
+      "id": "n1",
+      "name": "Telegram Trigger",
+      "type": "n8n-nodes-base.telegramTrigger",
+      "typeVersion": 1.1,
+      "position": [200, 300],
+      "webhookId": "mycheagent-main-bot",
+      "credentials": {
+        "telegramApi": {
+          "id": "1",
+          "name": "Telegram Bot"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const msg = $input.first().json?.message;\nif (!msg) return [];\n\nconst isVoice = !!msg.voice;\nconst isText  = !!msg.text;\nif (!isVoice && !isText) return [];\n\nreturn [{ json: {\n  chatId:   msg.chat.id,\n  userId:   msg.from?.id,\n  username: msg.from?.first_name || 'Пользователь',\n  isVoice,\n  text:     msg.text || '',\n  fileId:   isVoice ? msg.voice.file_id : null\n}}];"
+      },
+      "id": "n2",
+      "name": "Parse Message",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [420, 300]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "strict" },
+          "conditions": [{
+            "id": "voice-check",
+            "leftValue": "={{ $json.isVoice }}",
+            "rightValue": true,
+            "operator": { "type": "boolean", "operation": "true" }
+          }],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "n3",
+      "name": "Is Voice?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [640, 300]
+    },
+    {
+      "parameters": {
+        "url": "={{ 'https://api.telegram.org/bot' + $env.TELEGRAM_BOT_TOKEN + '/getFile' }}",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [{ "name": "file_id", "value": "={{ $json.fileId }}" }]
+        },
+        "options": {}
+      },
+      "id": "n4",
+      "name": "Get File URL",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [860, 140]
+    },
+    {
+      "parameters": {
+        "url": "={{ 'https://api.telegram.org/file/bot' + $env.TELEGRAM_BOT_TOKEN + '/' + $json.result.file_path }}",
+        "options": {
+          "response": { "response": { "responseFormat": "file" } }
+        }
+      },
+      "id": "n5",
+      "name": "Download Audio",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1080, 140]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.openai.com/v1/audio/transcriptions",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "Authorization", "value": "={{ 'Bearer ' + $env.OPENAI_API_KEY }}" }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "multipart-form-data",
+        "bodyParameters": {
+          "parameters": [
+            { "name": "model",    "value": "whisper-1", "parameterType": "formData" },
+            { "name": "language", "value": "ru",        "parameterType": "formData" },
+            { "name": "file",     "value": "data",      "parameterType": "formBinaryData" }
+          ]
+        },
+        "options": {}
+      },
+      "id": "n6",
+      "name": "Whisper STT",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1300, 140]
+    },
+    {
+      "parameters": {
+        "jsCode": "const whisper = $input.first().json;\nconst src = $('Parse Message').item.json;\nreturn [{ json: {\n  userText: whisper.text,\n  chatId:   src.chatId,\n  isVoice:  true\n}}];"
+      },
+      "id": "n7",
+      "name": "Set Voice Input",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1520, 140]
+    },
+    {
+      "parameters": {
+        "jsCode": "const d = $input.first().json;\nreturn [{ json: {\n  userText: d.text,\n  chatId:   d.chatId,\n  isVoice:  false\n}}];"
+      },
+      "id": "n8",
+      "name": "Set Text Input",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [860, 460]
+    },
+    {
+      "parameters": {
+        "jsCode": "const d = $input.first().json;\nconst body = JSON.stringify({\n  model: 'claude-opus-4-6',\n  max_tokens: 1024,\n  system: 'Ты умный персональный ассистент по имени Мичи. Отвечай кратко, по-русски, дружелюбно. Помогаешь с вопросами, задачами и напоминаниями.',\n  messages: [{ role: 'user', content: d.userText }]\n});\nreturn [{ json: { ...d, claudeBody: body }}];"
+      },
+      "id": "n9",
+      "name": "Build Claude Request",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1740, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.CLAUDE_BASE_URL + '/v1/messages' }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "x-api-key",        "value": "={{ $env.CLAUDE_API_KEY }}" },
+            { "name": "anthropic-version", "value": "2023-06-01" },
+            { "name": "Content-Type",      "value": "application/json" }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "application/json",
+        "body": "={{ $json.claudeBody }}",
+        "options": {}
+      },
+      "id": "n10",
+      "name": "Claude",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1960, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "const claude = $input.first().json;\nconst text   = claude.content?.[0]?.text || '⚠️ Не удалось получить ответ';\nconst src    = $('Build Claude Request').item.json;\nreturn [{ json: { chatId: src.chatId, isVoice: src.isVoice, text }}];"
+      },
+      "id": "n11",
+      "name": "Extract Response",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [2180, 300]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "strict" },
+          "conditions": [{
+            "id": "reply-voice-check",
+            "leftValue": "={{ $json.isVoice }}",
+            "rightValue": true,
+            "operator": { "type": "boolean", "operation": "true" }
+          }],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "n12",
+      "name": "Reply as Voice?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [2400, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.openai.com/v1/audio/speech",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "Authorization", "value": "={{ 'Bearer ' + $env.OPENAI_API_KEY }}" }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "application/json",
+        "body": "={{ JSON.stringify({ model: 'tts-1', input: $json.text, voice: 'nova', response_format: 'mp3' }) }}",
+        "options": {
+          "response": { "response": { "responseFormat": "file" } }
+        }
+      },
+      "id": "n13",
+      "name": "OpenAI TTS",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [2620, 160]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ 'https://api.telegram.org/bot' + $env.TELEGRAM_BOT_TOKEN + '/sendAudio' }}",
+        "sendBody": true,
+        "contentType": "multipart-form-data",
+        "bodyParameters": {
+          "parameters": [
+            { "name": "chat_id", "value": "={{ $('Extract Response').item.json.chatId }}", "parameterType": "formData" },
+            { "name": "audio",   "value": "data", "parameterType": "formBinaryData" }
+          ]
+        },
+        "options": {}
+      },
+      "id": "n14",
+      "name": "Send Voice Reply",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [2840, 160]
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $json.chatId }}",
+        "text":   "={{ $json.text }}",
+        "additionalFields": {}
+      },
+      "id": "n15",
+      "name": "Send Text Reply",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [2620, 460],
+      "credentials": {
+        "telegramApi": {
+          "id": "1",
+          "name": "Telegram Bot"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Telegram Trigger":     { "main": [[{ "node": "Parse Message",        "type": "main", "index": 0 }]] },
+    "Parse Message":        { "main": [[{ "node": "Is Voice?",             "type": "main", "index": 0 }]] },
+    "Is Voice?":            { "main": [
+                                [{ "node": "Get File URL",    "type": "main", "index": 0 }],
+                                [{ "node": "Set Text Input",  "type": "main", "index": 0 }]
+                             ]},
+    "Get File URL":         { "main": [[{ "node": "Download Audio",        "type": "main", "index": 0 }]] },
+    "Download Audio":       { "main": [[{ "node": "Whisper STT",           "type": "main", "index": 0 }]] },
+    "Whisper STT":          { "main": [[{ "node": "Set Voice Input",       "type": "main", "index": 0 }]] },
+    "Set Voice Input":      { "main": [[{ "node": "Build Claude Request",  "type": "main", "index": 0 }]] },
+    "Set Text Input":       { "main": [[{ "node": "Build Claude Request",  "type": "main", "index": 0 }]] },
+    "Build Claude Request": { "main": [[{ "node": "Claude",                "type": "main", "index": 0 }]] },
+    "Claude":               { "main": [[{ "node": "Extract Response",      "type": "main", "index": 0 }]] },
+    "Extract Response":     { "main": [[{ "node": "Reply as Voice?",       "type": "main", "index": 0 }]] },
+    "Reply as Voice?":      { "main": [
+                                [{ "node": "OpenAI TTS",      "type": "main", "index": 0 }],
+                                [{ "node": "Send Text Reply", "type": "main", "index": 0 }]
+                             ]},
+    "OpenAI TTS":           { "main": [[{ "node": "Send Voice Reply",      "type": "main", "index": 0 }]] }
+  },
+  "active": true,
+  "settings": { "executionOrder": "v1" },
+  "id": "orchestrator-001"
+}

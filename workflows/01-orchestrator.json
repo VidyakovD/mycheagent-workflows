@@ -160,7 +160,7 @@
     },
     {
       "parameters": {
-        "jsCode": "const claude = $input.first().json;\nconst text   = claude.content?.[0]?.text || '⚠️ Не удалось получить ответ';\nconst src    = $('Build Claude Request').item.json;\nreturn [{ json: { chatId: src.chatId, isVoice: src.isVoice, text }}];"
+        "jsCode": "const claude = $input.first().json;\nconst blocks = claude.content || [];\nconst textBlock = blocks.find(b => b.type === 'text');\nconst text = textBlock?.text || '⚠️ Не удалось получить ответ';\nconst src = $('Build Claude Request').item.json;\nreturn [{ json: { chatId: src.chatId, isVoice: src.isVoice, text }}];"
       },
       "id": "n11",
       "name": "Extract Response",

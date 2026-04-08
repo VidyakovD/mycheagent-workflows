@@ -1,0 +1,52 @@
+{
+  "name": "02-error-handler",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "e1",
+      "name": "When Error Occurs",
+      "type": "n8n-nodes-base.errorTrigger",
+      "typeVersion": 1.1,
+      "position": [300, 300],
+      "credentials": {
+        "telegramApi": {
+          "id": "yhUMiv9LjfkcOqFE",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const execution = $input.first().json;\nconst error = execution.error || execution;\nconst workflowName = execution.workflow?.name || 'Unknown';\nconst node = error.node?.name || 'Unknown';\nconst message = error.message || JSON.stringify(error).substring(0, 500);\nconst timestamp = new Date().toLocaleString('ru-RU');\n\nconst report = 'Ошибка в воркфлоу: ' + workflowName + '\\n\\nНода: ' + node + '\\nВремя: ' + timestamp + '\\n\\n' + message;\n\nreturn [{ json: { text: report }}];"
+      },
+      "id": "e2",
+      "name": "Format Error",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [520, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ 'https://api.telegram.org/bot' + $env.TELEGRAM_BOT_TOKEN + '/sendMessage' }}",
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "application/json",
+        "body": "={{ JSON.stringify({ chat_id: 123456789, text: $json.text }) }}",
+        "options": {}
+      },
+      "id": "e3",
+      "name": "Notify Admin",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [740, 300]
+    }
+  ],
+  "connections": {
+    "When Error Occurs": { "main": [[{ "node": "Format Error", "type": "main", "index": 0 }]] },
+    "Format Error": { "main": [[{ "node": "Notify Admin", "type": "main", "index": 0 }]] }
+  },
+  "active": false,
+  "settings": { "executionOrder": "v1" },
+  "id": "error-handler-001"
+}

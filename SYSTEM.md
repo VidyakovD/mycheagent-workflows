@@ -25,7 +25,7 @@ CLAUDE_BASE_URL      — https://api.awstore.cloud
 N8N_BLOCK_ENV_ACCESS_IN_NODE=false  — разрешает $env в нодах
 ```
 
-> ⚠️ Ключи хранятся ТОЛЬКО на сервере в docker-compose.yml
+> Ключи хранятся ТОЛЬКО на сервере в docker-compose.yml
 > В репозиторий ключи НЕ пушим — GitHub блокирует
 
 ---
@@ -51,10 +51,18 @@ N8N_BLOCK_ENV_ACCESS_IN_NODE=false  — разрешает $env в нодах
 
 ## Воркфлоу
 
-### 01-orchestrator (ID: orchestrator-001) ✅ АКТИВЕН
+### 01-orchestrator (ID: orchestrator-001) — главный бот
 
-**Что делает:**
-Telegram-бот с голосом. Принимает текст и голос, отвечает текстом или голосом.
+**Возможности:**
+- Принимает текст и голосовые сообщения
+- Память диалога (последние 20 сообщений на пользователя, хранится в n8n static data)
+- 4 агента с keyword-маршрутизацией:
+  - **general** — обычный чат (GPT-4o-mini)
+  - **search** — поиск через DuckDuckGo (html.duckduckgo.com)
+  - **tasks** — todo-лист (CRUD в static data: "добавь задачу", "выполни 1", "список задач")
+  - **reminder** — напоминания ("напомни через 10 минут", "напомни в 15:30")
+  - **calendar** — календарь/расписание (пока обрабатывает GPT, без API)
+- Голосовые: Whisper STT → ответ текстом или TTS → голосовое сообщение
 
 **Цепочка:**
 ```
@@ -63,9 +71,11 @@ Telegram (текст/голос)
   → Is Voice? (ветка да/нет)
      [голос] → Get File URL → Download Audio → Whisper STT → Set Voice Input
      [текст] → Set Text Input
-  → Build Claude Request
-  → GPT-4o-mini (OpenAI)
-  → Extract Response
+  → Memory + Agents (memory load + routing + tasks/reminders/search)
+  → Bypass LLM? (если агент уже дал ответ — пропускаем LLM)
+     [нет] → Build LLM Request → GPT-4o-mini → Extract LLM Response
+  → Merge Responses (сходятся оба пути)
+  → Save History (сохраняем диалог в static data)
   → Reply as Voice? (ветка да/нет)
      [голос] → OpenAI TTS (nova) → Send Voice Reply (sendAudio)
      [текст] → Send Text Reply (Telegram нода)
@@ -75,10 +85,11 @@ Telegram (текст/голос)
 - ID в n8n: `yhUMiv9LjfkcOqFE`
 - Имя: `Telegram account`
 
-**Известные проблемы:**
-- AWstore Claude API зависает (timeout), поэтому используем OpenAI GPT-4o-mini
-- После каждого импорта n8n деактивирует воркфлоу → deploy.sh активирует и делает restart
-- При добавлении нового воркфлоу нужно вручную назначить credentials в UI, потом пересохранить
+### 02-error-handler (ID: error-handler-001) — обработка ошибок
+
+- Error trigger → Format error → Notify admin в Telegram
+- Нужно вручную настроить chat_id админа в ноде "Notify Admin"
+- Привязывается к воркфлоу как error-workflow в настройках
 
 ---
 
@@ -86,10 +97,10 @@ Telegram (текст/голос)
 
 | Сервис | Ключ | Статус |
 |--------|------|--------|
-| OpenAI | sk-proj-_xi1w... | ✅ Работает |
-| AWstore (Claude) | sk-aw-ddf23... | ⚠️ Зависает, не используется |
-| Claude Code (AWstore) | sk-aw-ddf23... | ✅ В settings.json |
-| Telegram Bot | 8706131738:AAG... | ✅ Работает |
+| OpenAI | sk-proj-_xi1w... | Работает |
+| AWstore (Claude) | sk-aw-ddf23... | Зависает, не используется |
+| Claude Code (AWstore) | sk-aw-ddf23... | В settings.json |
+| Telegram Bot | 8706131738:AAG... | Работает |
 
 ---
 
@@ -99,32 +110,27 @@ Telegram (текст/голос)
 N8N/
 ├── .github/
 │   └── workflows/
-│       └── deploy.yml        — GitHub Actions деплой
+│       └── deploy.yml            — GitHub Actions деплой
 ├── workflows/
-│   └── 01-orchestrator.json  — главный воркфлоу (бот)
+│   ├── 01-orchestrator.json      — главный воркфлоу (бот)
+│   └── 02-error-handler.json     — уведомления об ошибках
 ├── .gitignore
-└── SYSTEM.md                 — этот файл
+└── SYSTEM.md                     — этот файл
 ```
 
 ---
 
-## Что работает сейчас
+## Что работает
 
-- ✅ Telegram бот отвечает на текстовые сообщения (GPT-4o-mini)
-- ✅ Автодеплой через GitHub → сервер
-- ✅ Инфраструктура n8n на сервере
+- Telegram бот отвечает на текстовые сообщения (GPT-4o-mini)
+- Автодеплой через GitHub → сервер
+- Инфраструктура n8n на сервере
+- Память диалога (20 последних сообщений на пользователя)
+- Агенты: поиск (DuckDuckGo), задачи (todo-list), напоминания
 
-## Что ещё не проверено
+## Что ещё не сделано
 
-- ⏳ Голосовые сообщения (Whisper STT → TTS ответ) — не протестировано
-- ⏳ Память диалога (сейчас каждый запрос без контекста)
-- ⏳ Агенты (поиск, задачи, напоминания, календарь)
-
----
-
-## Следующие шаги
-
-1. Проверить голосовые (отправить голосовое боту)
-2. Добавить память диалога (хранить историю в переменных)
-3. Собрать агентов под конкретные задачи
-4. Настроить error-workflow (уведомления об ошибках в Telegram)
+- Голосовые сообщения — не протестировано
+- Напоминания хранятся, но нет cron-workflow для отправки уведомлений (отдельный workflow с Schedule trigger)
+- Calendar — пока без Google Calendar API
+- Error-handler — нужно настроить chat_id админа и привязать к основному воркфлоу

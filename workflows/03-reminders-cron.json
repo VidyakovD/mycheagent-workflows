@@ -1,0 +1,55 @@
+{
+  "name": "03-reminders-cron",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "minutes",
+              "intervalValue": 1
+            }
+          ]
+        }
+      },
+      "id": "r1",
+      "name": "Schedule (every minute)",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [200, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Check if any reminders are due\nconst staticData = $getWorkflowStaticData('global');\nconst reminders = staticData.reminders || {};\nconst now = Date.now();\nconst due = [];\n\nfor (const [userId, userReminders] of Object.entries(reminders)) {\n  for (let i = userReminders.length - 1; i >= 0; i--) {\n    const reminder = userReminders[i];\n    const fireAt = new Date(reminder.fireAt).getTime();\n    if (fireAt <= now) {\n      due.push({ userId, text: reminder.text });\n      userReminders.splice(i, 1);\n    }\n  }\n}\n\nstaticData.reminders = reminders;\n\nif (due.length === 0) return [];\nreturn due.map(d => ({ json: d }));"
+      },
+      "id": "r2",
+      "name": "Check Reminders",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [420, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ 'https://api.telegram.org/bot' + $env.TELEGRAM_BOT_TOKEN + '/sendMessage' }}",
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "application/json",
+        "body": "={{ JSON.stringify({ chat_id: $json.userId, text: 'Напоминание: ' + $json.text }) }}",
+        "options": {}
+      },
+      "id": "r3",
+      "name": "Send Reminder",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [640, 300]
+    }
+  ],
+  "connections": {
+    "Schedule (every minute)": { "main": [[{ "node": "Check Reminders", "type": "main", "index": 0 }]] },
+    "Check Reminders": { "main": [[{ "node": "Send Reminder", "type": "main", "index": 0 }]] }
+  },
+  "active": true,
+  "settings": { "executionOrder": "v1" },
+  "id": "reminders-cron-001"
+}

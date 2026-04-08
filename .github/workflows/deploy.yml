@@ -1,0 +1,18 @@
+name: Deploy to server
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deploy via SSH
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: 178.215.238.107
+          username: root
+          key: ${{ secrets.SERVER_SSH_KEY }}
+          script: /root/deploy.sh

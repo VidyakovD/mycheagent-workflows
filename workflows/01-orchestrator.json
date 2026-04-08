@@ -14,8 +14,8 @@
       "webhookId": "mycheagent-main-bot",
       "credentials": {
         "telegramApi": {
-          "id": "1",
-          "name": "Telegram Bot"
+          "id": "yhUMiv9LjfkcOqFE",
+          "name": "Telegram account"
         }
       }
     },
@@ -245,8 +245,8 @@
       "position": [2620, 460],
       "credentials": {
         "telegramApi": {
-          "id": "1",
-          "name": "Telegram Bot"
+          "id": "yhUMiv9LjfkcOqFE",
+          "name": "Telegram account"
         }
       }
     }

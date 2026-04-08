@@ -126,7 +126,7 @@
     },
     {
       "parameters": {
-        "jsCode": "const d = $input.first().json;\nconst body = JSON.stringify({\n  model: 'claude-opus-4-6',\n  max_tokens: 1024,\n  stream: false,\n  system: 'Ты умный персональный ассистент по имени Мичи. Отвечай кратко, по-русски, дружелюбно. Помогаешь с вопросами, задачами и напоминаниями.',\n  messages: [{ role: 'user', content: d.userText }]\n});\nreturn [{ json: { ...d, claudeBody: body }}];"
+        "jsCode": "const d = $input.first().json;\nconst body = JSON.stringify({\n  model: 'gpt-4o-mini',\n  messages: [\n    { role: 'system', content: 'Ты умный персональный ассистент по имени Мичи. Отвечай кратко, по-русски, дружелюбно. Помогаешь с вопросами, задачами и напоминаниями.' },\n    { role: 'user', content: d.userText }\n  ]\n});\nreturn [{ json: { ...d, claudeBody: body }}];"
       },
       "id": "n9",
       "name": "Build Claude Request",
@@ -137,13 +137,12 @@
     {
       "parameters": {
         "method": "POST",
-        "url": "={{ $env.CLAUDE_BASE_URL + '/v1/messages' }}",
+        "url": "https://api.openai.com/v1/chat/completions",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
-            { "name": "x-api-key",        "value": "={{ $env.CLAUDE_API_KEY }}" },
-            { "name": "anthropic-version", "value": "2023-06-01" },
-            { "name": "Content-Type",      "value": "application/json" }
+            { "name": "Authorization", "value": "={{ 'Bearer ' + $env.OPENAI_API_KEY }}" },
+            { "name": "Content-Type",  "value": "application/json" }
           ]
         },
         "sendBody": true,
@@ -160,7 +159,7 @@
     },
     {
       "parameters": {
-        "jsCode": "const claude = $input.first().json;\nconst blocks = claude.content || [];\nconst textBlock = blocks.find(b => b.type === 'text');\nconst text = textBlock?.text || '⚠️ Не удалось получить ответ';\nconst src = $('Build Claude Request').item.json;\nreturn [{ json: { chatId: src.chatId, isVoice: src.isVoice, text }}];"
+        "jsCode": "const resp = $input.first().json;\nconst text = resp.choices?.[0]?.message?.content || '⚠️ Не удалось получить ответ';\nconst src = $('Build Claude Request').item.json;\nreturn [{ json: { chatId: src.chatId, isVoice: src.isVoice, text }}];"
       },
       "id": "n11",
       "name": "Extract Response",

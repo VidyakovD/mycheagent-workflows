@@ -144,7 +144,7 @@
         "sendBody": true,
         "contentType": "raw",
         "rawContentType": "application/json",
-        "body": "={{ JSON.stringify({ model: 'gpt-5.4-mini', messages: [{ role: 'system', content: 'Ты умный персональный ассистент по имени Зевс. Отвечай кратко, по-русски, дружелюбно.' }, { role: 'user', content: $json.userText }] }) }}",
+        "body": "={{ JSON.stringify({ model: 'gpt-4o-mini', messages: [{ role: 'system', content: 'Ты умный персональный ассистент по имени Зевс. Отвечай кратко, по-русски, дружелюбно.' }, { role: 'user', content: $json.userText }] }) }}",
         "options": {}
       }
     },

@@ -1182,31 +1182,28 @@ function toast(msg){const e=document.getElementById('toast');e.textContent=msg;e
 // ══ INIT ═════════════════════════════════════
 document.getElementById('pm').addEventListener('click',function(e){if(e.target===this)closePM();});
 
-// Swipe to close voice overlay
-// passive:false + preventDefault stops iOS from cancelling the gesture mid-swipe
+// Swipe to close voice overlay — uses Pointer Events (iOS 13+)
+// Avoids iOS touchmove threading/passive issues entirely
 (function(){
-  let sx=0, sy=0, active=false;
+  let sx=0, sy=0, pid=null;
   const vo = document.getElementById('vo');
 
-  vo.addEventListener('touchstart', e=>{
-    sx = e.touches[0].clientX;
-    sy = e.touches[0].clientY;
-    active = true;
-  }, {passive:true});
+  vo.addEventListener('pointerdown', e=>{
+    sx = e.clientX; sy = e.clientY; pid = e.pointerId;
+  });
 
-  vo.addEventListener('touchmove', e=>{
-    if (!active) return;
-    const adx = Math.abs(e.touches[0].clientX - sx);
-    const dy  = Math.abs(e.touches[0].clientY - sy);
-    if (adx > 10) e.preventDefault(); // claim the gesture before iOS does
-    if (adx > 60 && dy < adx * 0.7) {
-      active = false;
+  vo.addEventListener('pointermove', e=>{
+    if (pid === null || e.pointerId !== pid) return;
+    const adx = Math.abs(e.clientX - sx);
+    const ady = Math.abs(e.clientY - sy);
+    if (adx > 60 && ady < adx * 0.7) {
+      pid = null;
       closeVoice();
     }
-  }, {passive:false}); // must be non-passive to allow preventDefault
+  });
 
-  vo.addEventListener('touchend',    ()=>{ active=false; }, {passive:true});
-  vo.addEventListener('touchcancel', ()=>{ active=false; }, {passive:true});
+  vo.addEventListener('pointerup',     ()=>{ pid=null; });
+  vo.addEventListener('pointercancel', ()=>{ pid=null; });
 })();
 
 loadChat();

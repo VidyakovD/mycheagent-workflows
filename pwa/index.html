@@ -131,7 +131,7 @@ body{background:var(--bg);color:var(--tx);
   opacity:0;pointer-events:none;transition:opacity .35s;
 }
 .vo.on{opacity:1;pointer-events:all}
-#voC{position:absolute;inset:0;width:100%;height:100%}
+#voC{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
 
 .vo-close{
   position:absolute;top:calc(env(safe-area-inset-top,0px)+12px);right:16px;z-index:10;
@@ -916,11 +916,11 @@ async function processVoice(text) {
   }
 }
 
-// Play OpenAI TTS audio (base64 mp3) via AudioContext — iOS-safe
+// Play OpenAI TTS audio (base64 mp3) via <audio> element
+// <audio> routes to loudspeaker on iOS — AudioContext uses earpiece (quiet)
 async function playAudio(b64, fallbackText='') {
   if (!b64) { await voSpeak(fallbackText); return; }
   try {
-    // Strip any whitespace/newlines that break atob() on iOS Safari
     const clean = b64.replace(/[^A-Za-z0-9+\/=]/g, '');
     if (!clean) throw new Error('empty');
 
@@ -928,44 +928,31 @@ async function playAudio(b64, fallbackText='') {
     const bytes = new Uint8Array(bStr.length);
     for (let i=0; i<bStr.length; i++) bytes[i] = bStr.charCodeAt(i);
 
-    // Reuse AudioContext created on user-gesture tap (unlocked on iOS)
-    let ctx = aCtx;
-    if (!ctx || ctx.state === 'closed') {
-      ctx = new (window.AudioContext || window.webkitAudioContext)();
-      aCtx = ctx;
-    }
-    await ctx.resume();
+    const blob = new Blob([bytes], {type:'audio/mpeg'});
+    const url  = URL.createObjectURL(blob);
+    const audio = document.createElement('audio');
+    audio.src = url;
+    ttsAudioNode = audio;
 
-    // Use callback form — more reliable on iOS Safari than Promise form
-    const decoded = await new Promise((resolve, reject) => {
-      ctx.decodeAudioData(bytes.buffer.slice(0), resolve, reject);
-    });
-    const source = ctx.createBufferSource();
-    source.buffer = decoded;
-
-    // Analyser so neural animation reacts to Zeus's voice
-    const ttsAnalyser = ctx.createAnalyser();
-    ttsAnalyser.fftSize = 128;
-    source.connect(ttsAnalyser);
-    source.connect(ctx.destination);
-    if (neural) neural.setAnalyser(ttsAnalyser);
-    ttsAudioNode = source;
-
-    // Await playback (inner Promise is NOT async — safe pattern)
     await new Promise(res => {
-      const tmo = setTimeout(() => { try{source.stop();}catch(e){} res(); }, 90000);
-      source.onended = () => {
+      const tmo = setTimeout(() => {
+        try{audio.pause();}catch(e){}
+        URL.revokeObjectURL(url); res();
+      }, 90000);
+      const done = () => {
         clearTimeout(tmo); ttsAudioNode = null;
+        URL.revokeObjectURL(url);
         if (aNode && neural) neural.setAnalyser(aNode);
         res();
       };
-      source.start(0);
+      audio.onended = done;
+      audio.onerror = done;
+      audio.play().catch(done);
     });
 
   } catch(e) {
     ttsAudioNode = null;
     if (aNode && neural) neural.setAnalyser(aNode);
-    // Graceful fallback: browser TTS
     try { await voSpeak(fallbackText); } catch(e2) {}
   }
 }
@@ -1018,7 +1005,14 @@ function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
 function stopAll() {
   voActive=false; voProc=false; pendingTxt='';
   if (recog) { try{recog.abort();}catch(e){} recog=null; }
-  if (ttsAudioNode) { try{ttsAudioNode.stop();}catch(e){} ttsAudioNode=null; }
+  if (ttsAudioNode) {
+    try {
+      // BufferSource has .stop(); <audio> element has .pause()
+      if (typeof ttsAudioNode.stop === 'function') ttsAudioNode.stop();
+      else { ttsAudioNode.pause(); ttsAudioNode.src=''; }
+    } catch(e) {}
+    ttsAudioNode = null;
+  }
   if (window.speechSynthesis) speechSynthesis.cancel();
   // Keep mStream alive — avoids re-asking mic permission on next session
   // Suspend (not close) AudioContext to save battery

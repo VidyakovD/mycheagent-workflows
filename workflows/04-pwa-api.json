@@ -47,7 +47,7 @@
         "sendBody": true,
         "contentType": "raw",
         "rawContentType": "application/json",
-        "body": "={{ JSON.stringify({ model: 'claude-sonnet-4.6', messages: [{ role: 'system', content: $json.systemPrompt }, ...$json.history, { role: 'user', content: $json.message }], max_tokens: 500 }) }}",
+        "body": "={{ JSON.stringify({ model: 'claude-sonnet-4.6', messages: [...$json.history, { role: 'user', content: $json.systemPrompt + '\\n\\n' + $json.message }], max_tokens: 500 }) }}",
         "options": {
           "response": { "response": { "neverError": true } }
         }

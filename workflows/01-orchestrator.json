@@ -144,7 +144,7 @@
         "sendBody": true,
         "contentType": "raw",
         "rawContentType": "application/json",
-        "body": "={{ JSON.stringify({ model: 'claude-sonnet-4.6', messages: [{ role: 'system', content: 'Ты умный персональный ассистент по имени Зевс. Отвечай кратко, по-русски, дружелюбно. Без лишних вводных слов.' }, { role: 'user', content: $json.userText }], max_tokens: 500 }) }}",
+        "body": "={{ JSON.stringify({ model: 'claude-sonnet-4.6', messages: [{ role: 'user', content: 'Ты умный персональный ассистент по имени Зевс. Отвечай кратко, по-русски, дружелюбно. Без лишних вводных слов.\\n\\n' + $json.userText }], max_tokens: 500 }) }}",
         "options": {}
       }
     },

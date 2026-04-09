@@ -1,0 +1,110 @@
+{
+  "name": "07-ai-news",
+  "id": "ai-news-001",
+  "active": true,
+  "settings": { "executionOrder": "v1" },
+  "nodes": [
+    {
+      "id": "an1",
+      "name": "Every Evening",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.1,
+      "position": [200, 300],
+      "parameters": {
+        "rule": {
+          "interval": [{ "field": "cronExpression", "expression": "0 19 * * *" }]
+        }
+      }
+    },
+    {
+      "id": "an2",
+      "name": "Fetch AI News",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [420, 300],
+      "parameters": {
+        "method": "GET",
+        "url": "https://newsapi.org/v2/top-headlines",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            { "name": "q",        "value": "artificial intelligence OR ChatGPT OR LLM" },
+            { "name": "language", "value": "ru" },
+            { "name": "pageSize", "value": "5" },
+            { "name": "apiKey",   "value": "={{ $env.NEWSAPI_KEY }}" }
+          ]
+        },
+        "options": { "response": { "response": { "neverError": true } } }
+      }
+    },
+    {
+      "id": "an3",
+      "name": "Build Digest",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [640, 300],
+      "parameters": {
+        "jsCode": "const res = $input.first().json;\nconst articles = res.articles || [];\nif (!articles.length) {\n  return [{ json: { headlines: 'Свежих новостей об ИИ не найдено.' } }];\n}\nconst headlines = articles.slice(0,5).map((a,i)=>`${i+1}. *${a.title}*`).join('\\n');\nreturn [{ json: { headlines } }];"
+      }
+    },
+    {
+      "id": "an4",
+      "name": "GPT Post",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [860, 300],
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.openai.com/v1/chat/completions",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "Authorization", "value": "={{ 'Bearer ' + $env.OPENAI_API_KEY }}" },
+            { "name": "Content-Type",  "value": "application/json" }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "application/json",
+        "body": "={{ JSON.stringify({ model: 'gpt-4o-mini', messages: [{ role: 'system', content: 'Ты Зевс — ИИ-ассистент Дениса. Напиши краткий ежедневный дайджест новостей об ИИ для Telegram (Markdown). Используй эмодзи. Максимум 5 пунктов. Будь информативным и лаконичным.' }, { role: 'user', content: 'Вот заголовки новостей:\\n' + $json.headlines }], max_tokens: 500 }) }}"
+      }
+    },
+    {
+      "id": "an5",
+      "name": "Extract Post",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1060, 300],
+      "parameters": {
+        "jsCode": "const res = $input.first().json;\nif (!res.choices) return [{ json: { post: '🤖 Дайджест ИИ-новостей временно недоступен.' } }];\nconst post = res.choices[0].message.content.trim();\nreturn [{ json: { post } }];"
+      }
+    },
+    {
+      "id": "an6",
+      "name": "Send Digest",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1260, 300],
+      "parameters": {
+        "method": "POST",
+        "url": "={{ 'https://api.telegram.org/bot' + $env.TELEGRAM_BOT_TOKEN + '/sendMessage' }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [{ "name": "Content-Type", "value": "application/json" }]
+        },
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "application/json",
+        "body": "={{ JSON.stringify({ chat_id: $env.TELEGRAM_CHAT_ID, text: $json.post, parse_mode: 'Markdown' }) }}"
+      }
+    }
+  ],
+  "connections": {
+    "Every Evening": { "main": [[{ "node": "Fetch AI News", "type": "main", "index": 0 }]] },
+    "Fetch AI News": { "main": [[{ "node": "Build Digest",  "type": "main", "index": 0 }]] },
+    "Build Digest":  { "main": [[{ "node": "GPT Post",      "type": "main", "index": 0 }]] },
+    "GPT Post":      { "main": [[{ "node": "Extract Post",  "type": "main", "index": 0 }]] },
+    "Extract Post":  { "main": [[{ "node": "Send Digest",   "type": "main", "index": 0 }]] }
+  },
+  "versionId": "d0000001-0000-0000-0000-000000000007"
+}

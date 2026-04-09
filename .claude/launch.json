@@ -1,0 +1,17 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "PWA (Python)",
+      "runtimeExecutable": "python",
+      "runtimeArgs": ["-m", "http.server", "3000", "--directory", "pwa"],
+      "port": 3000
+    },
+    {
+      "name": "PWA (npx serve)",
+      "runtimeExecutable": "npx",
+      "runtimeArgs": ["serve", "pwa", "-p", "3000", "--no-clipboard"],
+      "port": 3000
+    }
+  ]
+}

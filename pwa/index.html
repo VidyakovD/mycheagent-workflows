@@ -401,6 +401,58 @@ body{background:var(--bg);color:var(--tx);
   box-shadow:0 0 26px rgba(155,93,229,.2);
 }
 .toast.on{opacity:1;transform:translateX(-50%) translateY(0)}
+
+/* ── HUB GRID ── */
+.hub-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;padding:8px 0 90px;}
+.hub-card{background:rgba(255,255,255,.04);border:1px solid rgba(155,93,229,.2);border-radius:20px;padding:22px 18px;display:flex;flex-direction:column;gap:10px;cursor:pointer;transition:all .2s;-webkit-tap-highlight-color:transparent;}
+.hub-card:active{transform:scale(.97);background:rgba(155,93,229,.12);}
+.hub-card .hc-ico{font-size:28px;}
+.hub-card .hc-title{font-size:15px;font-weight:600;color:var(--tx);}
+.hub-card .hc-sub{font-size:12px;color:var(--sm);line-height:1.4;}
+
+/* ── BACK BTN ── */
+.sec-back{display:flex;align-items:center;gap:8px;padding:12px 0 4px;cursor:pointer;color:var(--p);font-size:14px;-webkit-tap-highlight-color:transparent;}
+.sec-back svg{width:20px;height:20px;stroke:currentColor;fill:none;stroke-linecap:round;stroke-linejoin:round;stroke-width:2;}
+
+/* ── CALENDAR ── */
+.cal-event{background:rgba(155,93,229,.08);border-left:3px solid var(--p);border-radius:8px;padding:10px 14px;margin-bottom:8px;display:flex;align-items:center;gap:10px;}
+.cal-event .ev-info{flex:1;}
+.cal-event .ev-date{font-size:11px;color:var(--p);margin-bottom:3px;}
+.cal-event .ev-text{font-size:14px;color:var(--tx);}
+.cal-add-row{display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap;}
+.cal-add-row input[type=date]{background:rgba(255,255,255,.06);border:1px solid rgba(155,93,229,.3);border-radius:12px;padding:10px 12px;color:var(--tx);font-size:14px;flex:0 0 auto;}
+.cal-add-row input[type=date]::-webkit-calendar-picker-indicator{filter:invert(.6);}
+
+/* ── CONTENT PLAN ── */
+.ct-badge{display:inline-block;padding:2px 9px;border-radius:20px;font-size:11px;font-weight:600;margin-right:6px;cursor:pointer;}
+.ct-idea{background:rgba(155,93,229,.2);color:var(--p);}
+.ct-draft{background:rgba(255,200,50,.15);color:#ffc832;}
+.ct-done{background:rgba(60,200,100,.15);color:#3cc864;}
+
+/* ── FINANCE ── */
+.fin-sum{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px;}
+.fin-card{background:rgba(255,255,255,.04);border-radius:16px;padding:16px;text-align:center;}
+.fin-card .fv{font-size:22px;font-weight:700;margin-bottom:4px;}
+.fin-card .fl{font-size:12px;color:var(--sm);}
+.fin-in .fv{color:#3cc864;}
+.fin-out .fv{color:#e05c6a;}
+.fin-item{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid rgba(255,255,255,.05);}
+.fin-item .fa{width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;}
+.fi-in-bg{background:rgba(60,200,100,.15);}
+.fi-out-bg{background:rgba(224,92,106,.15);}
+.fin-item .fd{flex:1;}
+.fin-item .ft{font-size:14px;color:var(--tx);}
+.fin-item .fs{font-size:11px;color:var(--sm);}
+.fin-item .famt{font-weight:700;font-size:15px;}
+.famt-in{color:#3cc864;}
+.famt-out{color:#e05c6a;}
+.fin-seg{display:flex;gap:8px;margin-bottom:12px;}
+.fin-seg button{flex:1;padding:8px;border-radius:12px;border:1px solid rgba(155,93,229,.25);background:transparent;color:var(--sm);font-size:13px;cursor:pointer;transition:all .2s;}
+.fin-seg button.on{background:rgba(155,93,229,.2);color:var(--p);border-color:var(--p);}
+
+/* ── IDEAS ── */
+.idea-ai-btn{width:100%;padding:11px;background:linear-gradient(135deg,rgba(155,93,229,.25),rgba(100,120,255,.25));border:1px solid rgba(155,93,229,.4);border-radius:14px;color:var(--tx);font-size:14px;cursor:pointer;margin-bottom:12px;display:flex;align-items:center;justify-content:center;gap:8px;}
+.idea-ai-btn svg{width:18px;height:18px;stroke:var(--p);fill:none;stroke-linecap:round;stroke-linejoin:round;stroke-width:2;}
 </style>
 </head>
 <body>
@@ -449,6 +501,10 @@ body{background:var(--bg);color:var(--tx);
 
   <!-- PROJECTS -->
   <div class="sec" id="s-projects">
+    <div class="sec-back" onclick="goSec('hub')">
+      <svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg>
+      Разделы
+    </div>
     <div class="sh">Проекты</div>
     <div class="pgrid" id="pgrid"></div>
     <div class="pd" id="pdv">
@@ -493,6 +549,108 @@ body{background:var(--bg);color:var(--tx);
     </div>
   </div>
 
+
+  <!-- HUB -->
+  <div class="sec" id="s-hub">
+    <div class="sh">Разделы</div>
+    <div class="hub-grid">
+      <div class="hub-card" onclick="goSec('projects')">
+        <div class="hc-ico">📁</div>
+        <div class="hc-title">Проекты</div>
+        <div class="hc-sub" id="hc-projects-sub">Загрузка...</div>
+      </div>
+      <div class="hub-card" onclick="goSec('calendar')">
+        <div class="hc-ico">📅</div>
+        <div class="hc-title">Календарь</div>
+        <div class="hc-sub" id="hc-calendar-sub">Нет событий</div>
+      </div>
+      <div class="hub-card" onclick="goSec('content')">
+        <div class="hc-ico">📝</div>
+        <div class="hc-title">Контент-план</div>
+        <div class="hc-sub" id="hc-content-sub">Нет записей</div>
+      </div>
+      <div class="hub-card" onclick="goSec('ideas')">
+        <div class="hc-ico">💡</div>
+        <div class="hc-title">Идеи</div>
+        <div class="hc-sub" id="hc-ideas-sub">Нет идей</div>
+      </div>
+      <div class="hub-card" onclick="goSec('finance')">
+        <div class="hc-ico">💰</div>
+        <div class="hc-title">Финансы</div>
+        <div class="hc-sub" id="hc-finance-sub">Нет записей</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- CALENDAR -->
+  <div class="sec" id="s-calendar">
+    <div class="sec-back" onclick="goSec('hub')">
+      <svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg>
+      Разделы
+    </div>
+    <div class="sh">Календарь</div>
+    <div class="cal-add-row">
+      <input type="date" id="cal-date">
+      <input id="calii" placeholder="Событие..." style="flex:1" onkeydown="if(event.key==='Enter')addCal()">
+      <button class="badd" onclick="addCal()"><svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></button>
+    </div>
+    <div id="callist"></div>
+  </div>
+
+  <!-- CONTENT PLAN -->
+  <div class="sec" id="s-content">
+    <div class="sec-back" onclick="goSec('hub')">
+      <svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg>
+      Разделы
+    </div>
+    <div class="sh">Контент-план</div>
+    <div class="list" id="ctlist"></div>
+    <div class="qadd">
+      <input id="ctii" placeholder="Идея для контента..." onkeydown="if(event.key==='Enter')addContent()">
+      <button class="badd" onclick="addContent()"><svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></button>
+    </div>
+  </div>
+
+  <!-- IDEAS -->
+  <div class="sec" id="s-ideas">
+    <div class="sec-back" onclick="goSec('hub')">
+      <svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg>
+      Разделы
+    </div>
+    <div class="sh">Идеи</div>
+    <button class="idea-ai-btn" onclick="aiStructureIdeas()">
+      <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/><path d="M4.93 4.93a10 10 0 0 0 0 14.14"/></svg>
+      Структурировать идеи с ИИ
+    </button>
+    <div class="list" id="idlist"></div>
+    <div class="qadd">
+      <input id="idii" placeholder="Новая идея..." onkeydown="if(event.key==='Enter')addIdea()">
+      <button class="badd" onclick="addIdea()"><svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></button>
+    </div>
+  </div>
+
+  <!-- FINANCE -->
+  <div class="sec" id="s-finance">
+    <div class="sec-back" onclick="goSec('hub')">
+      <svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg>
+      Разделы
+    </div>
+    <div class="sh">Финансы</div>
+    <div class="fin-sum">
+      <div class="fin-card fin-in"><div class="fv" id="finIn">0 ₽</div><div class="fl">Доходы (месяц)</div></div>
+      <div class="fin-card fin-out"><div class="fv" id="finOut">0 ₽</div><div class="fl">Расходы (месяц)</div></div>
+    </div>
+    <div class="fin-seg">
+      <button class="on" id="finBtnIn" onclick="setFinType('in')">+ Доход</button>
+      <button id="finBtnOut" onclick="setFinType('out')">− Расход</button>
+    </div>
+    <div id="finlist"></div>
+    <div class="qadd">
+      <input id="finii" placeholder="5000 Зарплата..." onkeydown="if(event.key==='Enter')addFin()">
+      <button class="badd" onclick="addFin()"><svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></button>
+    </div>
+  </div>
+
 </main>
 
 <!-- VOICE OVERLAY -->
@@ -534,9 +692,9 @@ body{background:var(--bg);color:var(--tx);
     <svg viewBox="0 0 24 24"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
     <span>Задачи</span>
   </button>
-  <button class="ni" onclick="sw('projects',this)">
-    <svg viewBox="0 0 24 24"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
-    <span>Проекты</span>
+  <button class="ni" onclick="sw('hub',this)">
+    <svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+    <span>Разделы</span>
   </button>
   <button class="ni" onclick="sw('notes',this)">
     <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
@@ -571,19 +729,28 @@ let tasks     = ls('tasks',    []);
 let notes     = ls('notes',    []);
 let sport     = ls('sport',    []);
 let projects  = ls('projects', []);
+let calendar  = ls('calendar', []);
+let content   = ls('content',  []);
+let ideas     = ls('ideas',    []);
+let finance   = ls('finance',  []);
 let chatHist  = ls('chatHist', []);
 let curProjId = null;
+let finType   = 'in';
 
 function save() {
   localStorage.setItem('tasks',    JSON.stringify(tasks));
   localStorage.setItem('notes',    JSON.stringify(notes));
   localStorage.setItem('sport',    JSON.stringify(sport));
   localStorage.setItem('projects', JSON.stringify(projects));
+  localStorage.setItem('calendar', JSON.stringify(calendar));
+  localStorage.setItem('content',  JSON.stringify(content));
+  localStorage.setItem('ideas',    JSON.stringify(ideas));
+  localStorage.setItem('finance',  JSON.stringify(finance));
   localStorage.setItem('chatHist', JSON.stringify(chatHist.slice(-60)));
   // Background sync to server (non-blocking, localStorage is primary)
   fetch(DATA_API, {
     method:'POST', headers:{'Content-Type':'application/json'},
-    body: JSON.stringify({ action:'setAll', sessionId:sid, data:{tasks,notes,sport,projects} })
+    body: JSON.stringify({ action:'setAll', sessionId:sid, data:{tasks,notes,sport,projects,calendar,content,ideas,finance} })
   }).catch(()=>{});
 }
 
@@ -601,7 +768,11 @@ async function loadFromServer() {
     if (d.notes?.length)    { notes    = d.notes;    localStorage.setItem('notes',    JSON.stringify(notes));    changed=true; }
     if (d.sport?.length)    { sport    = d.sport;    localStorage.setItem('sport',    JSON.stringify(sport));    changed=true; }
     if (d.projects?.length) { projects = d.projects; localStorage.setItem('projects', JSON.stringify(projects)); changed=true; }
-    if (changed) { renderT(); renderN(); renderS(); renderP(); }
+    if (d.calendar?.length) { calendar = d.calendar; localStorage.setItem('calendar', JSON.stringify(calendar)); changed=true; }
+    if (d.content?.length)  { content  = d.content;  localStorage.setItem('content',  JSON.stringify(content));  changed=true; }
+    if (d.ideas?.length)    { ideas    = d.ideas;     localStorage.setItem('ideas',    JSON.stringify(ideas));    changed=true; }
+    if (d.finance?.length)  { finance  = d.finance;   localStorage.setItem('finance',  JSON.stringify(finance));  changed=true; }
+    if (changed) { renderT(); renderN(); renderS(); renderP(); renderCal(); renderContent(); renderIdeas(); renderFin(); }
   } catch(e) {}
 }
 
@@ -612,10 +783,24 @@ function sw(name, btn) {
   document.getElementById('s-'+name).classList.add('on');
   btn.classList.add('on');
   curSec = name;
-  if (name==='tasks')    renderT();
-  if (name==='notes')    renderN();
-  if (name==='sport')    renderS();
+  if (name==='tasks')  renderT();
+  if (name==='notes')  renderN();
+  if (name==='sport')  renderS();
+  if (name==='hub')    renderHub();
+}
+
+// Navigate to sub-sections (no nav bar highlight change)
+function goSec(name) {
+  document.querySelectorAll('.sec').forEach(s => s.classList.remove('on'));
+  const el = document.getElementById('s-'+name);
+  if (el) el.classList.add('on');
+  curSec = name;
+  if (name==='hub')      renderHub();
   if (name==='projects') renderP();
+  if (name==='calendar') renderCal();
+  if (name==='content')  renderContent();
+  if (name==='ideas')    renderIdeas();
+  if (name==='finance')  renderFin();
 }
 
 // ══ CHAT ═════════════════════════════════════
@@ -1192,6 +1377,151 @@ function renderS(){
   </div>`).join('');
 }
 
+// ══ HUB ══════════════════════════════════════
+function renderHub() {
+  const ps = projects.length ? projects.length + ' ' + (projects.length===1?'проект':'проектов') : 'Нет проектов';
+  const upcoming = calendar.filter(e => new Date(e.date) >= new Date()).sort((a,b)=>a.date>b.date?1:-1);
+  const calSub = upcoming.length ? upcoming[0].text.slice(0,30) + (upcoming[0].text.length>30?'…':'') : 'Нет событий';
+  const ctPending = content.filter(e=>e.status!=='done').length;
+  const ctSub = ctPending ? ctPending + ' в работе' : (content.length ? content.length+' записей' : 'Нет записей');
+  const idSub = ideas.length ? ideas.length + ' ' + (ideas.length===1?'идея':'идей') : 'Нет идей';
+  const thisMonth = new Date().toISOString().slice(0,7);
+  const finIn  = finance.filter(e=>e.type==='in' &&e.date.startsWith(thisMonth)).reduce((s,e)=>s+e.amount,0);
+  const finOut = finance.filter(e=>e.type==='out'&&e.date.startsWith(thisMonth)).reduce((s,e)=>s+e.amount,0);
+  const finSub = finance.length ? `+${finIn.toLocaleString()} / −${finOut.toLocaleString()} ₽` : 'Нет записей';
+  const el = (id,v) => { const e=document.getElementById(id); if(e) e.textContent=v; };
+  el('hc-projects-sub', ps);
+  el('hc-calendar-sub', calSub);
+  el('hc-content-sub',  ctSub);
+  el('hc-ideas-sub',    idSub);
+  el('hc-finance-sub',  finSub);
+}
+
+// ══ CALENDAR ══════════════════════════════════
+function addCal() {
+  const di=document.getElementById('cal-date'), ti=document.getElementById('calii');
+  const dateVal=di.value, text=ti.value.trim();
+  if(!text) return;
+  const date = dateVal || new Date().toISOString().slice(0,10);
+  calendar.push({id:Date.now(), date, text});
+  calendar.sort((a,b)=>a.date>b.date?1:-1);
+  save(); renderCal(); ti.value='';
+}
+function delCal(id) { calendar=calendar.filter(x=>x.id!==id); save(); renderCal(); }
+function renderCal() {
+  const el=document.getElementById('callist'); if(!el) return;
+  if(!calendar.length){el.innerHTML=emptyH(`<svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>`,'Нет событий');return;}
+  const today=new Date().toISOString().slice(0,10);
+  el.innerHTML=calendar.map(e=>{
+    const past=e.date<today;
+    const disp=new Date(e.date+'T00:00').toLocaleDateString('ru',{day:'numeric',month:'long'});
+    return`<div class="cal-event" style="${past?'opacity:.5':''}">
+      <div class="ev-info"><div class="ev-date">${disp}</div><div class="ev-text">${esc(e.text)}</div></div>
+      <button class="ibtn" onclick="delCal(${e.id})">${xSvg()}</button>
+    </div>`;
+  }).join('');
+}
+
+// Set today as default date for calendar input on page load
+(function(){ const d=document.getElementById('cal-date'); if(d) d.value=new Date().toISOString().slice(0,10); })();
+
+// ══ CONTENT PLAN ══════════════════════════════
+const CT_STATUSES = ['idea','draft','done'];
+const CT_LABELS   = {idea:'Идея', draft:'В работе', done:'Готово'};
+function addContent() {
+  const e=document.getElementById('ctii'),v=e.value.trim(); if(!v) return;
+  content.unshift({id:Date.now(), text:v, status:'idea', d:td()});
+  save(); renderContent(); e.value='';
+}
+function delCt(id) { content=content.filter(x=>x.id!==id); save(); renderContent(); }
+function cycleCt(id) {
+  const item=content.find(x=>x.id===id); if(!item) return;
+  const i=CT_STATUSES.indexOf(item.status);
+  item.status=CT_STATUSES[(i+1)%CT_STATUSES.length];
+  save(); renderContent();
+}
+function renderContent() {
+  const el=document.getElementById('ctlist'); if(!el) return;
+  if(!content.length){el.innerHTML=emptyH(`<svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>`,'Нет контента');return;}
+  el.innerHTML=content.map(c=>`<div class="li">
+    <div style="flex:1">
+      <span class="ct-badge ct-${c.status}" onclick="cycleCt(${c.id})" title="Нажми для смены статуса">${CT_LABELS[c.status]}</span>
+      <span class="li-tx" style="display:inline">${esc(c.text)}</span>
+      <div class="li-sm">${c.d}</div>
+    </div>
+    <button class="ibtn" onclick="delCt(${c.id})">${xSvg()}</button>
+  </div>`).join('');
+}
+
+// ══ IDEAS ══════════════════════════════════════
+function addIdea() {
+  const e=document.getElementById('idii'),v=e.value.trim(); if(!v) return;
+  ideas.unshift({id:Date.now(), text:v, d:td()});
+  save(); renderIdeas(); e.value='';
+}
+function delId(id) { ideas=ideas.filter(x=>x.id!==id); save(); renderIdeas(); }
+function renderIdeas() {
+  const el=document.getElementById('idlist'); if(!el) return;
+  if(!ideas.length){el.innerHTML=emptyH(`<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><circle cx="12" cy="16" r="1" fill="currentColor"/></svg>`,'Нет идей');return;}
+  el.innerHTML=ideas.map(i=>`<div class="li">
+    <div style="flex:1"><div class="li-tx">${esc(i.text)}</div><div class="li-sm">${i.d}</div></div>
+    <button class="ibtn" onclick="delId(${i.id})">${xSvg()}</button>
+  </div>`).join('');
+}
+async function aiStructureIdeas() {
+  if(!ideas.length){toast('Нет идей для структурирования');return;}
+  const btn=document.querySelector('.idea-ai-btn');
+  btn.textContent='Анализирую...'; btn.disabled=true;
+  const ideaTexts=ideas.map(i=>i.text).join('\n');
+  try {
+    const r=await fetch(API,{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({section:'ideas',message:'Структурируй эти идеи по категориям и дай краткий анализ:\n'+ideaTexts,sessionId:sid,history:[]})});
+    const d=await r.json();
+    addMsg(d.reply||'…','b',true);
+    // Switch to chat to show AI response
+    document.querySelectorAll('.sec').forEach(s=>s.classList.remove('on'));
+    document.querySelectorAll('.ni').forEach(b=>b.classList.remove('on'));
+    document.getElementById('s-chat').classList.add('on');
+    document.querySelector('.ni').classList.add('on');
+    curSec='chat';
+  } catch(e){ toast('Ошибка: '+e.message); }
+  btn.innerHTML=`<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/><path d="M4.93 4.93a10 10 0 0 0 0 14.14"/></svg> Структурировать идеи с ИИ`;
+  btn.disabled=false;
+}
+
+// ══ FINANCE ════════════════════════════════════
+function setFinType(t) {
+  finType=t;
+  document.getElementById('finBtnIn').classList.toggle('on',  t==='in');
+  document.getElementById('finBtnOut').classList.toggle('on', t==='out');
+}
+function addFin() {
+  const e=document.getElementById('finii'),v=e.value.trim(); if(!v) return;
+  const m=v.match(/^(\d+[\d\s,.]*)/);
+  const amount=m?parseFloat(m[1].replace(/[\s,]/g,'.')):0;
+  const text=amount?v.replace(/^[\d\s,.]+/,'').trim()||v:v;
+  const date=new Date().toISOString().slice(0,10);
+  finance.unshift({id:Date.now(), type:finType, amount, text, date, d:td()});
+  save(); renderFin(); e.value='';
+}
+function delFin(id) { finance=finance.filter(x=>x.id!==id); save(); renderFin(); }
+function renderFin() {
+  const el=document.getElementById('finlist'); if(!el) return;
+  const thisMonth=new Date().toISOString().slice(0,7);
+  const mIn  = finance.filter(e=>e.type==='in' &&e.date.startsWith(thisMonth)).reduce((s,e)=>s+e.amount,0);
+  const mOut = finance.filter(e=>e.type==='out'&&e.date.startsWith(thisMonth)).reduce((s,e)=>s+e.amount,0);
+  const fv=document.getElementById('finIn'),  fo=document.getElementById('finOut');
+  if(fv) fv.textContent=mIn.toLocaleString('ru')+'  ₽';
+  if(fo) fo.textContent=mOut.toLocaleString('ru')+' ₽';
+  if(!finance.length){el.innerHTML=emptyH(`<svg viewBox="0 0 24 24"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>`,'Нет записей');return;}
+  el.innerHTML=finance.map(e=>`<div class="fin-item">
+    <div class="fa ${e.type==='in'?'fi-in-bg':'fi-out-bg'}">${e.type==='in'?'💰':'💸'}</div>
+    <div class="fd"><div class="ft">${esc(e.text)}</div><div class="fs">${e.d}</div></div>
+    <div class="famt ${e.type==='in'?'famt-in':'famt-out'}">${e.type==='in'?'+':'−'}${e.amount.toLocaleString('ru')} ₽</div>
+    <button class="ibtn" style="margin-left:6px" onclick="delFin(${e.id})">${xSvg()}</button>
+  </div>`).join('');
+}
+
 // ══ UTILS ════════════════════════════════════
 function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
 function td(){return new Date().toLocaleDateString('ru');}
@@ -1232,6 +1562,7 @@ document.getElementById('pm').addEventListener('click',function(e){if(e.target==
 
 loadChat();
 renderT(); renderN(); renderS(); renderP();
+renderCal(); renderContent(); renderIdeas(); renderFin(); renderHub();
 initVoices();
 loadFromServer(); // sync from server in background
 if('serviceWorker' in navigator) navigator.serviceWorker.register('/app/sw.js').catch(()=>{});

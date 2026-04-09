@@ -1184,17 +1184,28 @@ document.getElementById('pm').addEventListener('click',function(e){if(e.target==
 
 // Swipe right to close voice overlay
 (function(){
-  let sx=0, sy=0;
+  let sx=0, sy=0, swiping=false, fired=false;
   const vo = document.getElementById('vo');
+
   vo.addEventListener('touchstart', e=>{
     sx = e.touches[0].clientX;
     sy = e.touches[0].clientY;
+    swiping = true; fired = false;
   }, {passive:true});
-  vo.addEventListener('touchend', e=>{
-    const dx = e.changedTouches[0].clientX - sx;
-    const dy = Math.abs(e.changedTouches[0].clientY - sy);
-    if (dx > 72 && dy < 60) closeVoice();
+
+  vo.addEventListener('touchmove', e=>{
+    if (!swiping || fired) return;
+    const dx = e.touches[0].clientX - sx;
+    const dy = Math.abs(e.touches[0].clientY - sy);
+    // Close as soon as swipe is clearly horizontal and > 60px
+    if (dx > 60 && dy < dx * 0.7) {
+      fired = true; swiping = false;
+      closeVoice();
+    }
   }, {passive:true});
+
+  vo.addEventListener('touchend',    ()=>{ swiping=false; }, {passive:true});
+  vo.addEventListener('touchcancel', ()=>{ swiping=false; }, {passive:true});
 })();
 
 loadChat();

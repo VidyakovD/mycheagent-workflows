@@ -155,7 +155,7 @@
       "typeVersion": 2,
       "position": [1960, 300],
       "parameters": {
-        "jsCode": "const gpt = $input.first().json;\nconst text = gpt.choices?.[0]?.message?.content || 'Не удалось получить ответ';\nconst prev = $('Prep Voice').outputIndex === 0\n  ? $('Prep Voice').item.json\n  : $('Prep Text').item.json;\nconst chatId = prev?.chatId || $('Router').item.json.chatId;\nconst isVoice = prev?.isVoice || false;\nreturn [{ json: { chatId, text, isVoice } }];"
+        "jsCode": "const gpt = $input.first().json;\nconst text = gpt.choices?.[0]?.message?.content || 'Не удалось получить ответ';\nconst chatId = $('Router').item.json.chatId;\nconst isVoice = $('Router').item.json.isVoice;\nreturn [{ json: { chatId, text, isVoice } }];"
       }
     },
     {

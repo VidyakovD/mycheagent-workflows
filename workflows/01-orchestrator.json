@@ -1,23 +1,20 @@
 {
   "name": "01-orchestrator",
+  "id": "orchestrator-001",
+  "active": true,
+  "settings": { "executionOrder": "v1" },
   "nodes": [
     {
-      "parameters": {
-        "updates": [
-          "message"
-        ],
-        "additionalFields": {},
-        "webhookId": "mycheagent-main-bot"
-      },
       "id": "n1",
       "name": "Telegram Trigger",
       "type": "n8n-nodes-base.telegramTrigger",
       "typeVersion": 1.1,
-      "position": [
-        200,
-        400
-      ],
+      "position": [200, 300],
       "webhookId": "mycheagent-main-bot",
+      "parameters": {
+        "updates": ["message"],
+        "additionalFields": {}
+      },
       "credentials": {
         "telegramApi": {
           "id": "fbg2O80BR8u1tCRB",
@@ -26,325 +23,175 @@
       }
     },
     {
-      "parameters": {
-        "jsCode": "const msg = $input.first().json?.message;\nif (!msg) return [];\n\nconst isVoice = !!msg.voice;\nconst isText  = !!msg.text;\nif (!isVoice && !isText) return [];\n\nreturn [{ json: {\n  chatId:   msg.chat.id,\n  userId:   msg.from?.id,\n  username: msg.from?.first_name || '\u0420\u045f\u0420\u0455\u0420\u00bb\u0421\u040a\u0420\u00b7\u0420\u0455\u0420\u0406\u0420\u00b0\u0421\u201a\u0420\u00b5\u0420\u00bb\u0421\u040a',\n  isVoice,\n  text:     msg.text || '',\n  fileId:   isVoice ? msg.voice.file_id : null\n}}];"
-      },
       "id": "n2",
-      "name": "Parse Message",
+      "name": "Router",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [
-        420,
-        400
-      ]
+      "position": [420, 300],
+      "parameters": {
+        "jsCode": "const msg = $input.first().json?.message;\nif (!msg) return [];\n\nconst chatId = msg.chat.id;\nconst isVoice = !!msg.voice;\nconst isText = !!msg.text;\n\nif (!isVoice && !isText) return [];\n\nreturn [{\n  json: {\n    chatId,\n    isVoice,\n    text: msg.text || '',\n    fileId: isVoice ? msg.voice.file_id : null\n  }\n}];"
+      }
     },
     {
-      "parameters": {
-        "conditions": {
-          "options": {
-            "caseSensitive": true,
-            "leftValue": "",
-            "typeValidation": "strict"
-          },
-          "conditions": [
-            {
-              "id": "voice-check",
-              "leftValue": "={{ $json.isVoice }}",
-              "rightValue": true,
-              "operator": {
-                "type": "boolean",
-                "operation": "true"
-              }
-            }
-          ],
-          "combinator": "and"
-        },
-        "options": {}
-      },
       "id": "n3",
       "name": "Is Voice?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2,
-      "position": [
-        640,
-        400
-      ]
-    },
-    {
+      "position": [640, 300],
       "parameters": {
-        "url": "={{ 'https://api.telegram.org/bot' + $env.TELEGRAM_BOT_TOKEN + '/getFile' }}",
-        "sendQuery": true,
-        "queryParameters": {
-          "parameters": [
-            {
-              "name": "file_id",
-              "value": "={{ $json.fileId }}"
-            }
-          ]
+        "conditions": {
+          "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "strict" },
+          "conditions": [{
+            "id": "c1",
+            "leftValue": "={{ $json.isVoice }}",
+            "rightValue": true,
+            "operator": { "type": "boolean", "operation": "true" }
+          }],
+          "combinator": "and"
         },
         "options": {}
-      },
-      "id": "n4",
-      "name": "Get File URL",
-      "type": "n8n-nodes-base.httpRequest",
-      "typeVersion": 4.2,
-      "position": [
-        860,
-        200
-      ]
+      }
     },
     {
+      "id": "n4",
+      "name": "Get TG File",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [860, 160],
+      "parameters": {
+        "url": "={{ 'https://api.telegram.org/bot' + $env.TELEGRAM_BOT_TOKEN + '/getFile?file_id=' + $json.fileId }}",
+        "options": {}
+      }
+    },
+    {
+      "id": "n5",
+      "name": "Download Voice",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1080, 160],
       "parameters": {
         "url": "={{ 'https://api.telegram.org/file/bot' + $env.TELEGRAM_BOT_TOKEN + '/' + $json.result.file_path }}",
         "options": {
           "response": {
-            "response": {
-              "responseFormat": "file",
-              "outputPropertyName": "data"
-            }
+            "response": { "responseFormat": "file", "outputPropertyName": "data" }
           }
         }
-      },
-      "id": "n5",
-      "name": "Download Audio",
-      "type": "n8n-nodes-base.httpRequest",
-      "typeVersion": 4.2,
-      "position": [
-        1080,
-        200
-      ]
+      }
     },
     {
+      "id": "n6",
+      "name": "Whisper",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1300, 160],
       "parameters": {
         "method": "POST",
         "url": "https://api.openai.com/v1/audio/transcriptions",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
-            {
-              "name": "Authorization",
-              "value": "={{ 'Bearer ' + $env.OPENAI_API_KEY }}"
-            }
+            { "name": "Authorization", "value": "={{ 'Bearer ' + $env.OPENAI_API_KEY }}" }
           ]
         },
         "sendBody": true,
         "contentType": "multipart-form-data",
         "bodyParameters": {
           "parameters": [
-            {
-              "name": "model",
-              "value": "whisper-1",
-              "parameterType": "formData"
-            },
-            {
-              "name": "language",
-              "value": "ru",
-              "parameterType": "formData"
-            },
-            {
-              "name": "file",
-              "value": "data",
-              "parameterType": "formBinaryData",
-              "inputDataFieldName": "data"
-            }
+            { "name": "model", "value": "whisper-1", "parameterType": "formData" },
+            { "name": "language", "value": "ru", "parameterType": "formData" },
+            { "name": "file", "value": "data", "parameterType": "formBinaryData", "inputDataFieldName": "data" }
           ]
         },
         "options": {}
-      },
-      "id": "n6",
-      "name": "Whisper STT",
+      }
+    },
+    {
+      "id": "n7",
+      "name": "Prep Voice",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1520, 160],
+      "parameters": {
+        "jsCode": "const chatId = $('Router').item.json.chatId;\nconst text = $input.first().json.text;\nreturn [{ json: { chatId, userText: text, isVoice: true } }];"
+      }
+    },
+    {
+      "id": "n8",
+      "name": "Prep Text",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [860, 440],
+      "parameters": {
+        "jsCode": "const d = $input.first().json;\nreturn [{ json: { chatId: d.chatId, userText: d.text, isVoice: false } }];"
+      }
+    },
+    {
+      "id": "n9",
+      "name": "GPT",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [
-        1300,
-        200
-      ]
-    },
-    {
-      "parameters": {
-        "jsCode": "const whisper = $input.first().json;\nconst src = $('Parse Message').item.json;\nreturn [{ json: {\n  userText: whisper.text,\n  chatId:   src.chatId,\n  userId:   src.userId,\n  username: src.username,\n  isVoice:  true\n}}];"
-      },
-      "id": "n7",
-      "name": "Set Voice Input",
-      "type": "n8n-nodes-base.code",
-      "typeVersion": 2,
-      "position": [
-        1520,
-        200
-      ]
-    },
-    {
-      "parameters": {
-        "jsCode": "const d = $input.first().json;\nreturn [{ json: {\n  userText: d.text,\n  chatId:   d.chatId,\n  userId:   d.userId,\n  username: d.username,\n  isVoice:  false\n}}];"
-      },
-      "id": "n8",
-      "name": "Set Text Input",
-      "type": "n8n-nodes-base.code",
-      "typeVersion": 2,
-      "position": [
-        860,
-        600
-      ]
-    },
-    {
-      "parameters": {
-        "jsCode": "// ===== MEMORY + AGENTS + LLM REQUEST =====\nconst d = $input.first().json;\nconst staticData = $getWorkflowStaticData('global');\nconst userId = d.userId || d.chatId;\n\n// Load conversation history\nconst history = staticData.history || {};\nconst userHistory = history[userId] || [];\n\n// Route: determine agent based on user intent\nconst text = d.userText.toLowerCase();\nlet agent = 'general';\n\nif (text.match(/.*(\u0420\u0405\u0420\u00b0\u0420\u2116\u0420\u0491\u0420\u0451|\u0420\u0457\u0420\u0455\u0420\u0451\u0421\u0403\u0420\u0454|\u0420\u0456\u0421\u0453\u0420\u0456\u0420\u00bb|search|\u0420\u0405\u0420\u00b0\u0420\u2116\u0420\u0491|\u0420\u0451\u0420\u0405\u0421\u201a\u0420\u00b5\u0421\u0402\u0420\u0405\u0420\u00b5\u0421\u201a|\u0421\u0453\u0420\u00b7\u0420\u0405\u0420\u00b0\u0420\u2116).*/)) {\n  agent = 'search';\n} else if (text.match(/.*(\u0420\u0405\u0420\u00b0\u0420\u0457\u0420\u0455\u0420\u0458\u0420\u0405|\u0420\u00b1\u0421\u0453\u0420\u0491\u0420\u0451\u0420\u00bb\u0421\u040a\u0420\u0405\u0420\u0451\u0420\u0454|\u0421\u201a\u0420\u00b0\u0420\u2116\u0420\u0458\u0420\u00b5\u0421\u0402|\u0421\u2021\u0420\u00b5\u0421\u0402\u0420\u00b5\u0420\u00b7 ).*/)) {\n  agent = 'reminder';\n} else if (text.match(/.*(\u0420\u00b7\u0420\u00b0\u0420\u0491\u0420\u00b0\u0421\u2021|task|todo list|\u0421\u0403\u0420\u0457\u0420\u0451\u0421\u0403\u0420\u0455\u0420\u0454 \u0420\u0491\u0420\u00b5\u0420\u00bb|\u0420\u0457\u0420\u0455\u0420\u0454\u0420\u00b0\u0420\u00b6\u0420\u0451 \u0420\u00b7\u0420\u00b0\u0420\u0491\u0420\u00b0\u0421\u2021).*/)) {\n  agent = 'tasks';\n} else if (text.match(/.*(\u0420\u0454\u0420\u00b0\u0420\u00bb\u0420\u00b5\u0420\u0405\u0420\u0491\u0420\u00b0\u0421\u0402|calendar|\u0420\u0406\u0421\u0403\u0421\u201a\u0421\u0402\u0420\u00b5\u0421\u2021|\u0421\u0403\u0420\u0455\u0420\u00b1\u0421\u2039\u0421\u201a\u0420\u0451\u0420\u00b5|\u0421\u0402\u0420\u00b0\u0421\u0403\u0420\u0457\u0420\u0451\u0421\u0403\u0420\u00b0\u0420\u0405).*/)) {\n  agent = 'calendar';\n}\n\n// Agent: Tasks (CRUD)\nif (agent === 'tasks') {\n  const tasks = staticData.tasks || {};\n  if (!tasks[userId]) tasks[userId] = [];\n\n  const lower = d.userText.toLowerCase();\n  let reply = '';\n\n  if (lower.match(/^\u0420\u0491\u0420\u0455\u0420\u00b1\u0420\u00b0\u0420\u0406\u0421\u040a |^\u0420\u0491\u0420\u0455\u0420\u00b1\u0420\u00b0\u0420\u0406\u0420\u0451\u0421\u201a\u0421\u040a |^\u0420\u0405\u0420\u0455\u0420\u0406\u0420\u00b0\u0421\u040f \u0420\u00b7\u0420\u00b0\u0420\u0491\u0420\u00b0\u0421\u2021\u0420\u00b0 |^todo /i)) {\n    const taskText = d.userText.replace(/^(\u0420\u0491\u0420\u0455\u0420\u00b1\u0420\u00b0\u0420\u0406\u0421\u040a |\u0420\u0491\u0420\u0455\u0420\u00b1\u0420\u00b0\u0420\u0406\u0420\u0451\u0421\u201a\u0421\u040a |\u0420\u0405\u0420\u0455\u0420\u0406\u0420\u00b0\u0421\u040f \u0420\u00b7\u0420\u00b0\u0420\u0491\u0420\u00b0\u0421\u2021\u0420\u00b0 |todo )/i, '').trim();\n    tasks[userId].push({ id: Date.now(), text: taskText, done: false });\n    reply = '\u0420\u201d\u0420\u0455\u0420\u00b1\u0420\u00b0\u0420\u0406\u0420\u00bb\u0420\u00b5\u0420\u0405\u0420\u00b0: ' + taskText + '\\n\u0420\u2019\u0421\u0403\u0420\u00b5\u0420\u0456\u0420\u0455 \u0420\u00b7\u0420\u00b0\u0420\u0491\u0420\u00b0\u0421\u2021: ' + tasks[userId].length;\n  } else if (lower.match(/^\u0420\u0406\u0421\u2039\u0420\u0457\u0420\u0455\u0420\u00bb\u0420\u0405\u0420\u0451 |^\u0421\u0403\u0420\u0491\u0420\u00b5\u0420\u00bb\u0420\u00b0\u0420\u00bb |^\u0421\u0453\u0420\u0491\u0420\u00b0\u0420\u00bb\u0420\u0451 |^\u0420\u0406\u0421\u2039\u0420\u0457\u0420\u0455\u0420\u00bb\u0420\u0405\u0420\u0451\u0420\u00bb /i)) {\n    const num = parseInt(text.match(/\\d+/)?.[0]);\n    if (num && tasks[userId][num - 1]) {\n      const t = tasks[userId][num - 1];\n      if (lower.startsWith('\u0421\u0453\u0420\u0491\u0420\u00b0\u0420\u00bb\u0420\u0451')) {\n        tasks[userId].splice(num - 1, 1);\n        reply = '\u0420\u0408\u0420\u0491\u0420\u00b0\u0420\u00bb\u0420\u00b5\u0420\u0405\u0420\u00b0: ' + t.text;\n      } else {\n        t.done = true;\n        reply = '\u0420\u2019\u0421\u2039\u0420\u0457\u0420\u0455\u0420\u00bb\u0420\u0405\u0420\u00b5\u0420\u0405\u0420\u0455: ' + t.text;\n      }\n    } else {\n      reply = '\u0420\u045c\u0420\u00b5 \u0420\u0405\u0420\u00b0\u0421\u20ac\u0421\u2018\u0420\u00bb \u0420\u00b7\u0420\u00b0\u0420\u0491\u0420\u00b0\u0421\u2021\u0421\u0453 \u0421\u0403 \u0421\u201a\u0420\u00b0\u0420\u0454\u0420\u0451\u0420\u0458 \u0420\u0405\u0420\u0455\u0420\u0458\u0420\u00b5\u0421\u0402\u0420\u0455\u0420\u0458.';\n    }\n  } else if (lower.match(/^\u0421\u0403\u0420\u0457\u0420\u0451\u0421\u0403\u0420\u0455\u0420\u0454 |^\u0420\u00b7\u0420\u00b0\u0420\u0491\u0420\u00b0\u0421\u2021|^todo list|^\u0420\u0457\u0420\u0455\u0420\u0454\u0420\u00b0\u0420\u00b6/i)) {\n    const list = tasks[userId].map((t, i) => (t.done ? '\u0432\u045a\u2026' : '\u0432\u00ac\u045a') + ' ' + (i+1) + '. ' + t.text).join('\\n');\n    reply = list || '\u0420\u040e\u0420\u0457\u0420\u0451\u0421\u0403\u0420\u0455\u0420\u0454 \u0420\u00b7\u0420\u00b0\u0420\u0491\u0420\u00b0\u0421\u2021 \u0420\u0457\u0421\u0453\u0421\u0403\u0421\u201a. \u0420\u040e\u0420\u0454\u0420\u00b0\u0420\u00b6\u0420\u0451 \"\u0420\u0491\u0420\u0455\u0420\u00b1\u0420\u00b0\u0420\u0406\u0421\u040a \u0420\u00b7\u0420\u00b0\u0420\u0491\u0420\u00b0\u0421\u2021\u0421\u0453 ...\"';\n  }\n\n  if (reply) {\n    staticData.tasks = tasks;\n    return [{ json: { ...d, userId, agent, text: reply, bypassLLM: true }}];\n  }\n}\n\n// Agent: Reminder\nif (agent === 'reminder') {\n  const reminders = staticData.reminders || {};\n  if (!reminders[userId]) reminders[userId] = [];\n\n  const relMatch = text.match(/\u0421\u2021\u0420\u00b5\u0421\u0402\u0420\u00b5\u0420\u00b7\\s+(\\d+)\\s+(\u0420\u0458\u0420\u0451\u0420\u0405\u0421\u0453\u0421\u201a|\u0421\u2021\u0420\u00b0\u0421\u0403\u0420\u0455\u0420\u0406|\u0421\u0403\u0420\u00b5\u0420\u0454\u0421\u0453\u0420\u0405\u0420\u0491|\u0420\u0458\u0420\u0451\u0420\u0405\u0421\u0453\u0421\u201a\u0421\u0453|\u0421\u2021\u0420\u00b0\u0421\u0403)/i);\n  if (relMatch) {\n    const amount = parseInt(relMatch[1]);\n    const unit = relMatch[2].toLowerCase();\n    let ms = amount * 60000;\n    if (unit.startsWith('\u0421\u2021\u0420\u00b0\u0421\u0403')) ms = amount * 3600000;\n    else if (unit.startsWith('\u0421\u0403\u0420\u00b5\u0420\u0454')) ms = amount * 1000;\n\n    const reminderText = d.userText.replace(/.*?(\u0420\u0405\u0420\u00b0\u0420\u0457\u0420\u0455\u0420\u0458\u0420\u0405\u0420\u0451|\u0420\u0405\u0420\u00b0\u0420\u0457\u0420\u0455\u0420\u0458\u0420\u0405\u0420\u0451 \u0420\u0458\u0420\u0405\u0420\u00b5).*/i, '').trim() || '\u0420\u045c\u0420\u00b0\u0420\u0457\u0420\u0455\u0420\u0458\u0420\u0451\u0420\u0405\u0420\u00b0\u0420\u0405\u0420\u0451\u0420\u00b5';\n    const fireTime = new Date(Date.now() + ms).toISOString();\n    reminders[userId].push({ id: Date.now(), text: reminderText, fireAt: fireTime });\n    staticData.reminders = reminders;\n\n    const unitStr = unit.startsWith('\u0421\u2021\u0420\u00b0\u0421\u0403') ? '\u0421\u2021\u0420\u00b0\u0421\u0403(\u0420\u0455\u0420\u0406)' : (unit.startsWith('\u0421\u0403\u0420\u00b5\u0420\u0454') ? '\u0421\u0403\u0420\u00b5\u0420\u0454\u0421\u0453\u0420\u0405\u0420\u0491' : '\u0420\u0458\u0420\u0451\u0420\u0405\u0421\u0453\u0421\u201a');\n    const reply = '\u0420\u045c\u0420\u00b0\u0420\u0457\u0420\u0455\u0420\u0458\u0420\u0405\u0421\u040b \u0421\u2021\u0420\u00b5\u0421\u0402\u0420\u00b5\u0420\u00b7 ' + amount + ' ' + unitStr + ': ' + reminderText;\n    return [{ json: { ...d, userId, agent, text: reply, bypassLLM: true }}];\n  }\n\n  const timeMatch = text.match(/\u0420\u0406\\s+(\\d{1,2})[:\\.](\\d{2})/);\n  if (timeMatch) {\n    const h = parseInt(timeMatch[1]);\n    const m = parseInt(timeMatch[2]);\n    const now = new Date();\n    const fire = new Date(now.getFullYear(), now.getMonth(), now.getDate(), h, m);\n    if (fire <= now) fire.setDate(fire.getDate() + 1);\n\n    const reminderText = d.userText.replace(/.*?(\u0420\u0405\u0420\u00b0\u0420\u0457\u0420\u0455\u0420\u0458\u0420\u0405\u0420\u0451|\u0420\u0405\u0420\u00b0\u0420\u0457\u0420\u0455\u0420\u0458\u0420\u0405\u0420\u0451 \u0420\u0458\u0420\u0405\u0420\u00b5).*/i, '').trim() || '\u0420\u045c\u0420\u00b0\u0420\u0457\u0420\u0455\u0420\u0458\u0420\u0451\u0420\u0405\u0420\u00b0\u0420\u0405\u0420\u0451\u0420\u00b5';\n    reminders[userId].push({ id: Date.now(), text: reminderText, fireAt: fire.toISOString() });\n    staticData.reminders = reminders;\n\n    const reply = '\u0420\u045c\u0420\u00b0\u0420\u0457\u0420\u0455\u0420\u0458\u0420\u0405\u0421\u040b \u0420\u0406 ' + String(h).padStart(2,'0') + ':' + String(m).padStart(2,'0') + ': ' + reminderText;\n    return [{ json: { ...d, userId, agent, text: reply, bypassLLM: true }}];\n  }\n}\n\n// Agent: Search\nif (agent === 'search') {\n  const https = require('https');\n  const searchQuery = d.userText.replace(/.*(\u0420\u0405\u0420\u00b0\u0420\u2116\u0420\u0491\u0420\u0451|\u0420\u0457\u0420\u0455\u0420\u0451\u0421\u0403\u0420\u0454|\u0420\u0456\u0421\u0453\u0420\u0456\u0420\u00bb|search|\u0420\u0405\u0420\u00b0\u0420\u2116\u0420\u0491|\u0421\u0453\u0420\u00b7\u0420\u0405\u0420\u00b0\u0420\u2116).*/i, '').trim() || d.userText;\n\n  try {\n    const html = await new Promise((resolve, reject) => {\n      const url = 'https://html.duckduckgo.com/html/?q=' + encodeURIComponent(searchQuery);\n      https.get(url, { headers: { 'User-Agent': 'Mozilla/5.0' }}, (res) => {\n        let data = '';\n        res.on('data', chunk => data += chunk);\n        res.on('end', () => resolve(data));\n      }).on('error', reject);\n    });\n\n    const results = [];\n    const regex = /<a[^>]+class=\"result__a\"[^>]*href=\"([^\"]+)\"[^>]*>([^<]+)<\\/a>[\\s\\S]*?<a[^>]+class=\"result__snippet\"[^>]*>([\\s\\S]*?)<\\/a>/gi;\n    let match;\n    let count = 0;\n    while ((match = regex.exec(html)) !== null && count < 3) {\n      const snippet = match[3].replace(/<[^>]+>/g, '').trim();\n      if (snippet) {\n        results.push(match[2] + ': ' + snippet);\n        count++;\n      }\n    }\n\n    const searchResult = results.length > 0 ? results.join('\\n\\n') : '\u0420\u045c\u0420\u0451\u0421\u2021\u0420\u00b5\u0420\u0456\u0420\u0455 \u0420\u0405\u0420\u00b5 \u0420\u0405\u0420\u00b0\u0420\u2116\u0420\u0491\u0420\u00b5\u0420\u0405\u0420\u0455.';\n    return [{ json: { ...d, userId, agent, searchResult, searchQuery, bypassLLM: false }}];\n  } catch (e) {\n    return [{ json: { ...d, userId, agent: 'general', searchResult: null, bypassLLM: false }}];\n  }\n}\n\n// Default: go to LLM\nreturn [{ json: { ...d, userId, agent, bypassLLM: false }}];"
-      },
-      "id": "n9",
-      "name": "Memory + Agents",
-      "type": "n8n-nodes-base.code",
-      "typeVersion": 2,
-      "position": [
-        1740,
-        400
-      ]
-    },
-    {
-      "parameters": {
-        "conditions": {
-          "options": {
-            "caseSensitive": true,
-            "leftValue": "",
-            "typeValidation": "strict"
-          },
-          "conditions": [
-            {
-              "id": "bypass-llm",
-              "leftValue": "={{ $json.bypassLLM }}",
-              "rightValue": true,
-              "operator": {
-                "type": "boolean",
-                "operation": "true"
-              }
-            }
-          ],
-          "combinator": "and"
-        },
-        "options": {}
-      },
-      "id": "n24",
-      "name": "Bypass LLM?",
-      "type": "n8n-nodes-base.if",
-      "typeVersion": 2,
-      "position": [
-        1960,
-        400
-      ]
-    },
-    {
-      "parameters": {
-        "jsCode": "// Build LLM request with conversation history\nconst d = $input.first().json;\nconst staticData = $getWorkflowStaticData('global');\nconst userId = d.userId;\nconst userHistory = (staticData.history || {})[userId] || [];\n\n// Build system prompt based on agent\nconst systemPrompts = {\n  search: '\u0420\u045e\u0421\u2039 \u0420\u00b0\u0421\u0403\u0421\u0403\u0420\u0451\u0421\u0403\u0421\u201a\u0420\u00b5\u0420\u0405\u0421\u201a \u0421\u0403 \u0421\u0402\u0420\u00b5\u0420\u00b7\u0421\u0453\u0420\u00bb\u0421\u040a\u0421\u201a\u0420\u00b0\u0421\u201a\u0420\u00b0\u0420\u0458\u0420\u0451 \u0420\u0457\u0420\u0455\u0420\u0451\u0421\u0403\u0420\u0454\u0420\u00b0. \u0420\u040e\u0421\u0453\u0420\u0458\u0420\u0458\u0420\u0451\u0421\u0402\u0421\u0453\u0420\u2116 \u0420\u0405\u0420\u00b0\u0420\u2116\u0420\u0491\u0420\u00b5\u0420\u0405\u0420\u0405\u0420\u0455\u0420\u00b5 \u0420\u0454\u0421\u0402\u0420\u00b0\u0421\u201a\u0420\u0454\u0420\u0455, \u0420\u0457\u0420\u0455-\u0421\u0402\u0421\u0453\u0421\u0403\u0421\u0403\u0420\u0454\u0420\u0451. \u0420\u040e\u0421\u0403\u0421\u2039\u0420\u00bb\u0420\u00b0\u0420\u2116\u0421\u0403\u0421\u040f \u0420\u0405\u0420\u00b0 \u0420\u0451\u0421\u0403\u0421\u201a\u0420\u0455\u0421\u2021\u0420\u0405\u0420\u0451\u0420\u0454\u0420\u0451.\\n\\n' + (d.searchResult || ''),\n  tasks: '\u0420\u045e\u0421\u2039 \u0420\u00b0\u0421\u0403\u0421\u0403\u0420\u0451\u0421\u0403\u0421\u201a\u0420\u00b5\u0420\u0405\u0421\u201a \u0420\u0457\u0420\u0455 \u0420\u00b7\u0420\u00b0\u0420\u0491\u0420\u00b0\u0421\u2021\u0420\u00b0\u0420\u0458. \u0420\u045f\u0420\u0455\u0420\u0458\u0420\u0455\u0420\u0456\u0420\u00b0\u0420\u2116 \u0421\u0453\u0420\u0457\u0421\u0402\u0420\u00b0\u0420\u0406\u0420\u00bb\u0421\u040f\u0421\u201a\u0421\u040a \u0421\u0403\u0420\u0457\u0420\u0451\u0421\u0403\u0420\u0454\u0420\u0455\u0420\u0458 \u0420\u0491\u0420\u00b5\u0420\u00bb. \u0420\u045b\u0421\u201a\u0420\u0406\u0420\u00b5\u0421\u2021\u0420\u00b0\u0420\u2116 \u0420\u0454\u0421\u0402\u0420\u00b0\u0421\u201a\u0420\u0454\u0420\u0455, \u0420\u0457\u0420\u0455-\u0421\u0402\u0421\u0453\u0421\u0403\u0421\u0403\u0420\u0454\u0420\u0451.',\n  reminder: '\u0420\u045e\u0421\u2039 \u0420\u00b0\u0421\u0403\u0421\u0403\u0420\u0451\u0421\u0403\u0421\u201a\u0420\u00b5\u0420\u0405\u0421\u201a \u0420\u0457\u0420\u0455 \u0420\u0405\u0420\u00b0\u0420\u0457\u0420\u0455\u0420\u0458\u0420\u0451\u0420\u0405\u0420\u00b0\u0420\u0405\u0420\u0451\u0421\u040f\u0420\u0458. \u0420\u045f\u0420\u0455\u0420\u0458\u0420\u0455\u0420\u0456\u0420\u0451 \u0420\u0457\u0420\u0455\u0420\u00bb\u0421\u040a\u0420\u00b7\u0420\u0455\u0420\u0406\u0420\u00b0\u0421\u201a\u0420\u00b5\u0420\u00bb\u0421\u040b \u0421\u0453\u0421\u0403\u0421\u201a\u0420\u00b0\u0420\u0405\u0420\u0455\u0420\u0406\u0420\u0451\u0421\u201a\u0421\u040a \u0420\u0405\u0420\u00b0\u0420\u0457\u0420\u0455\u0420\u0458\u0420\u0451\u0420\u0405\u0420\u00b0\u0420\u0405\u0420\u0451\u0420\u00b5. \u0420\u045b\u0421\u201a\u0420\u0406\u0420\u00b5\u0421\u2021\u0420\u00b0\u0420\u2116 \u0420\u0454\u0421\u0402\u0420\u00b0\u0421\u201a\u0420\u0454\u0420\u0455, \u0420\u0457\u0420\u0455-\u0421\u0402\u0421\u0453\u0421\u0403\u0421\u0403\u0420\u0454\u0420\u0451.',\n  calendar: '\u0420\u045e\u0421\u2039 \u0420\u00b0\u0421\u0403\u0421\u0403\u0420\u0451\u0421\u0403\u0421\u201a\u0420\u00b5\u0420\u0405\u0421\u201a \u0420\u0457\u0420\u0455 \u0420\u0454\u0420\u00b0\u0420\u00bb\u0420\u00b5\u0420\u0405\u0420\u0491\u0420\u00b0\u0421\u0402\u0421\u040b. \u0420\u045f\u0420\u0455\u0420\u0458\u0420\u0455\u0420\u0456\u0420\u00b0\u0420\u2116 \u0421\u0403 \u0421\u0402\u0420\u00b0\u0421\u0403\u0420\u0457\u0420\u0451\u0421\u0403\u0420\u00b0\u0420\u0405\u0420\u0451\u0420\u00b5\u0420\u0458 \u0420\u0451 \u0420\u0406\u0421\u0403\u0421\u201a\u0421\u0402\u0420\u00b5\u0421\u2021\u0420\u00b0\u0420\u0458\u0420\u0451. \u0420\u045b\u0421\u201a\u0420\u0406\u0420\u00b5\u0421\u2021\u0420\u00b0\u0420\u2116 \u0420\u0454\u0421\u0402\u0420\u00b0\u0421\u201a\u0420\u0454\u0420\u0455, \u0420\u0457\u0420\u0455-\u0421\u0402\u0421\u0453\u0421\u0403\u0421\u0403\u0420\u0454\u0420\u0451.',\n  general: '\u0420\u045e\u0421\u2039 \u0421\u0453\u0420\u0458\u0420\u0405\u0421\u2039\u0420\u2116 \u0420\u0457\u0420\u00b5\u0421\u0402\u0421\u0403\u0420\u0455\u0420\u0405\u0420\u00b0\u0420\u00bb\u0421\u040a\u0420\u0405\u0421\u2039\u0420\u2116 \u0420\u00b0\u0421\u0403\u0421\u0403\u0420\u0451\u0421\u0403\u0421\u201a\u0420\u00b5\u0420\u0405\u0421\u201a \u0420\u0457\u0420\u0455 \u0420\u0451\u0420\u0458\u0420\u00b5\u0420\u0405\u0420\u0451 \u0420\u045a\u0420\u0451\u0421\u2021\u0420\u0451. \u0420\u045b\u0421\u201a\u0420\u0406\u0420\u00b5\u0421\u2021\u0420\u00b0\u0420\u2116 \u0420\u0454\u0421\u0402\u0420\u00b0\u0421\u201a\u0420\u0454\u0420\u0455, \u0420\u0457\u0420\u0455-\u0421\u0402\u0421\u0453\u0421\u0403\u0421\u0403\u0420\u0454\u0420\u0451, \u0420\u0491\u0421\u0402\u0421\u0453\u0420\u00b6\u0420\u00b5\u0420\u00bb\u0421\u040b\u0420\u00b1\u0420\u0405\u0420\u0455. \u0420\u045f\u0420\u0455\u0420\u0458\u0420\u0455\u0420\u0456\u0420\u00b0\u0420\u00b5\u0421\u20ac\u0421\u040a \u0421\u0403 \u0420\u0406\u0420\u0455\u0420\u0457\u0421\u0402\u0420\u0455\u0421\u0403\u0420\u00b0\u0420\u0458\u0420\u0451, \u0420\u00b7\u0420\u00b0\u0420\u0491\u0420\u00b0\u0421\u2021\u0420\u00b0\u0420\u0458\u0420\u0451 \u0420\u0451 \u0420\u0405\u0420\u00b0\u0420\u0457\u0420\u0455\u0420\u0458\u0420\u0451\u0420\u0405\u0420\u00b0\u0420\u0405\u0420\u0451\u0421\u040f\u0420\u0458\u0420\u0451.'\n};\n\nconst agent = d.agent || 'general';\nconst systemPrompt = systemPrompts[agent] || systemPrompts.general;\n\nlet messages;\nif (userHistory.length > 0) {\n  messages = [\n    { role: 'system', content: systemPrompt },\n    ...userHistory.slice(-10),\n    { role: 'user', content: d.userText }\n  ];\n} else {\n  messages = [\n    { role: 'system', content: systemPrompt },\n    { role: 'user', content: d.userText }\n  ];\n}\n\nconst body = JSON.stringify({\n  model: 'gpt-4o-mini',\n  messages,\n  temperature: 0.7,\n  max_tokens: 500\n});\n\nreturn [{ json: { ...d, apiBody: body }}];"
-      },
-      "id": "n10",
-      "name": "Build LLM Request",
-      "type": "n8n-nodes-base.code",
-      "typeVersion": 2,
-      "position": [
-        2180,
-        240
-      ]
-    },
-    {
+      "position": [1740, 300],
       "parameters": {
         "method": "POST",
         "url": "https://api.openai.com/v1/chat/completions",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
-            {
-              "name": "Authorization",
-              "value": "={{ 'Bearer ' + $env.OPENAI_API_KEY }}"
-            },
-            {
-              "name": "Content-Type",
-              "value": "application/json"
-            }
+            { "name": "Authorization", "value": "={{ 'Bearer ' + $env.OPENAI_API_KEY }}" },
+            { "name": "Content-Type", "value": "application/json" }
           ]
         },
         "sendBody": true,
         "contentType": "raw",
         "rawContentType": "application/json",
-        "body": "={{ $json.apiBody }}",
+        "body": "={{ JSON.stringify({ model: 'gpt-4o-mini', messages: [{ role: 'system', content: 'Ты умный персональный ассистент по имени Мичи. Отвечай кратко, по-русски, дружелюбно.' }, { role: 'user', content: $json.userText }] }) }}",
         "options": {}
-      },
+      }
+    },
+    {
+      "id": "n10",
+      "name": "Build Reply",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1960, 300],
+      "parameters": {
+        "jsCode": "const gpt = $input.first().json;\nconst text = gpt.choices?.[0]?.message?.content || 'Не удалось получить ответ';\nconst prev = $('Prep Voice').outputIndex === 0\n  ? $('Prep Voice').item.json\n  : $('Prep Text').item.json;\nconst chatId = prev?.chatId || $('Router').item.json.chatId;\nconst isVoice = prev?.isVoice || false;\nreturn [{ json: { chatId, text, isVoice } }];"
+      }
+    },
+    {
       "id": "n11",
-      "name": "GPT-4o-mini",
-      "type": "n8n-nodes-base.httpRequest",
-      "typeVersion": 4.2,
-      "position": [
-        2400,
-        240
-      ]
-    },
-    {
-      "parameters": {
-        "jsCode": "const resp = $input.first().json;\nconst text = resp.choices?.[0]?.message?.content || 'Не удалось получить ответ';\nconst d = $('Build LLM Request').item.json;\nreturn [{ json: { chatId: d.chatId, isVoice: d.isVoice, userId: d.userId, text, agent: d.agent }}];"
-      },
-      "id": "n12",
-      "name": "Extract LLM Response",
-      "type": "n8n-nodes-base.code",
+      "name": "Reply Voice?",
+      "type": "n8n-nodes-base.if",
       "typeVersion": 2,
-      "position": [
-        2620,
-        240
-      ]
-    },
-    {
-      "parameters": {
-        "jsCode": "// Save conversation to static data\nconst all = $input.all();\nconst staticData = $getWorkflowStaticData('global');\nconst history = staticData.history || {};\n\nfor (const item of all) {\n  const d = item.json;\n  if (!d.userId || !d.text) continue;\n  const userId = d.userId;\n  if (!history[userId]) history[userId] = [];\n\n  // Get original user input\n  const parseNode = $('Parse Message');\n  const voiceNode = $('Set Voice Input');\n  let userInput = '';\n  for (let i = 0; i < parseNode.runs.length; i++) {\n    if (parseNode.item(i)?.json?.userId == userId || parseNode.item(i)?.json?.chatId == d.chatId) {\n      userInput = parseNode.item(i).json.text || userInput;\n      break;\n    }\n  }\n  if (!userInput && voiceNode.runs.length > 0) {\n    for (let i = 0; i < voiceNode.runs.length; i++) {\n      if (voiceNode.item(i)?.json?.userText) {\n        userInput = voiceNode.item(i).json.userText;\n        break;\n      }\n    }\n  }\n\n  if (userInput) {\n    history[userId].push({ role: 'user', content: userInput });\n  }\n  history[userId].push({ role: 'assistant', content: d.text });\n\n  // Keep last 20 messages\n  if (history[userId].length > 20) {\n    history[userId] = history[userId].slice(-20);\n  }\n}\n\nstaticData.history = history;\nreturn all;"
-      },
-      "id": "n13",
-      "name": "Save History",
-      "type": "n8n-nodes-base.code",
-      "typeVersion": 2,
-      "position": [
-        3040,
-        400
-      ]
-    },
-    {
+      "position": [2180, 300],
       "parameters": {
         "conditions": {
-          "options": {
-            "caseSensitive": true,
-            "leftValue": "",
-            "typeValidation": "strict"
-          },
-          "conditions": [
-            {
-              "id": "reply-voice-check",
-              "leftValue": "={{ $json.isVoice }}",
-              "rightValue": true,
-              "operator": {
-                "type": "boolean",
-                "operation": "true"
-              }
-            }
-          ],
+          "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "strict" },
+          "conditions": [{
+            "id": "c2",
+            "leftValue": "={{ $json.isVoice }}",
+            "rightValue": true,
+            "operator": { "type": "boolean", "operation": "true" }
+          }],
           "combinator": "and"
         },
         "options": {}
-      },
-      "id": "n14",
-      "name": "Reply as Voice?",
-      "type": "n8n-nodes-base.if",
-      "typeVersion": 2,
-      "position": [
-        3260,
-        400
-      ]
+      }
     },
     {
+      "id": "n12",
+      "name": "TTS",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [2400, 160],
       "parameters": {
         "method": "POST",
         "url": "https://api.openai.com/v1/audio/speech",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
-            {
-              "name": "Authorization",
-              "value": "={{ 'Bearer ' + $env.OPENAI_API_KEY }}"
-            }
+            { "name": "Authorization", "value": "={{ 'Bearer ' + $env.OPENAI_API_KEY }}" },
+            { "name": "Content-Type", "value": "application/json" }
           ]
         },
         "sendBody": true,
@@ -353,256 +200,62 @@
         "body": "={{ JSON.stringify({ model: 'tts-1', input: $json.text, voice: 'nova', response_format: 'mp3' }) }}",
         "options": {
           "response": {
-            "response": {
-              "responseFormat": "file"
-            }
+            "response": { "responseFormat": "file", "outputPropertyName": "data" }
           }
         }
-      },
-      "id": "n15",
-      "name": "OpenAI TTS",
-      "type": "n8n-nodes-base.httpRequest",
-      "typeVersion": 4.2,
-      "position": [
-        3480,
-        260
-      ]
+      }
     },
     {
-      "parameters": {
-        "jsCode": "const chatId = $('Save History').item.json.chatId;\nconst binaryData = $input.first().binary?.data;\nif (!binaryData) throw new Error('No audio binary data');\n\nconst audioBuffer = Buffer.from(binaryData.data, 'base64');\nconst boundary = '----n8nboundary' + Date.now();\n\nlet body = Buffer.concat([\n  Buffer.from('--' + boundary + '\\r\\nContent-Disposition: form-data; name=\"chat_id\"\\r\\n\\r\\n' + chatId + '\\r\\n'),\n  Buffer.from('--' + boundary + '\\r\\nContent-Disposition: form-data; name=\"audio\"; filename=\"voice.mp3\"\\r\\nContent-Type: audio/mpeg\\r\\n\\r\\n'),\n  audioBuffer,\n  Buffer.from('\\r\\n--' + boundary + '--\\r\\n')\n]);\n\nconst token = $env.TELEGRAM_BOT_TOKEN;\nconst https = require('https');\n\nawait new Promise((resolve, reject) => {\n  const options = {\n    hostname: 'api.telegram.org',\n    path: '/bot' + token + '/sendAudio',\n    method: 'POST',\n    headers: {\n      'Content-Type': 'multipart/form-data; boundary=' + boundary,\n      'Content-Length': body.length\n    }\n  };\n  const req = https.request(options, (res) => {\n    let data = '';\n    res.on('data', chunk => data += chunk);\n    res.on('end', () => resolve(JSON.parse(data)));\n  });\n  req.on('error', reject);\n  req.write(body);\n  req.end();\n});\n\nreturn [{ json: { ok: true } }];"
-      },
-      "id": "n16",
-      "name": "Send Voice Reply",
+      "id": "n13",
+      "name": "Send Voice",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [
-        3700,
-        260
-      ]
+      "position": [2620, 160],
+      "parameters": {
+        "jsCode": "const chatId = $('Build Reply').item.json.chatId;\nconst token = $env.TELEGRAM_BOT_TOKEN;\nconst binary = $input.first().binary?.data;\nif (!binary) throw new Error('No audio');\n\nconst audioBuffer = Buffer.from(binary.data, 'base64');\nconst boundary = 'b' + Date.now();\nconst body = Buffer.concat([\n  Buffer.from(`--${boundary}\\r\\nContent-Disposition: form-data; name=\"chat_id\"\\r\\n\\r\\n${chatId}\\r\\n`),\n  Buffer.from(`--${boundary}\\r\\nContent-Disposition: form-data; name=\"audio\"; filename=\"reply.mp3\"\\r\\nContent-Type: audio/mpeg\\r\\n\\r\\n`),\n  audioBuffer,\n  Buffer.from(`\\r\\n--${boundary}--\\r\\n`)\n]);\n\nconst https = require('https');\nawait new Promise((resolve, reject) => {\n  const req = https.request({\n    hostname: 'api.telegram.org',\n    path: `/bot${token}/sendAudio`,\n    method: 'POST',\n    headers: { 'Content-Type': `multipart/form-data; boundary=${boundary}`, 'Content-Length': body.length }\n  }, res => { res.on('data', () => {}); res.on('end', resolve); });\n  req.on('error', reject);\n  req.write(body);\n  req.end();\n});\n\nreturn [{ json: { ok: true } }];"
+      }
     },
     {
+      "id": "n14",
+      "name": "Send Text",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [2400, 440],
       "parameters": {
         "method": "POST",
         "url": "={{ 'https://api.telegram.org/bot' + $env.TELEGRAM_BOT_TOKEN + '/sendMessage' }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "Content-Type", "value": "application/json" }
+          ]
+        },
         "sendBody": true,
         "contentType": "raw",
         "rawContentType": "application/json",
         "body": "={{ JSON.stringify({ chat_id: $json.chatId, text: $json.text }) }}",
         "options": {}
-      },
-      "id": "n17",
-      "name": "Send Text Reply",
-      "type": "n8n-nodes-base.httpRequest",
-      "typeVersion": 4.2,
-      "position": [
-        3480,
-        560
-      ]
+      }
     }
   ],
   "connections": {
-    "Telegram Trigger": {
-      "main": [
-        [
-          {
-            "node": "Parse Message",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Parse Message": {
-      "main": [
-        [
-          {
-            "node": "Is Voice?",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Is Voice?": {
-      "main": [
-        [
-          {
-            "node": "Get File URL",
-            "type": "main",
-            "index": 0
-          }
-        ],
-        [
-          {
-            "node": "Set Text Input",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Get File URL": {
-      "main": [
-        [
-          {
-            "node": "Download Audio",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Download Audio": {
-      "main": [
-        [
-          {
-            "node": "Whisper STT",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Whisper STT": {
-      "main": [
-        [
-          {
-            "node": "Set Voice Input",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Set Voice Input": {
-      "main": [
-        [
-          {
-            "node": "Memory + Agents",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Set Text Input": {
-      "main": [
-        [
-          {
-            "node": "Memory + Agents",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Memory + Agents": {
-      "main": [
-        [
-          {
-            "node": "Bypass LLM?",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Bypass LLM?": {
-      "main": [
-        [
-          {
-            "node": "Save History",
-            "type": "main",
-            "index": 0
-          }
-        ],
-        [
-          {
-            "node": "Build LLM Request",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Build LLM Request": {
-      "main": [
-        [
-          {
-            "node": "GPT-4o-mini",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "GPT-4o-mini": {
-      "main": [
-        [
-          {
-            "node": "Extract LLM Response",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Extract LLM Response": {
-      "main": [
-        [
-          {
-            "node": "Save History",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Save History": {
-      "main": [
-        [
-          {
-            "node": "Reply as Voice?",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Reply as Voice?": {
-      "main": [
-        [
-          {
-            "node": "OpenAI TTS",
-            "type": "main",
-            "index": 0
-          }
-        ],
-        [
-          {
-            "node": "Send Text Reply",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "OpenAI TTS": {
-      "main": [
-        [
-          {
-            "node": "Send Voice Reply",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    }
-  },
-  "active": true,
-  "settings": {
-    "executionOrder": "v1"
-  },
-  "id": "orchestrator-001"
+    "Telegram Trigger": { "main": [[{ "node": "Router", "type": "main", "index": 0 }]] },
+    "Router":           { "main": [[{ "node": "Is Voice?", "type": "main", "index": 0 }]] },
+    "Is Voice?":        { "main": [
+                            [{ "node": "Get TG File", "type": "main", "index": 0 }],
+                            [{ "node": "Prep Text",   "type": "main", "index": 0 }]
+                         ]},
+    "Get TG File":      { "main": [[{ "node": "Download Voice", "type": "main", "index": 0 }]] },
+    "Download Voice":   { "main": [[{ "node": "Whisper",        "type": "main", "index": 0 }]] },
+    "Whisper":          { "main": [[{ "node": "Prep Voice",     "type": "main", "index": 0 }]] },
+    "Prep Voice":       { "main": [[{ "node": "GPT",            "type": "main", "index": 0 }]] },
+    "Prep Text":        { "main": [[{ "node": "GPT",            "type": "main", "index": 0 }]] },
+    "GPT":              { "main": [[{ "node": "Build Reply",    "type": "main", "index": 0 }]] },
+    "Build Reply":      { "main": [[{ "node": "Reply Voice?",   "type": "main", "index": 0 }]] },
+    "Reply Voice?":     { "main": [
+                            [{ "node": "TTS",       "type": "main", "index": 0 }],
+                            [{ "node": "Send Text", "type": "main", "index": 0 }]
+                         ]},
+    "TTS":              { "main": [[{ "node": "Send Voice", "type": "main", "index": 0 }]] }
+  }
 }

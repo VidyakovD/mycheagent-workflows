@@ -25,7 +25,7 @@
       "typeVersion": 2,
       "position": [420, 300],
       "parameters": {
-        "jsCode": "const body = $input.first().json.body || {};\nconst section = body.section || 'chat';\nconst message = body.message || '';\nconst sessionId = body.sessionId || 'anon';\n\nconst prompts = {\n  chat: 'Ты умный личный ассистент по имени Мичи. Отвечай кратко, по-русски, дружелюбно. Без лишних вводных слов.',\n  tasks: 'Ты помощник по задачам и продуктивности. Помогай организовывать, приоритизировать, разбивать большие задачи. Отвечай кратко по-русски.',\n  notes: 'Ты помощник по заметкам и идеям. Помогай структурировать мысли, находить связи, давать инсайты. Отвечай кратко по-русски.',\n  sport: 'Ты фитнес-ассистент. Помогай с тренировками, калориями, режимом питания. Давай конкретные советы по-русски.',\n  more: 'Ты умный личный ассистент Мичи. Отвечай кратко по-русски.'\n};\n\nreturn [{ json: { section, message, sessionId, systemPrompt: prompts[section] || prompts.chat } }];"
+        "jsCode": "const body = $input.first().json.body || {};\nconst section = body.section || 'chat';\nconst message = body.message || '';\nconst sessionId = body.sessionId || 'anon';\nconst history = Array.isArray(body.history) ? body.history : [];\n\nconst prompts = {\n  chat: 'Ты умный личный ассистент по имени Зевс. Отвечай кратко, по-русски, дружелюбно. Без лишних вводных слов. Помни контекст разговора.',\n  tasks: 'Ты помощник по задачам и продуктивности. Помогай организовывать, приоритизировать, разбивать большие задачи. Отвечай кратко по-русски.',\n  notes: 'Ты помощник по заметкам и идеям. Помогай структурировать мысли, находить связи, давать инсайты. Отвечай кратко по-русски.',\n  sport: 'Ты фитнес-ассистент. Помогай с тренировками, калориями, режимом питания. Давай конкретные советы по-русски.',\n  more: 'Ты умный личный ассистент Зевс. Отвечай кратко по-русски.'\n};\n\nreturn [{ json: { section, message, sessionId, systemPrompt: prompts[section] || prompts.chat, history } }];"
       }
     },
     {
@@ -47,7 +47,7 @@
         "sendBody": true,
         "contentType": "raw",
         "rawContentType": "application/json",
-        "body": "={{ JSON.stringify({ model: 'gpt-4o-mini', messages: [{ role: 'system', content: $json.systemPrompt }, { role: 'user', content: $json.message }], max_tokens: 500 }) }}",
+        "body": "={{ JSON.stringify({ model: 'gpt-4.1-mini', messages: [{ role: 'system', content: $json.systemPrompt }, ...$json.history, { role: 'user', content: $json.message }], max_tokens: 600 }) }}",
         "options": {}
       }
     },

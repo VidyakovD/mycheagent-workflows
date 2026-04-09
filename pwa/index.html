@@ -592,6 +592,14 @@ function sw(name, btn) {
 function rsz(el){el.style.height='auto';el.style.height=Math.min(el.scrollHeight,120)+'px';}
 function onK(e){if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();sendTxt();}}
 
+// Last N messages as history for GPT context
+function getHistory(n=12) {
+  return chatHist.slice(-n).map(m => ({
+    role: m.role === 'u' ? 'user' : 'assistant',
+    content: m.text
+  }));
+}
+
 async function sendTxt(msg) {
   const el = document.getElementById('ti');
   const text = msg || el.value.trim();
@@ -603,7 +611,7 @@ async function sendTxt(msg) {
     const r = await fetch(API, {
       method: 'POST',
       headers: {'Content-Type':'application/json'},
-      body: JSON.stringify({section:curSec, message:text, sessionId:sid})
+      body: JSON.stringify({section:curSec, message:text, sessionId:sid, history:getHistory()})
     });
     if (!r.ok) throw new Error('HTTP '+r.status);
     const d = await r.json();
@@ -728,6 +736,20 @@ let recog=null, aCtx=null, aNode=null, mStream=null;
 let pendingTxt='';
 let cachedVoices=[];
 let ttsUnlocked=false;
+let wakeLock=null;
+
+// Screen Wake Lock — prevent screen off during voice dialogue
+async function requestWakeLock() {
+  if (!('wakeLock' in navigator)) return;
+  try { wakeLock = await navigator.wakeLock.request('screen'); } catch(e) {}
+}
+function releaseWakeLock() {
+  if (wakeLock) { wakeLock.release(); wakeLock=null; }
+}
+// Re-acquire if page visibility restored (iOS releases it on tab switch)
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState==='visible' && voActive) requestWakeLock();
+});
 
 // Pre-load TTS voices (needed on iOS/Chrome — async load)
 function initVoices() {
@@ -758,10 +780,12 @@ function openVoice() {
   voSetSt('idle','Нажми чтобы говорить');
   voSetTxt('');
   setOrbState('idle');
+  requestWakeLock();
 }
 
 function closeVoice() {
   stopAll();
+  releaseWakeLock();
   document.getElementById('vo').classList.remove('on');
   if (neural) { neural.setMode('idle'); neural.audioLevel=0; }
 }
@@ -843,7 +867,7 @@ async function processVoice(text) {
     const r = await fetch(API, {
       method:'POST',
       headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({section:curSec, message:text, sessionId:sid})
+      body: JSON.stringify({section:curSec, message:text, sessionId:sid, history:getHistory()})
     });
     if (!r.ok) throw new Error('HTTP ' + r.status);
     const d = await r.json();
@@ -880,13 +904,15 @@ function voSpeak(text) {
 
       const u = new SpeechSynthesisUtterance(text);
       u.lang = 'ru-RU';
-      u.rate = 1.0;
-      u.pitch = 1.0;
+      u.rate = 0.97;
+      u.pitch = 0.85;  // deeper / masculine
       u.volume = 1.0;
 
-      // Pick best Russian voice, fall back to default
+      // Prefer male Russian voice (iOS: "Yuri", Android: varies)
       const voices = cachedVoices.length ? cachedVoices : speechSynthesis.getVoices();
-      const rv = voices.find(v => v.lang === 'ru-RU')
+      const rv = voices.find(v => /yuri|юрий/i.test(v.name))
+              || voices.find(v => v.lang === 'ru-RU' && /male|m$/i.test(v.name))
+              || voices.find(v => v.lang === 'ru-RU')
               || voices.find(v => v.lang.startsWith('ru'))
               || voices.find(v => v.default)
               || voices[0];

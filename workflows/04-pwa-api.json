@@ -100,7 +100,7 @@
       "typeVersion": 2,
       "position": [1280, 300],
       "parameters": {
-        "jsCode": "// Reply from Extract Reply node (TTS node overwrites $json)\nconst extracted = $('Extract Reply').item;\nconst reply = extracted.json.reply;\nconst ok = extracted.json.ok;\n\n// Read TTS binary via n8n helper (filesystem-v2 storage)\nlet audio_b64 = '';\nconst ttsItem = $input.first();\nif (ttsItem.binary?.data) {\n  try {\n    const buf = await $helpers.getBinaryDataBuffer(ttsItem, 'data');\n    audio_b64 = buf.toString('base64');\n  } catch(e) {\n    // TTS binary read failed — PWA will use browser TTS\n  }\n}\n\nreturn [{ json: { reply, ok, audio_b64 } }];"
+        "jsCode": "const extracted = $('Extract Reply').item;\nconst reply = extracted.json.reply;\nconst ok = extracted.json.ok;\n\nconst ttsItem = $input.first();\nconst audio_b64 = ttsItem.binary?.data?.data || '';\n\nreturn [{ json: { reply, ok, audio_b64 } }];"
       }
     },
     {

@@ -128,7 +128,6 @@ body{background:var(--bg);color:var(--tx);
 .vo{
   position:fixed;inset:0;z-index:100;
   background:rgba(3,3,8,.97);
-  display:flex;flex-direction:column;align-items:center;justify-content:center;
   opacity:0;pointer-events:none;transition:opacity .35s;
 }
 .vo.on{opacity:1;pointer-events:all}
@@ -142,31 +141,31 @@ body{background:var(--bg);color:var(--tx);
 }
 .vo-close svg{width:16px;height:16px;stroke:currentColor;fill:none;stroke-linecap:round;stroke-width:2}
 
-.vo-body{
-  position:relative;z-index:2;
-  display:flex;flex-direction:column;align-items:center;gap:0;
-}
-/* Expanding rings */
+/* Expanding rings — absolutely centered on screen */
 .vo-r1,.vo-r2,.vo-r3{
   position:absolute;border-radius:50%;pointer-events:none;
   border:1px solid rgba(0,240,255,.12);
-  top:50%;left:50%;transform:translate(-50%,-50%);
+  top:50%;left:50%;
 }
-.vo-r1{width:155px;height:155px;animation:rr 2.6s ease-out infinite}
-.vo-r2{width:210px;height:210px;animation:rr 2.6s ease-out infinite .85s}
-.vo-r3{width:268px;height:268px;animation:rr 2.6s ease-out infinite 1.7s}
-@keyframes rr{0%{opacity:.5;transform:translate(-50%,-50%) scale(.75)}100%{opacity:0;transform:translate(-50%,-50%) scale(1.35)}}
+.vo-r1{width:155px;height:155px;margin:-77.5px 0 0 -77.5px;animation:rr 2.6s ease-out infinite}
+.vo-r2{width:210px;height:210px;margin:-105px 0 0 -105px;animation:rr 2.6s ease-out infinite .85s}
+.vo-r3{width:268px;height:268px;margin:-134px 0 0 -134px;animation:rr 2.6s ease-out infinite 1.7s}
+@keyframes rr{0%{opacity:.5;transform:scale(.75)}100%{opacity:0;transform:scale(1.35)}}
 
+/* Orb — exactly at screen center via top/left + negative margin (no transform conflict) */
 .vo-orb{
-  width:106px;height:106px;border-radius:50%;
+  position:absolute;
+  top:50%;left:50%;
+  width:106px;height:106px;
+  margin-top:-53px;margin-left:-53px;
+  border-radius:50%;
   display:flex;align-items:center;justify-content:center;
-  cursor:pointer;position:relative;z-index:3;
+  cursor:pointer;z-index:4;
   border:1.5px solid rgba(155,93,229,.5);
   background:radial-gradient(circle at 38% 38%,rgba(155,93,229,.22),rgba(0,240,255,.07));
   box-shadow:0 0 50px rgba(155,93,229,.22),inset 0 0 30px rgba(0,240,255,.04);
   animation:orb-idle 3.8s ease-in-out infinite;
   transition:border-color .3s,box-shadow .3s,background .3s;
-  margin-bottom:30px;
 }
 .vo-orb svg{width:34px;height:34px;stroke:var(--tx);fill:none;stroke-width:1.6;stroke-linecap:round;transition:stroke .3s}
 .vo-orb.listen{
@@ -194,14 +193,20 @@ body{background:var(--bg);color:var(--tx);
 @keyframes orb-spin{0%{transform:rotate(0)}100%{transform:rotate(360deg)}}
 @keyframes orb-speak{0%,100%{transform:scale(1);opacity:1}50%{transform:scale(1.08);opacity:.85}}
 
+/* Text — absolutely below the orb center */
 .vo-txt{
-  max-width:270px;text-align:center;font-size:16px;line-height:1.55;
-  color:var(--tx);min-height:50px;position:relative;z-index:3;
+  position:absolute;top:calc(50% + 72px);left:50%;
+  transform:translateX(-50%);
+  width:280px;text-align:center;font-size:16px;line-height:1.55;
+  color:var(--tx);min-height:44px;z-index:4;
   text-shadow:0 0 24px rgba(155,93,229,.3);
 }
 .vo-st{
-  margin-top:10px;font-size:11px;letter-spacing:1.8px;text-transform:uppercase;
-  color:var(--tx2);position:relative;z-index:3;transition:color .3s;
+  position:absolute;top:calc(50% + 128px);left:50%;
+  transform:translateX(-50%);
+  white-space:nowrap;
+  font-size:11px;letter-spacing:1.8px;text-transform:uppercase;
+  color:var(--tx2);z-index:4;transition:color .3s;
 }
 .vo-st.listen{color:var(--c);text-shadow:0 0 12px rgba(0,240,255,.5)}
 .vo-st.think{color:var(--pk);text-shadow:0 0 12px rgba(240,171,252,.5)}
@@ -497,15 +502,12 @@ body{background:var(--bg);color:var(--tx);
   <div class="vo-close" onclick="closeVoice()">
     <svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
   </div>
-  <div class="vo-body">
-    <div class="vo-r1"></div><div class="vo-r2"></div><div class="vo-r3"></div>
-    <div class="vo-orb" id="voOrb" onclick="toggleVoice()">
-      <!-- mic icon -->
-      <svg id="voOrbIco" viewBox="0 0 24 24"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
-    </div>
-    <div class="vo-txt" id="voTxt"></div>
-    <div class="vo-st" id="voSt">Нажми чтобы говорить</div>
+  <div class="vo-r1"></div><div class="vo-r2"></div><div class="vo-r3"></div>
+  <div class="vo-orb" id="voOrb" onclick="toggleVoice()">
+    <svg viewBox="0 0 24 24"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
   </div>
+  <div class="vo-txt" id="voTxt"></div>
+  <div class="vo-st" id="voSt">Нажми чтобы говорить</div>
 </div>
 
 <!-- NEW PROJECT MODAL -->
@@ -725,6 +727,7 @@ let voActive=false, voProc=false;
 let recog=null, aCtx=null, aNode=null, mStream=null;
 let pendingTxt='';
 let cachedVoices=[];
+let ttsUnlocked=false;
 
 // Pre-load TTS voices (needed on iOS/Chrome — async load)
 function initVoices() {
@@ -735,6 +738,16 @@ function initVoices() {
       cachedVoices = speechSynthesis.getVoices();
     }, {once:true});
   }
+}
+
+// iOS requires TTS to be triggered within a user gesture.
+// We call a zero-length utterance immediately on first tap.
+function unlockTTS() {
+  if (ttsUnlocked || !window.speechSynthesis) return;
+  ttsUnlocked = true;
+  const u = new SpeechSynthesisUtterance('');
+  u.volume = 0;
+  speechSynthesis.speak(u);
 }
 
 function openVoice() {
@@ -759,6 +772,7 @@ function toggleVoice() {
 }
 
 async function startVoice() {
+  unlockTTS(); // must be called synchronously inside user gesture (tap)
   voActive=true; voProc=false;
   voSetSt('listen','Слушаю...');
   setOrbState('listen');
@@ -882,17 +896,17 @@ function voSpeak(text) {
       const dur = Math.min(Math.max(text.length * 75, 3500), 35000);
       const tmo = setTimeout(() => { speechSynthesis.cancel(); res(); }, dur);
 
-      u.onend  = () => { clearTimeout(tmo); res(); };
-      u.onerror = () => { clearTimeout(tmo); res(); };
-
-      speechSynthesis.speak(u);
-
-      // iOS Safari: if synthesis gets paused (background/focus loss), resume
+      // iOS Safari: resume if paused (background/focus loss)
       const resumeIOS = setInterval(() => {
-        if (!voActive || !speechSynthesis.speaking) { clearInterval(resumeIOS); return; }
+        if (!speechSynthesis.speaking) { clearInterval(resumeIOS); return; }
         if (speechSynthesis.paused) speechSynthesis.resume();
       }, 5000);
-      u.onend = () => { clearTimeout(tmo); clearInterval(resumeIOS); res(); };
+
+      const done = () => { clearTimeout(tmo); clearInterval(resumeIOS); res(); };
+      u.onend  = done;
+      u.onerror = done;
+
+      speechSynthesis.speak(u);
     }, 120); // small delay after cancel()
   });
 }

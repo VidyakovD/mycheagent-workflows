@@ -133,13 +133,12 @@ body{background:var(--bg);color:var(--tx);
 .vo.on{opacity:1;pointer-events:all}
 #voC{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
 
-.vo-close{
-  position:absolute;top:calc(env(safe-area-inset-top,0px)+12px);right:16px;z-index:10;
-  width:38px;height:38px;border-radius:50%;
-  background:var(--gl2);border:1px solid var(--bd);
-  display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--tx2);
+.vo-hint{
+  position:absolute;bottom:calc(env(safe-area-inset-bottom,0px)+22px);left:50%;
+  transform:translateX(-50%);z-index:4;white-space:nowrap;
+  font-size:11px;letter-spacing:1.6px;text-transform:uppercase;
+  color:rgba(255,255,255,.18);pointer-events:none;
 }
-.vo-close svg{width:16px;height:16px;stroke:currentColor;fill:none;stroke-linecap:round;stroke-width:2}
 
 /* Expanding rings — absolutely centered on screen */
 .vo-r1,.vo-r2,.vo-r3{
@@ -499,16 +498,17 @@ body{background:var(--bg);color:var(--tx);
 <!-- VOICE OVERLAY -->
 <div class="vo" id="vo">
   <canvas id="voC"></canvas>
-  <div class="vo-close" onclick="closeVoice()">
-    <svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-  </div>
   <div class="vo-r1"></div><div class="vo-r2"></div><div class="vo-r3"></div>
   <div class="vo-orb" id="voOrb" onclick="toggleVoice()">
     <svg viewBox="0 0 24 24"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
   </div>
   <div class="vo-txt" id="voTxt"></div>
   <div class="vo-st" id="voSt">Нажми чтобы говорить</div>
+  <div class="vo-hint">← свайп для закрытия</div>
 </div>
+
+<!-- TTS audio element — pre-created and unlocked on first tap (iOS autoplay fix) -->
+<audio id="ttsAudio" playsinline preload="none" style="display:none"></audio>
 
 <!-- NEW PROJECT MODAL -->
 <div class="modal" id="pm">
@@ -740,6 +740,7 @@ let neural=null;
 let voActive=false, voProc=false;
 let recog=null, aCtx=null, aNode=null, mStream=null;
 let ttsAudioNode=null;
+let ttsEl=null;          // persistent <audio> element — unlocked on first tap
 let pendingTxt='';
 let cachedVoices=[];
 let ttsUnlocked=false;
@@ -769,14 +770,24 @@ function initVoices() {
   }
 }
 
-// iOS requires TTS to be triggered within a user gesture.
-// We call a zero-length utterance immediately on first tap.
+// iOS requires audio to be triggered within a user gesture.
+// Called synchronously on first tap — unlocks both SpeechSynthesis and <audio>.
 function unlockTTS() {
-  if (ttsUnlocked || !window.speechSynthesis) return;
+  if (ttsUnlocked) return;
   ttsUnlocked = true;
-  const u = new SpeechSynthesisUtterance('');
-  u.volume = 0;
-  speechSynthesis.speak(u);
+  // Unlock Web Speech API
+  if (window.speechSynthesis) {
+    const u = new SpeechSynthesisUtterance(''); u.volume=0; speechSynthesis.speak(u);
+  }
+  // Unlock <audio> autoplay — play a tiny silent WAV then reset
+  ttsEl = document.getElementById('ttsAudio');
+  if (ttsEl) {
+    ttsEl.src = 'data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQAAAAA=';
+    ttsEl.volume = 0;
+    ttsEl.play().then(() => {
+      ttsEl.pause(); ttsEl.currentTime=0; ttsEl.volume=1.0; ttsEl.src='';
+    }).catch(()=>{});
+  }
 }
 
 function openVoice() {
@@ -916,10 +927,13 @@ async function processVoice(text) {
   }
 }
 
-// Play OpenAI TTS audio (base64 mp3) via <audio> element
-// <audio> routes to loudspeaker on iOS — AudioContext uses earpiece (quiet)
+// Play OpenAI TTS audio (base64 mp3).
+// Uses the pre-unlocked <audio> element (ttsEl) so iOS allows autoplay outside user gesture.
+// <audio> also routes to the main loudspeaker (AudioContext uses earpiece when mic is active).
 async function playAudio(b64, fallbackText='') {
   if (!b64) { await voSpeak(fallbackText); return; }
+  const el = ttsEl || document.getElementById('ttsAudio');
+  if (!el) { await voSpeak(fallbackText); return; }
   try {
     const clean = b64.replace(/[^A-Za-z0-9+\/=]/g, '');
     if (!clean) throw new Error('empty');
@@ -930,13 +944,14 @@ async function playAudio(b64, fallbackText='') {
 
     const blob = new Blob([bytes], {type:'audio/mpeg'});
     const url  = URL.createObjectURL(blob);
-    const audio = document.createElement('audio');
-    audio.src = url;
-    ttsAudioNode = audio;
+
+    el.volume = 1.0;
+    el.src = url;
+    ttsAudioNode = el;
 
     await new Promise(res => {
       const tmo = setTimeout(() => {
-        try{audio.pause();}catch(e){}
+        try{el.pause();}catch(e){}
         URL.revokeObjectURL(url); res();
       }, 90000);
       const done = () => {
@@ -945,9 +960,13 @@ async function playAudio(b64, fallbackText='') {
         if (aNode && neural) neural.setAnalyser(aNode);
         res();
       };
-      audio.onended = done;
-      audio.onerror = done;
-      audio.play().catch(done);
+      el.onended = done;
+      el.onerror = done;
+      el.play().catch(() => {
+        // play() blocked (e.g. first call before unlock) → fallback
+        done();
+        voSpeak(fallbackText).catch(()=>{});
+      });
     });
 
   } catch(e) {
@@ -1006,11 +1025,7 @@ function stopAll() {
   voActive=false; voProc=false; pendingTxt='';
   if (recog) { try{recog.abort();}catch(e){} recog=null; }
   if (ttsAudioNode) {
-    try {
-      // BufferSource has .stop(); <audio> element has .pause()
-      if (typeof ttsAudioNode.stop === 'function') ttsAudioNode.stop();
-      else { ttsAudioNode.pause(); ttsAudioNode.src=''; }
-    } catch(e) {}
+    try { ttsAudioNode.pause(); } catch(e) {}
     ttsAudioNode = null;
   }
   if (window.speechSynthesis) speechSynthesis.cancel();
@@ -1166,6 +1181,22 @@ function toast(msg){const e=document.getElementById('toast');e.textContent=msg;e
 
 // ══ INIT ═════════════════════════════════════
 document.getElementById('pm').addEventListener('click',function(e){if(e.target===this)closePM();});
+
+// Swipe right to close voice overlay
+(function(){
+  let sx=0, sy=0;
+  const vo = document.getElementById('vo');
+  vo.addEventListener('touchstart', e=>{
+    sx = e.touches[0].clientX;
+    sy = e.touches[0].clientY;
+  }, {passive:true});
+  vo.addEventListener('touchend', e=>{
+    const dx = e.changedTouches[0].clientX - sx;
+    const dy = Math.abs(e.changedTouches[0].clientY - sy);
+    if (dx > 72 && dy < 60) closeVoice();
+  }, {passive:true});
+})();
+
 loadChat();
 renderT(); renderN(); renderS(); renderP();
 initVoices();

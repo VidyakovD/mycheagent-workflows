@@ -1,0 +1,486 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Мичи">
+<meta name="theme-color" content="#0a0a0a">
+<title>Мичи</title>
+<link rel="manifest" href="/app/manifest.json">
+<link rel="apple-touch-icon" href="/app/icons/apple-touch-icon.png">
+<style>
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+:root{
+  --bg:#0a0a0a;--surface:#141414;--surface2:#1e1e1e;--border:#2a2a2a;
+  --accent:#7c3aed;--accent-soft:rgba(124,58,237,.15);
+  --text:#fff;--text2:#888;--green:#10b981;--red:#ef4444;
+}
+html,body{height:100%;height:100dvh}
+body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,'SF Pro Text',sans-serif;
+  display:flex;flex-direction:column;overflow:hidden;-webkit-font-smoothing:antialiased}
+
+/* HEADER */
+.hdr{
+  padding-top:env(safe-area-inset-top,20px);
+  padding-bottom:12px;padding-left:16px;padding-right:16px;
+  background:var(--bg);display:flex;align-items:center;justify-content:space-between;
+  border-bottom:1px solid var(--border);flex-shrink:0;padding-top:calc(env(safe-area-inset-top,0px) + 12px)
+}
+.hdr-title{font-size:17px;font-weight:600;letter-spacing:-.3px}
+.hdr-dot{width:8px;height:8px;border-radius:50%;background:var(--green);box-shadow:0 0 6px var(--green)}
+
+/* MAIN */
+.main{flex:1;overflow:hidden;position:relative}
+.sec{display:none;height:100%;flex-direction:column}
+.sec.on{display:flex}
+
+/* CHAT */
+.msgs{flex:1;overflow-y:auto;padding:12px 16px;display:flex;flex-direction:column;gap:8px;-webkit-overflow-scrolling:touch}
+.msg{max-width:82%;padding:10px 14px;border-radius:18px;font-size:15px;line-height:1.45;word-break:break-word;white-space:pre-wrap}
+.msg.u{background:var(--accent);color:#fff;align-self:flex-end;border-bottom-right-radius:4px}
+.msg.b{background:var(--surface2);color:var(--text);align-self:flex-start;border-bottom-left-radius:4px}
+.msg.typing{background:var(--surface2);align-self:flex-start;border-bottom-left-radius:4px}
+.dots{display:flex;gap:4px;align-items:center;height:20px}
+.dots span{width:7px;height:7px;background:var(--text2);border-radius:50%;animation:bop 1.2s infinite}
+.dots span:nth-child(2){animation-delay:.2s}.dots span:nth-child(3){animation-delay:.4s}
+@keyframes bop{0%,60%,100%{transform:translateY(0)}30%{transform:translateY(-6px)}}
+
+/* INPUT */
+.inp-area{padding:8px 12px;padding-bottom:max(8px,env(safe-area-inset-bottom));
+  background:var(--surface);border-top:1px solid var(--border);display:flex;align-items:flex-end;gap:8px;flex-shrink:0}
+.inp-wrap{flex:1;background:var(--surface2);border-radius:22px;display:flex;align-items:flex-end;
+  padding:8px 14px;border:1px solid var(--border)}
+.inp-wrap textarea{flex:1;background:transparent;border:none;outline:none;color:var(--text);
+  font-size:15px;font-family:inherit;resize:none;max-height:120px;line-height:1.4}
+.inp-wrap textarea::placeholder{color:var(--text2)}
+.bic{width:40px;height:40px;border-radius:50%;border:none;display:flex;align-items:center;
+  justify-content:center;cursor:pointer;font-size:19px;flex-shrink:0;transition:opacity .15s, background .2s}
+.bic:active{opacity:.7}
+.bsend{background:var(--accent);color:#fff}
+.bmic{background:var(--surface2);color:var(--text);border:1px solid var(--border)}
+.bmic.rec{background:var(--red);color:#fff;animation:pulse 1s infinite}
+@keyframes pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.08)}}
+
+/* NAV */
+.nav{display:flex;background:var(--surface);border-top:1px solid var(--border);
+  padding-bottom:env(safe-area-inset-bottom);flex-shrink:0}
+.ni{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;padding:8px 4px;
+  cursor:pointer;border:none;background:transparent;color:var(--text2);font-size:10px;
+  font-family:inherit;transition:color .15s}
+.ni.on{color:var(--accent)}
+.ni-ico{font-size:22px;line-height:1}
+
+/* LISTS */
+.sec-hdr{padding:16px 16px 8px;font-size:22px;font-weight:700;flex-shrink:0}
+.list{flex:1;overflow-y:auto;padding:8px 16px;-webkit-overflow-scrolling:touch}
+.li{background:var(--surface2);border-radius:12px;padding:12px 14px;margin-bottom:8px;
+  display:flex;align-items:center;gap:10px;border:1px solid var(--border)}
+.li-text{flex:1;font-size:15px;line-height:1.3}
+.li-meta{font-size:12px;color:var(--text2);margin-top:2px}
+.li.done .li-text{text-decoration:line-through;color:var(--text2)}
+.chk{width:22px;height:22px;border-radius:50%;border:2px solid var(--border);
+  background:transparent;cursor:pointer;flex-shrink:0;display:flex;align-items:center;
+  justify-content:center;transition:all .15s;font-size:12px;color:#fff}
+.chk.on{background:var(--green);border-color:var(--green)}
+.del{color:var(--text2);background:none;border:none;cursor:pointer;font-size:16px;padding:4px;flex-shrink:0}
+.empty{display:flex;flex-direction:column;align-items:center;justify-content:center;
+  height:100%;gap:12px;color:var(--text2);padding:40px;text-align:center}
+.empty-ico{font-size:48px;opacity:.3}
+.empty p{font-size:15px}
+
+/* QUICK ADD */
+.qadd{padding:8px 16px;padding-bottom:max(8px,env(safe-area-inset-bottom));
+  background:var(--surface);border-top:1px solid var(--border);display:flex;gap:8px;flex-shrink:0}
+.qadd input{flex:1;background:var(--surface2);border:1px solid var(--border);border-radius:22px;
+  padding:10px 16px;color:var(--text);font-size:15px;font-family:inherit;outline:none}
+.qadd input::placeholder{color:var(--text2)}
+.badd{background:var(--accent);color:#fff;border:none;border-radius:50%;width:40px;height:40px;
+  font-size:22px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+
+/* SPORT STATS */
+.stats{display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:0 16px 10px;flex-shrink:0}
+.stat{background:var(--surface2);border-radius:14px;padding:14px;border:1px solid var(--border)}
+.stat.g{border-color:var(--green)}.stat.p{border-color:var(--accent)}
+.stat-val{font-size:30px;font-weight:700;line-height:1.1}
+.stat-lbl{font-size:12px;color:var(--text2);margin-top:3px}
+
+/* MORE LIST */
+.mli{background:var(--surface2);border-radius:12px;padding:14px;margin-bottom:8px;
+  display:flex;align-items:center;gap:12px;border:1px solid var(--border);cursor:pointer;
+  transition:background .15s}
+.mli:active{background:var(--border)}
+.mli-ico{font-size:26px;flex-shrink:0}
+.mli-lbl{font-size:15px;font-weight:500}
+.mli-sub{font-size:12px;color:var(--text2);margin-top:2px}
+.arr{color:var(--text2);margin-left:auto;font-size:18px}
+
+/* TOAST */
+.toast{position:fixed;bottom:90px;left:50%;transform:translateX(-50%) translateY(10px);
+  background:var(--surface2);color:var(--text);padding:10px 20px;border-radius:20px;
+  font-size:14px;border:1px solid var(--border);opacity:0;transition:all .25s;z-index:200;
+  white-space:nowrap;pointer-events:none}
+.toast.on{opacity:1;transform:translateX(-50%) translateY(0)}
+
+/* WELCOME */
+.welcome{background:var(--accent-soft);border:1px solid var(--accent);border-radius:14px;
+  padding:14px;font-size:14px;line-height:1.55}
+
+::-webkit-scrollbar{display:none}
+</style>
+</head>
+<body>
+
+<div class="hdr">
+  <div style="width:24px"></div>
+  <div class="hdr-title" id="hdrT">Мичи</div>
+  <div class="hdr-dot" id="statusDot"></div>
+</div>
+
+<div class="main">
+
+  <!-- CHAT -->
+  <div class="sec on" id="s-chat">
+    <div class="msgs" id="msgs">
+      <div class="msg b welcome">
+        Привет! Я Мичи — твой личный ИИ-ассистент 🤖<br><br>
+        Пиши или говори голосом — отвечу на всё.
+      </div>
+    </div>
+    <div class="inp-area">
+      <div class="inp-wrap">
+        <textarea id="tinput" placeholder="Написать..." rows="1"
+          oninput="resize(this)" onkeydown="onKey(event)"></textarea>
+      </div>
+      <button class="bic bmic" id="vbtn" onclick="toggleVoice()">🎙️</button>
+      <button class="bic bsend" onclick="send()">↑</button>
+    </div>
+  </div>
+
+  <!-- TASKS -->
+  <div class="sec" id="s-tasks">
+    <div class="sec-hdr">Задачи</div>
+    <div class="list" id="tlist"></div>
+    <div class="qadd">
+      <input id="tinp" placeholder="Новая задача..."
+        onkeydown="if(event.key==='Enter')addTask()">
+      <button class="badd" onclick="addTask()">+</button>
+    </div>
+  </div>
+
+  <!-- NOTES -->
+  <div class="sec" id="s-notes">
+    <div class="sec-hdr">Заметки</div>
+    <div class="list" id="nlist"></div>
+    <div class="qadd">
+      <input id="ninp" placeholder="Идея или заметка..."
+        onkeydown="if(event.key==='Enter')addNote()">
+      <button class="badd" onclick="addNote()">+</button>
+    </div>
+  </div>
+
+  <!-- SPORT -->
+  <div class="sec" id="s-sport">
+    <div class="sec-hdr">Спорт</div>
+    <div class="stats">
+      <div class="stat g"><div class="stat-val" id="calVal">0</div><div class="stat-lbl">Калорий сегодня</div></div>
+      <div class="stat p"><div class="stat-val" id="wkVal">0</div><div class="stat-lbl">Тренировок на неделе</div></div>
+    </div>
+    <div class="list" id="slist"></div>
+    <div class="qadd">
+      <input id="sinp" placeholder="Тренировка или 500 кал..."
+        onkeydown="if(event.key==='Enter')addSport()">
+      <button class="badd" onclick="addSport()">+</button>
+    </div>
+  </div>
+
+  <!-- MORE -->
+  <div class="sec" id="s-more">
+    <div class="sec-hdr">Ещё</div>
+    <div class="list">
+      <div class="mli" onclick="toast('Скоро: Работа и Яндекс Диск')">
+        <div class="mli-ico">💼</div>
+        <div><div class="mli-lbl">Работа</div><div class="mli-sub">Яндекс Диск, проекты</div></div>
+        <div class="arr">›</div>
+      </div>
+      <div class="mli" onclick="toast('Скоро: Контент и автопостинг')">
+        <div class="mli-ico">📱</div>
+        <div><div class="mli-lbl">Контент</div><div class="mli-sub">Посты, стратегия, автопостинг</div></div>
+        <div class="arr">›</div>
+      </div>
+      <div class="mli" onclick="toast('Скоро: Финансовый учёт')">
+        <div class="mli-ico">💰</div>
+        <div><div class="mli-lbl">Финансы</div><div class="mli-sub">Расходы и доходы</div></div>
+        <div class="arr">›</div>
+      </div>
+      <div class="mli" onclick="toast('Скоро: Календарь')">
+        <div class="mli-ico">📅</div>
+        <div><div class="mli-lbl">Календарь</div><div class="mli-sub">Расписание, встречи</div></div>
+        <div class="arr">›</div>
+      </div>
+      <div class="mli" onclick="toast('Скоро: Утренний отчёт и тренды')">
+        <div class="mli-ico">📊</div>
+        <div><div class="mli-lbl">Аналитика</div><div class="mli-sub">Метрики, тренды, ИИ-новости</div></div>
+        <div class="arr">›</div>
+      </div>
+      <div class="mli" onclick="toast('Скоро: Агенты (Продюсер, Сценарист, Продажник)')">
+        <div class="mli-ico">🤖</div>
+        <div><div class="mli-lbl">Агенты</div><div class="mli-sub">Продюсер, сценарист, продажник</div></div>
+        <div class="arr">›</div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- BOTTOM NAV -->
+<nav class="nav">
+  <button class="ni on" onclick="sw('chat',this)"><span class="ni-ico">💬</span><span>Чат</span></button>
+  <button class="ni" onclick="sw('tasks',this)"><span class="ni-ico">✅</span><span>Задачи</span></button>
+  <button class="ni" onclick="sw('notes',this)"><span class="ni-ico">📝</span><span>Заметки</span></button>
+  <button class="ni" onclick="sw('sport',this)"><span class="ni-ico">💪</span><span>Спорт</span></button>
+  <button class="ni" onclick="sw('more',this)"><span class="ni-ico">⚡</span><span>Ещё</span></button>
+</nav>
+
+<div class="toast" id="toastEl"></div>
+
+<script>
+// ── CONFIG ──────────────────────────────────────────
+const API = '/webhook/pwa-chat';
+const sid = localStorage.getItem('sid') || (() => {
+  const id = 'u' + Math.random().toString(36).slice(2);
+  localStorage.setItem('sid', id);
+  return id;
+})();
+
+// ── STATE ────────────────────────────────────────────
+let tasks = JSON.parse(localStorage.getItem('tasks') || '[]');
+let notes = JSON.parse(localStorage.getItem('notes') || '[]');
+let sport = JSON.parse(localStorage.getItem('sport') || '[]');
+let curSec = 'chat';
+let recording = false;
+let mr = null, chunks = [];
+
+const titles = {chat:'Мичи', tasks:'Задачи', notes:'Заметки', sport:'Спорт', more:'Ещё'};
+
+// ── NAV ──────────────────────────────────────────────
+function sw(name, btn) {
+  document.querySelectorAll('.sec').forEach(s => s.classList.remove('on'));
+  document.querySelectorAll('.ni').forEach(b => b.classList.remove('on'));
+  document.getElementById('s-' + name).classList.add('on');
+  btn.classList.add('on');
+  document.getElementById('hdrT').textContent = titles[name];
+  curSec = name;
+  if (name === 'tasks') renderT();
+  if (name === 'notes') renderN();
+  if (name === 'sport') renderS();
+}
+
+// ── CHAT ─────────────────────────────────────────────
+function resize(el) {
+  el.style.height = 'auto';
+  el.style.height = Math.min(el.scrollHeight, 120) + 'px';
+}
+function onKey(e) {
+  if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(); }
+}
+
+async function send(text) {
+  const el = document.getElementById('tinput');
+  const msg = text || el.value.trim();
+  if (!msg) return;
+  el.value = ''; el.style.height = 'auto';
+  addMsg(msg, 'u');
+  const t = addTyping();
+  try {
+    const r = await fetch(API, {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({section: curSec, message: msg, sessionId: sid})
+    });
+    const d = await r.json();
+    t.remove();
+    addMsg(d.reply || '…', 'b');
+  } catch {
+    t.remove();
+    addMsg('Нет соединения с сервером', 'b');
+  }
+}
+
+function addMsg(text, role) {
+  const d = document.createElement('div');
+  d.className = 'msg ' + role;
+  d.textContent = text;
+  const c = document.getElementById('msgs');
+  c.appendChild(d);
+  c.scrollTop = c.scrollHeight;
+  return d;
+}
+
+function addTyping() {
+  const d = document.createElement('div');
+  d.className = 'msg typing';
+  d.innerHTML = '<div class="dots"><span></span><span></span><span></span></div>';
+  const c = document.getElementById('msgs');
+  c.appendChild(d);
+  c.scrollTop = c.scrollHeight;
+  return d;
+}
+
+// ── VOICE ────────────────────────────────────────────
+async function toggleVoice() {
+  if (recording) {
+    mr && mr.stop();
+    mr && mr.stream && mr.stream.getTracks().forEach(t => t.stop());
+    recording = false;
+    const b = document.getElementById('vbtn');
+    b.classList.remove('rec'); b.textContent = '🎙️';
+  } else {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({audio: true});
+      chunks = [];
+      mr = new MediaRecorder(stream);
+      mr.stream = stream;
+      mr.ondataavailable = e => chunks.push(e.data);
+      mr.onstop = sendVoice;
+      mr.start();
+      recording = true;
+      const b = document.getElementById('vbtn');
+      b.classList.add('rec'); b.textContent = '⏹️';
+    } catch { toast('Нет доступа к микрофону'); }
+  }
+}
+
+async function sendVoice() {
+  const blob = new Blob(chunks, {type: 'audio/webm'});
+  const fd = new FormData();
+  fd.append('audio', blob, 'voice.webm');
+  fd.append('sessionId', sid);
+  fd.append('section', curSec);
+  const t = addTyping();
+  try {
+    const r = await fetch('/webhook/pwa-voice', {method: 'POST', body: fd});
+    const d = await r.json();
+    t.remove();
+    if (d.transcription) addMsg(d.transcription, 'u');
+    addMsg(d.reply || '…', 'b');
+  } catch {
+    t.remove();
+    addMsg('Ошибка обработки голоса', 'b');
+  }
+}
+
+// ── TASKS ────────────────────────────────────────────
+function save() {
+  localStorage.setItem('tasks', JSON.stringify(tasks));
+  localStorage.setItem('notes', JSON.stringify(notes));
+  localStorage.setItem('sport', JSON.stringify(sport));
+}
+
+function addTask() {
+  const el = document.getElementById('tinp');
+  const v = el.value.trim();
+  if (!v) return;
+  tasks.unshift({id: Date.now(), text: v, done: false, d: new Date().toLocaleDateString('ru')});
+  save(); renderT(); el.value = '';
+}
+function toggleTask(id) {
+  const t = tasks.find(x => x.id === id);
+  if (t) t.done = !t.done;
+  save(); renderT();
+}
+function delTask(id) { tasks = tasks.filter(x => x.id !== id); save(); renderT(); }
+
+function renderT() {
+  const el = document.getElementById('tlist');
+  if (!tasks.length) {
+    el.innerHTML = '<div class="empty"><div class="empty-ico">✅</div><p>Нет задач. Добавь первую!</p></div>';
+    return;
+  }
+  el.innerHTML = tasks.map(t => `
+    <div class="li${t.done ? ' done' : ''}">
+      <div class="chk${t.done ? ' on' : ''}" onclick="toggleTask(${t.id})">${t.done ? '✓' : ''}</div>
+      <div style="flex:1"><div class="li-text">${esc(t.text)}</div><div class="li-meta">${t.d}</div></div>
+      <button class="del" onclick="delTask(${t.id})">🗑</button>
+    </div>`).join('');
+}
+
+// ── NOTES ────────────────────────────────────────────
+function addNote() {
+  const el = document.getElementById('ninp');
+  const v = el.value.trim();
+  if (!v) return;
+  notes.unshift({id: Date.now(), text: v, d: new Date().toLocaleDateString('ru')});
+  save(); renderN(); el.value = '';
+}
+function delNote(id) { notes = notes.filter(x => x.id !== id); save(); renderN(); }
+
+function renderN() {
+  const el = document.getElementById('nlist');
+  if (!notes.length) {
+    el.innerHTML = '<div class="empty"><div class="empty-ico">📝</div><p>Нет заметок. Запиши идею!</p></div>';
+    return;
+  }
+  el.innerHTML = notes.map(n => `
+    <div class="li">
+      <div style="flex:1"><div class="li-text">${esc(n.text)}</div><div class="li-meta">${n.d}</div></div>
+      <button class="del" onclick="delNote(${n.id})">🗑</button>
+    </div>`).join('');
+}
+
+// ── SPORT ─────────────────────────────────────────────
+function addSport() {
+  const el = document.getElementById('sinp');
+  const v = el.value.trim();
+  if (!v) return;
+  const isCal = /\d+\s*(кал|калор|kcal|cal)/i.test(v);
+  const cal = isCal ? parseInt(v.match(/\d+/)[0]) : 0;
+  sport.unshift({id: Date.now(), text: v, type: isCal ? 'cal' : 'workout', cal, d: new Date().toLocaleDateString('ru'), ts: Date.now()});
+  save(); renderS(); el.value = '';
+}
+function delSport(id) { sport = sport.filter(x => x.id !== id); save(); renderS(); }
+
+function renderS() {
+  const today = new Date().toLocaleDateString('ru');
+  const wkAgo = Date.now() - 7 * 86400000;
+  const cals = sport.filter(e => e.d === today && e.type === 'cal').reduce((s, e) => s + e.cal, 0);
+  const wks = sport.filter(e => e.type === 'workout' && e.ts > wkAgo).length;
+  document.getElementById('calVal').textContent = cals;
+  document.getElementById('wkVal').textContent = wks;
+  const el = document.getElementById('slist');
+  if (!sport.length) {
+    el.innerHTML = '<div class="empty"><div class="empty-ico">💪</div><p>Нет записей. Добавь тренировку!</p></div>';
+    return;
+  }
+  el.innerHTML = sport.map(e => `
+    <div class="li">
+      <span style="font-size:22px">${e.type === 'cal' ? '🔥' : '💪'}</span>
+      <div style="flex:1"><div class="li-text">${esc(e.text)}</div><div class="li-meta">${e.d}</div></div>
+      <button class="del" onclick="delSport(${e.id})">🗑</button>
+    </div>`).join('');
+}
+
+// ── UTILS ────────────────────────────────────────────
+function esc(s) {
+  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+let toastTm;
+function toast(msg) {
+  const el = document.getElementById('toastEl');
+  el.textContent = msg;
+  el.classList.add('on');
+  clearTimeout(toastTm);
+  toastTm = setTimeout(() => el.classList.remove('on'), 2500);
+}
+
+// ── INIT ─────────────────────────────────────────────
+renderT(); renderN(); renderS();
+
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('/app/sw.js').catch(() => {});
+}
+</script>
+</body>
+</html>

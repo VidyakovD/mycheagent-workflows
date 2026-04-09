@@ -1,0 +1,90 @@
+{
+  "name": "04-pwa-api",
+  "id": "pwa-api-001",
+  "active": true,
+  "settings": { "executionOrder": "v1" },
+  "nodes": [
+    {
+      "id": "p1",
+      "name": "PWA Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [200, 300],
+      "webhookId": "pwa-chat-hook",
+      "parameters": {
+        "path": "pwa-chat",
+        "responseMode": "responseNode",
+        "options": {}
+      }
+    },
+    {
+      "id": "p2",
+      "name": "Build Prompt",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [420, 300],
+      "parameters": {
+        "jsCode": "const body = $input.first().json.body || {};\nconst section = body.section || 'chat';\nconst message = body.message || '';\nconst sessionId = body.sessionId || 'anon';\n\nconst prompts = {\n  chat: 'Ты умный личный ассистент по имени Мичи. Отвечай кратко, по-русски, дружелюбно. Без лишних вводных слов.',\n  tasks: 'Ты помощник по задачам и продуктивности. Помогай организовывать, приоритизировать, разбивать большие задачи. Отвечай кратко по-русски.',\n  notes: 'Ты помощник по заметкам и идеям. Помогай структурировать мысли, находить связи, давать инсайты. Отвечай кратко по-русски.',\n  sport: 'Ты фитнес-ассистент. Помогай с тренировками, калориями, режимом питания. Давай конкретные советы по-русски.',\n  more: 'Ты умный личный ассистент Мичи. Отвечай кратко по-русски.'\n};\n\nreturn [{ json: { section, message, sessionId, systemPrompt: prompts[section] || prompts.chat } }];"
+      }
+    },
+    {
+      "id": "p3",
+      "name": "GPT",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [640, 300],
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.openai.com/v1/chat/completions",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "Authorization", "value": "={{ 'Bearer ' + $env.OPENAI_API_KEY }}" },
+            { "name": "Content-Type", "value": "application/json" }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "application/json",
+        "body": "={{ JSON.stringify({ model: 'gpt-4o-mini', messages: [{ role: 'system', content: $json.systemPrompt }, { role: 'user', content: $json.message }], max_tokens: 500 }) }}",
+        "options": {}
+      }
+    },
+    {
+      "id": "p4",
+      "name": "Build Response",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [860, 300],
+      "parameters": {
+        "jsCode": "const gpt = $input.first().json;\nconst reply = gpt.choices?.[0]?.message?.content || 'Не удалось получить ответ';\nreturn [{ json: { reply, ok: true } }];"
+      }
+    },
+    {
+      "id": "p5",
+      "name": "Respond",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [1080, 300],
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify($json) }}",
+        "options": {
+          "responseCode": 200,
+          "responseHeaders": {
+            "entries": [
+              { "name": "Content-Type", "value": "application/json" },
+              { "name": "Access-Control-Allow-Origin", "value": "*" }
+            ]
+          }
+        }
+      }
+    }
+  ],
+  "connections": {
+    "PWA Webhook":    { "main": [[{ "node": "Build Prompt",   "type": "main", "index": 0 }]] },
+    "Build Prompt":   { "main": [[{ "node": "GPT",            "type": "main", "index": 0 }]] },
+    "GPT":            { "main": [[{ "node": "Build Response", "type": "main", "index": 0 }]] },
+    "Build Response": { "main": [[{ "node": "Respond",        "type": "main", "index": 0 }]] }
+  }
+}

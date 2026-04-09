@@ -1,5 +1,5 @@
 // Версия меняется при каждом деплое — старый кэш автоматически удаляется
-const CACHE = 'michi-v3';
+const CACHE = 'zeus-v1';
 
 self.addEventListener('install', e => {
   e.waitUntil(self.skipWaiting());

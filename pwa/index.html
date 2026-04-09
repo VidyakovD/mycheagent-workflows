@@ -558,13 +558,19 @@ const sid = localStorage.getItem('sid') || (() => {
   localStorage.setItem('sid', id); return id;
 })();
 
+// Safe JSON parse — if localStorage is corrupted, don't crash the app
+function ls(key, def) {
+  try { const v = localStorage.getItem(key); return v ? JSON.parse(v) : def; }
+  catch(e) { localStorage.removeItem(key); return def; }
+}
+
 // ══ STATE ════════════════════════════════════
 let curSec    = 'chat';
-let tasks     = JSON.parse(localStorage.getItem('tasks')    || '[]');
-let notes     = JSON.parse(localStorage.getItem('notes')    || '[]');
-let sport     = JSON.parse(localStorage.getItem('sport')    || '[]');
-let projects  = JSON.parse(localStorage.getItem('projects') || '[]');
-let chatHist  = JSON.parse(localStorage.getItem('chatHist') || '[]');
+let tasks     = ls('tasks',    []);
+let notes     = ls('notes',    []);
+let sport     = ls('sport',    []);
+let projects  = ls('projects', []);
+let chatHist  = ls('chatHist', []);
 let curProjId = null;
 
 function save() {
@@ -905,7 +911,7 @@ async function playAudio(b64, fallbackText='') {
   if (!b64) { await voSpeak(fallbackText); return; }
   try {
     // Strip any whitespace/newlines that break atob() on iOS Safari
-    const clean = b64.replace(/[^A-Za-z0-9+/=]/g, '');
+    const clean = b64.replace(/[^A-Za-z0-9+\/=]/g, '');
     if (!clean) throw new Error('empty');
 
     const bStr = atob(clean);

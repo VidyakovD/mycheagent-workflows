@@ -47,7 +47,7 @@
         "sendBody": true,
         "contentType": "raw",
         "rawContentType": "application/json",
-        "body": "={{ JSON.stringify({ model: 'gpt-4.1-mini', messages: [{ role: 'system', content: $json.systemPrompt }, ...$json.history, { role: 'user', content: $json.message }], max_tokens: 600 }) }}",
+        "body": "={{ JSON.stringify({ model: 'gpt-5.4-mini', messages: [{ role: 'system', content: $json.systemPrompt }, ...$json.history, { role: 'user', content: $json.message }], max_tokens: 400 }) }}",
         "options": {}
       }
     },
@@ -58,7 +58,7 @@
       "typeVersion": 2,
       "position": [860, 300],
       "parameters": {
-        "jsCode": "const gpt = $input.first().json;\nconst reply = gpt.choices?.[0]?.message?.content || 'Не удалось получить ответ';\nreturn [{ json: { reply, ok: true } }];"
+        "jsCode": "const gpt = $input.first().json;\nconst reply = gpt.choices?.[0]?.message?.content || 'Не удалось получить ответ';\n\n// OpenAI TTS — голос onyx (мужской, глубокий)\nlet audio_b64 = '';\ntry {\n  const ttsRes = await fetch('https://api.openai.com/v1/audio/speech', {\n    method: 'POST',\n    headers: {\n      'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`,\n      'Content-Type': 'application/json'\n    },\n    body: JSON.stringify({\n      model: 'tts-1',\n      input: reply,\n      voice: 'onyx',\n      response_format: 'mp3'\n    })\n  });\n  if (ttsRes.ok) {\n    const buf = await ttsRes.arrayBuffer();\n    audio_b64 = Buffer.from(buf).toString('base64');\n  }\n} catch(e) {\n  // TTS failed — PWA fallback to browser speechSynthesis\n}\n\nreturn [{ json: { reply, ok: true, audio_b64 } }];"
       }
     },
     {

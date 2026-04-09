@@ -4,7 +4,22 @@
       "Bash(pip install:*)",
       "Bash(python3)",
       "Bash(git branch:*)",
-      "Bash(git push:*)"
+      "Bash(git push:*)",
+      "WebFetch(domain:awstore.cloud)",
+      "WebSearch",
+      "Bash(python3 -c ':*)",
+      "Bash(PYTHONIOENCODING=utf-8 python3)",
+      "Bash(ssh:*)",
+      "Bash(gh run:*)",
+      "Bash(curl -s -k -X POST https://mycheagent.ru/rest/login -H 'Content-Type: application/json' -d '{\"email\":\"admin\",\"password\":\"28371988\"}')",
+      "Bash(curl -s -k -X POST https://mycheagent.ru/rest/login -H 'Content-Type: application/json' -d '{\"emailOrLdapLoginId\":\"admin\",\"password\":\"28371988\"}')",
+      "Bash(curl -s -k -X POST https://mycheagent.ru/rest/login -H 'Content-Type: application/json' -d '{\"owner\":{\"id\":\"admin\",\"email\":\"admin@mycheagent.ru\",\"password\":\"28371988\"}}')",
+      "Bash(curl -s -k -X POST https://mycheagent.ru/rest/login -H 'Content-Type: application/json' -d '{\"emailOrLdapLoginId\":\"admin@mycheagent.ru\",\"password\":\"28371988\"}')",
+      "Bash(curl -s -k -X POST https://mycheagent.ru/rest/login -H 'Content-Type: application/json' -d '{\"emailOrLdapLoginId\":\"admin\",\"password\":\"28371988\",\"mfaCode\":null}')",
+      "Bash(curl -s -k \"https://mycheagent.ru/api/v1/credentials\")",
+      "Bash(python3:*)",
+      "Bash(curl:*)",
+      "Bash(sshpass -p 'xD1mU0yG6inT' ssh -o StrictHostKeyChecking=no root@178.215.238.107 \"echo 'SSH works'\")"
     ]
   }
 }

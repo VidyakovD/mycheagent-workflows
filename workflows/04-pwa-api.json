@@ -30,24 +30,24 @@
     },
     {
       "id": "p3",
-      "name": "GPT",
+      "name": "Claude",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [640, 300],
       "parameters": {
         "method": "POST",
-        "url": "https://api.openai.com/v1/chat/completions",
+        "url": "={{ $env.ANTHROPIC_BASE_URL + '/v1/chat/completions' }}",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
-            { "name": "Authorization", "value": "={{ 'Bearer ' + $env.OPENAI_API_KEY }}" },
+            { "name": "Authorization", "value": "={{ 'Bearer ' + $env.ANTHROPIC_API_KEY }}" },
             { "name": "Content-Type", "value": "application/json" }
           ]
         },
         "sendBody": true,
         "contentType": "raw",
         "rawContentType": "application/json",
-        "body": "={{ JSON.stringify({ model: 'gpt-4o-mini', messages: [{ role: 'system', content: $json.systemPrompt }, ...$json.history, { role: 'user', content: $json.message }], max_tokens: 400 }) }}",
+        "body": "={{ JSON.stringify({ model: 'claude-sonnet-4.6', messages: [{ role: 'system', content: $json.systemPrompt }, ...$json.history, { role: 'user', content: $json.message }], max_tokens: 500 }) }}",
         "options": {
           "response": { "response": { "neverError": true } }
         }
@@ -60,7 +60,7 @@
       "typeVersion": 2,
       "position": [860, 300],
       "parameters": {
-        "jsCode": "const gpt = $input.first().json;\nif (!gpt.choices || gpt.error) {\n  const errMsg = gpt.error?.message || 'GPT unavailable';\n  return [{ json: { reply: 'Ошибка: ' + errMsg, ok: false } }];\n}\nconst reply = gpt.choices[0].message.content.trim();\nreturn [{ json: { reply, ok: true } }];"
+        "jsCode": "const res = $input.first().json;\nif (!res.choices || res.error) {\n  const errMsg = res.error?.message || 'Claude unavailable';\n  return [{ json: { reply: 'Ошибка: ' + errMsg, ok: false } }];\n}\nconst reply = res.choices[0].message.content.trim();\nreturn [{ json: { reply, ok: true } }];"
       }
     },
     {
@@ -126,8 +126,8 @@
   ],
   "connections": {
     "PWA Webhook":    { "main": [[{ "node": "Build Prompt",   "type": "main", "index": 0 }]] },
-    "Build Prompt":   { "main": [[{ "node": "GPT",            "type": "main", "index": 0 }]] },
-    "GPT":            { "main": [[{ "node": "Extract Reply",  "type": "main", "index": 0 }]] },
+    "Build Prompt":   { "main": [[{ "node": "Claude",         "type": "main", "index": 0 }]] },
+    "Claude":         { "main": [[{ "node": "Extract Reply",  "type": "main", "index": 0 }]] },
     "Extract Reply":  { "main": [[{ "node": "TTS",            "type": "main", "index": 0 }]] },
     "TTS":            { "main": [[{ "node": "Build Response", "type": "main", "index": 0 }]] },
     "Build Response": { "main": [[{ "node": "Respond",        "type": "main", "index": 0 }]] }

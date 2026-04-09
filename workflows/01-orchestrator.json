@@ -133,18 +133,18 @@
       "position": [1740, 300],
       "parameters": {
         "method": "POST",
-        "url": "https://api.openai.com/v1/chat/completions",
+        "url": "={{ $env.ANTHROPIC_BASE_URL + '/v1/chat/completions' }}",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
-            { "name": "Authorization", "value": "={{ 'Bearer ' + $env.OPENAI_API_KEY }}" },
+            { "name": "Authorization", "value": "={{ 'Bearer ' + $env.ANTHROPIC_API_KEY }}" },
             { "name": "Content-Type", "value": "application/json" }
           ]
         },
         "sendBody": true,
         "contentType": "raw",
         "rawContentType": "application/json",
-        "body": "={{ JSON.stringify({ model: 'gpt-4o-mini', messages: [{ role: 'system', content: 'Ты умный персональный ассистент по имени Зевс. Отвечай кратко, по-русски, дружелюбно.' }, { role: 'user', content: $json.userText }] }) }}",
+        "body": "={{ JSON.stringify({ model: 'claude-sonnet-4.6', messages: [{ role: 'system', content: 'Ты умный персональный ассистент по имени Зевс. Отвечай кратко, по-русски, дружелюбно. Без лишних вводных слов.' }, { role: 'user', content: $json.userText }], max_tokens: 500 }) }}",
         "options": {}
       }
     },
@@ -155,7 +155,7 @@
       "typeVersion": 2,
       "position": [1960, 300],
       "parameters": {
-        "jsCode": "const gpt = $input.first().json;\nconst text = gpt.choices?.[0]?.message?.content || 'Не удалось получить ответ';\nconst chatId = $('Router').item.json.chatId;\nconst isVoice = $('Router').item.json.isVoice;\nreturn [{ json: { chatId, text, isVoice } }];"
+        "jsCode": "const res = $input.first().json;\nconst text = res.choices?.[0]?.message?.content || 'Не удалось получить ответ';\nconst chatId = $('Router').item.json.chatId;\nconst isVoice = $('Router').item.json.isVoice;\nreturn [{ json: { chatId, text, isVoice } }];"
       }
     },
     {

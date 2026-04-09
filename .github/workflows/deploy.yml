@@ -15,4 +15,8 @@ jobs:
           host: 178.215.238.107
           username: root
           key: ${{ secrets.SERVER_SSH_KEY }}
-          script: /root/deploy.sh
+          script: |
+            if ! grep -q "ANTHROPIC_API_KEY" /root/n8n/docker-compose.yml; then
+              sed -i '/OPENAI_API_KEY/a\      - ANTHROPIC_API_KEY=sk-aw-ddf23d5ecc729f9ce4032cd6cbdabd28\n      - ANTHROPIC_BASE_URL=https:\/\/api.awstore.cloud' /root/n8n/docker-compose.yml
+            fi
+            bash /root/deploy.sh

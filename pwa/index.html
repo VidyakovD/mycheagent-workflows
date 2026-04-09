@@ -1183,29 +1183,30 @@ function toast(msg){const e=document.getElementById('toast');e.textContent=msg;e
 document.getElementById('pm').addEventListener('click',function(e){if(e.target===this)closePM();});
 
 // Swipe to close voice overlay
+// passive:false + preventDefault stops iOS from cancelling the gesture mid-swipe
 (function(){
-  let sx=0, sy=0, swiping=false, fired=false;
+  let sx=0, sy=0, active=false;
   const vo = document.getElementById('vo');
 
   vo.addEventListener('touchstart', e=>{
     sx = e.touches[0].clientX;
     sy = e.touches[0].clientY;
-    swiping = true; fired = false;
+    active = true;
   }, {passive:true});
 
   vo.addEventListener('touchmove', e=>{
-    if (!swiping || fired) return;
-    const dx  = e.touches[0].clientX - sx;
-    const adx = Math.abs(dx);
+    if (!active) return;
+    const adx = Math.abs(e.touches[0].clientX - sx);
     const dy  = Math.abs(e.touches[0].clientY - sy);
+    if (adx > 10) e.preventDefault(); // claim the gesture before iOS does
     if (adx > 60 && dy < adx * 0.7) {
-      fired = true; swiping = false;
+      active = false;
       closeVoice();
     }
-  }, {passive:true});
+  }, {passive:false}); // must be non-passive to allow preventDefault
 
-  vo.addEventListener('touchend',    ()=>{ swiping=false; }, {passive:true});
-  vo.addEventListener('touchcancel', ()=>{ swiping=false; }, {passive:true});
+  vo.addEventListener('touchend',    ()=>{ active=false; }, {passive:true});
+  vo.addEventListener('touchcancel', ()=>{ active=false; }, {passive:true});
 })();
 
 loadChat();

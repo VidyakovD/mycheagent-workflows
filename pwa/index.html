@@ -900,52 +900,55 @@ async function processVoice(text) {
   }
 }
 
-// Play OpenAI TTS audio (base64 mp3) via AudioContext — works on iOS
+// Play OpenAI TTS audio (base64 mp3) via AudioContext — iOS-safe
 async function playAudio(b64, fallbackText='') {
-  return new Promise(async res => {
-    try {
-      const bStr = atob(b64);
-      const bytes = new Uint8Array(bStr.length);
-      for (let i=0; i<bStr.length; i++) bytes[i] = bStr.charCodeAt(i);
+  if (!b64) { await voSpeak(fallbackText); return; }
+  try {
+    // Strip any whitespace/newlines that break atob() on iOS Safari
+    const clean = b64.replace(/[^A-Za-z0-9+/=]/g, '');
+    if (!clean) throw new Error('empty');
 
-      // Reuse existing AudioContext (was created during user gesture tap = unlocked on iOS)
-      // or create a fresh one
-      let ctx = aCtx;
-      if (!ctx || ctx.state === 'closed') {
-        ctx = new (window.AudioContext || window.webkitAudioContext)();
-        aCtx = ctx;
-      }
-      await ctx.resume();
+    const bStr = atob(clean);
+    const bytes = new Uint8Array(bStr.length);
+    for (let i=0; i<bStr.length; i++) bytes[i] = bStr.charCodeAt(i);
 
-      const audioBuffer = await ctx.decodeAudioData(bytes.buffer.slice(0));
-      const source = ctx.createBufferSource();
-      source.buffer = audioBuffer;
+    // Reuse AudioContext created on user-gesture tap (unlocked on iOS)
+    let ctx = aCtx;
+    if (!ctx || ctx.state === 'closed') {
+      ctx = new (window.AudioContext || window.webkitAudioContext)();
+      aCtx = ctx;
+    }
+    await ctx.resume();
 
-      // Analyser for neural visualization during speech
-      const ttsAnalyser = ctx.createAnalyser();
-      ttsAnalyser.fftSize = 128;
-      source.connect(ttsAnalyser);
-      source.connect(ctx.destination);
-      if (neural) neural.setAnalyser(ttsAnalyser);
+    const decoded = await ctx.decodeAudioData(bytes.buffer.slice(0));
+    const source = ctx.createBufferSource();
+    source.buffer = decoded;
 
-      ttsAudioNode = source;
+    // Analyser so neural animation reacts to Zeus's voice
+    const ttsAnalyser = ctx.createAnalyser();
+    ttsAnalyser.fftSize = 128;
+    source.connect(ttsAnalyser);
+    source.connect(ctx.destination);
+    if (neural) neural.setAnalyser(ttsAnalyser);
+    ttsAudioNode = source;
+
+    // Await playback (inner Promise is NOT async — safe pattern)
+    await new Promise(res => {
       const tmo = setTimeout(() => { try{source.stop();}catch(e){} res(); }, 90000);
-
       source.onended = () => {
-        clearTimeout(tmo);
-        ttsAudioNode = null;
-        // Restore mic analyser for listen mode
+        clearTimeout(tmo); ttsAudioNode = null;
         if (aNode && neural) neural.setAnalyser(aNode);
         res();
       };
       source.start(0);
-    } catch(e) {
-      ttsAudioNode = null;
-      // Fallback to browser TTS
-      await voSpeak(fallbackText);
-      res();
-    }
-  });
+    });
+
+  } catch(e) {
+    ttsAudioNode = null;
+    if (aNode && neural) neural.setAnalyser(aNode);
+    // Graceful fallback: browser TTS
+    try { await voSpeak(fallbackText); } catch(e2) {}
+  }
 }
 
 function voSpeak(text) {

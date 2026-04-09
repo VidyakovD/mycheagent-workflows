@@ -724,6 +724,18 @@ let neural=null;
 let voActive=false, voProc=false;
 let recog=null, aCtx=null, aNode=null, mStream=null;
 let pendingTxt='';
+let cachedVoices=[];
+
+// Pre-load TTS voices (needed on iOS/Chrome — async load)
+function initVoices() {
+  if (!window.speechSynthesis) return;
+  cachedVoices = speechSynthesis.getVoices();
+  if (!cachedVoices.length) {
+    speechSynthesis.addEventListener('voiceschanged', () => {
+      cachedVoices = speechSynthesis.getVoices();
+    }, {once:true});
+  }
+}
 
 function openVoice() {
   document.getElementById('vo').classList.add('on');
@@ -751,77 +763,141 @@ async function startVoice() {
   voSetSt('listen','Слушаю...');
   setOrbState('listen');
 
-  // Mic for visualization (non-blocking)
+  // Mic for visualization
   try {
     mStream = await navigator.mediaDevices.getUserMedia({audio:true,video:false});
-    aCtx = new AudioContext();
+    aCtx = new (window.AudioContext||window.webkitAudioContext)();
     aNode = aCtx.createAnalyser();
     aNode.fftSize = 128;
     aCtx.createMediaStreamSource(mStream).connect(aNode);
     if (neural) neural.setAnalyser(aNode);
-  } catch(e) { /* no mic viz */ }
+  } catch(e) { /* mic viz not available */ }
 
-  // SpeechRecognition
-  const SR = window.SpeechRecognition||window.webkitSpeechRecognition;
-  if (SR) {
-    recog = new SR();
-    recog.lang='ru-RU'; recog.continuous=false; recog.interimResults=true;
-    recog.onresult = e => {
-      const txt = Array.from(e.results).map(r=>r[0].transcript).join('');
-      voSetTxt(txt);
-      const fin = Array.from(e.results).filter(r=>r.isFinal).map(r=>r[0].transcript).join('');
-      if (fin) pendingTxt=fin;
-    };
-    recog.onend = () => {
-      if (!voActive) return;
-      if (pendingTxt) { const t=pendingTxt; pendingTxt=''; processVoice(t); }
-      else if (!voProc) setTimeout(()=>{if(voActive&&!voProc)restartRecog();},400);
-    };
-    recog.onerror = e => {
-      if (e.error==='not-allowed') { toast('Нет доступа к микрофону'); closeVoice(); return; }
-      if (voActive&&!voProc) setTimeout(restartRecog,600);
-    };
-    recog.start();
-  } else {
-    voSetSt('idle','SpeechRecognition не поддерживается');
-  }
+  startRecog();
 }
 
-function restartRecog() {
-  if (!voActive||voProc||!recog) return;
-  try { recog.start(); setOrbState('listen'); voSetSt('listen','Слушаю...'); } catch(e) {}
+function startRecog() {
+  if (!voActive || voProc) return;
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!SR) { voSetSt('idle','SpeechRecognition не поддерживается'); return; }
+
+  if (recog) { try{recog.abort();}catch(e){} recog=null; }
+
+  recog = new SR();
+  recog.lang='ru-RU';
+  recog.continuous=false;
+  recog.interimResults=true;
+  recog.maxAlternatives=1;
+
+  recog.onresult = e => {
+    const all = Array.from(e.results);
+    const txt = all.map(r=>r[0].transcript).join('');
+    voSetTxt(txt);
+    const fin = all.filter(r=>r.isFinal).map(r=>r[0].transcript).join('').trim();
+    if (fin) pendingTxt = fin;
+  };
+
+  recog.onend = () => {
+    if (!voActive) return;
+    if (pendingTxt) {
+      const t = pendingTxt; pendingTxt = '';
+      processVoice(t);
+    } else if (!voProc) {
+      setTimeout(() => { if (voActive && !voProc) startRecog(); }, 350);
+    }
+  };
+
+  recog.onerror = e => {
+    if (e.error === 'not-allowed') { toast('Нет доступа к микрофону'); closeVoice(); return; }
+    if (e.error === 'aborted') return; // мы сами прервали
+    if (voActive && !voProc) setTimeout(() => startRecog(), 600);
+  };
+
+  try { recog.start(); } catch(e) {}
 }
+
+// Kept for backward compat
+function restartRecog() { startRecog(); }
 
 async function processVoice(text) {
-  voProc=true;
-  addMsg(text,'u',true);
+  voProc = true;
+  addMsg(text, 'u', true);
   voSetTxt(text); voSetSt('think','Думаю...'); setOrbState('think');
+  if (neural) neural.setMode('think');
+
   try {
-    const r = await fetch(API,{method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({section:curSec,message:text,sessionId:sid})});
-    if (!r.ok) throw new Error('HTTP '+r.status);
+    const r = await fetch(API, {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({section:curSec, message:text, sessionId:sid})
+    });
+    if (!r.ok) throw new Error('HTTP ' + r.status);
     const d = await r.json();
-    const reply = d.reply||'…';
-    addMsg(reply,'b',true);
-    voSetTxt(reply); voSetSt('speak','Отвечаю...'); setOrbState('speak');
+    const reply = d.reply || '…';
+    addMsg(reply, 'b', true);
+    voSetTxt(reply);
+    voSetSt('speak', 'Зевс отвечает...');
+    setOrbState('speak');
+    if (neural) neural.setMode('speak');
     await voSpeak(reply);
-  } catch(e) { voSetTxt('Ошибка: '+e.message); }
-  voProc=false;
-  if (voActive) { voSetTxt(''); setTimeout(restartRecog,300); }
+  } catch(e) {
+    voSetTxt('Ошибка: ' + e.message);
+    await sleep(1500);
+  }
+
+  voProc = false;
+  if (voActive) {
+    voSetTxt('');
+    voSetSt('listen','Слушаю...');
+    setOrbState('listen');
+    if (neural) neural.setMode('listen');
+    // Short pause so mic doesn't catch TTS echo
+    setTimeout(() => startRecog(), 500);
+  }
 }
 
 function voSpeak(text) {
   return new Promise(res => {
     if (!window.speechSynthesis) { res(); return; }
     speechSynthesis.cancel();
-    const u=new SpeechSynthesisUtterance(text);
-    u.lang='ru-RU'; u.rate=1.05;
-    const vv=speechSynthesis.getVoices(), rv=vv.find(v=>v.lang.startsWith('ru'));
-    if (rv) u.voice=rv;
-    u.onend=res; u.onerror=res;
-    speechSynthesis.speak(u);
+
+    setTimeout(() => {
+      if (!voActive) { res(); return; }
+
+      const u = new SpeechSynthesisUtterance(text);
+      u.lang = 'ru-RU';
+      u.rate = 1.0;
+      u.pitch = 1.0;
+      u.volume = 1.0;
+
+      // Pick best Russian voice, fall back to default
+      const voices = cachedVoices.length ? cachedVoices : speechSynthesis.getVoices();
+      const rv = voices.find(v => v.lang === 'ru-RU')
+              || voices.find(v => v.lang.startsWith('ru'))
+              || voices.find(v => v.default)
+              || voices[0];
+      if (rv) u.voice = rv;
+
+      // Timeout fallback — if onend never fires (iOS bug)
+      const dur = Math.min(Math.max(text.length * 75, 3500), 35000);
+      const tmo = setTimeout(() => { speechSynthesis.cancel(); res(); }, dur);
+
+      u.onend  = () => { clearTimeout(tmo); res(); };
+      u.onerror = () => { clearTimeout(tmo); res(); };
+
+      speechSynthesis.speak(u);
+
+      // iOS Safari: if synthesis gets paused (background/focus loss), resume
+      const resumeIOS = setInterval(() => {
+        if (!voActive || !speechSynthesis.speaking) { clearInterval(resumeIOS); return; }
+        if (speechSynthesis.paused) speechSynthesis.resume();
+      }, 5000);
+      u.onend = () => { clearTimeout(tmo); clearInterval(resumeIOS); res(); };
+    }, 120); // small delay after cancel()
   });
 }
+
+function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
 
 function stopAll() {
   voActive=false; voProc=false; pendingTxt='';
@@ -979,7 +1055,7 @@ function toast(msg){const e=document.getElementById('toast');e.textContent=msg;e
 document.getElementById('pm').addEventListener('click',function(e){if(e.target===this)closePM();});
 loadChat();
 renderT(); renderN(); renderS(); renderP();
-if(window.speechSynthesis) speechSynthesis.getVoices();
+initVoices();
 if('serviceWorker' in navigator) navigator.serviceWorker.register('/app/sw.js').catch(()=>{});
 </script>
 </body>

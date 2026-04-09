@@ -278,7 +278,7 @@
     },
     {
       "parameters": {
-        "jsCode": "const resp = $input.first().json;\nconst text = resp.choices?.[0]?.message?.content || '\u0420\u045c\u0420\u00b5 \u0421\u0453\u0420\u0491\u0420\u00b0\u0420\u00bb\u0420\u0455\u0421\u0403\u0421\u040a \u0420\u0457\u0420\u0455\u0420\u00bb\u0421\u0453\u0421\u2021\u0420\u0451\u0421\u201a\u0421\u040a \u0420\u0455\u0421\u201a\u0420\u0406\u0420\u00b5\u0421\u201a';\nconst d = $input.first().json;\nreturn [{ json: { chatId: d.chatId, isVoice: d.isVoice, userId: d.userId, text, agent: d.agent }}];"
+        "jsCode": "const resp = $input.first().json;\nconst text = resp.choices?.[0]?.message?.content || 'Не удалось получить ответ';\nconst d = $('Build LLM Request').item.json;\nreturn [{ json: { chatId: d.chatId, isVoice: d.isVoice, userId: d.userId, text, agent: d.agent }}];"
       },
       "id": "n12",
       "name": "Extract LLM Response",

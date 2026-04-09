@@ -49,28 +49,66 @@
         "rawContentType": "application/json",
         "body": "={{ JSON.stringify({ model: 'gpt-4o-mini', messages: [{ role: 'system', content: $json.systemPrompt }, ...$json.history, { role: 'user', content: $json.message }], max_tokens: 400 }) }}",
         "options": {
-          "response": {
-            "response": { "neverError": true }
-          }
+          "response": { "response": { "neverError": true } }
         }
       }
     },
     {
       "id": "p4",
-      "name": "Build Response",
+      "name": "Extract Reply",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [860, 300],
       "parameters": {
-        "jsCode": "const gpt = $input.first().json;\n\n// Handle GPT errors gracefully (e.g. invalid model, quota exceeded)\nif (!gpt.choices || gpt.error) {\n  const errMsg = gpt.error?.message || 'GPT error';\n  console.error('GPT failed:', errMsg);\n  return [{ json: { reply: 'Ошибка сервера: ' + errMsg, ok: false, audio_b64: '' } }];\n}\n\nconst reply = gpt.choices[0].message.content.trim();\n\n// OpenAI TTS — голос onyx (мужской, глубокий)\nlet audio_b64 = '';\ntry {\n  const ttsRes = await fetch('https://api.openai.com/v1/audio/speech', {\n    method: 'POST',\n    headers: {\n      'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`,\n      'Content-Type': 'application/json'\n    },\n    body: JSON.stringify({\n      model: 'tts-1',\n      input: reply,\n      voice: 'onyx',\n      response_format: 'mp3'\n    })\n  });\n  if (ttsRes.ok) {\n    const buf = await ttsRes.arrayBuffer();\n    audio_b64 = Buffer.from(new Uint8Array(buf)).toString('base64');\n  } else {\n    const errBody = await ttsRes.text();\n    return [{ json: { reply, ok: true, audio_b64: '', tts_err: ttsRes.status + ' ' + errBody.slice(0,200) } }];\n  }\n} catch(e) {\n  return [{ json: { reply, ok: true, audio_b64: '', tts_err: e.message } }];\n}\n\nreturn [{ json: { reply, ok: true, audio_b64 } }];"
+        "jsCode": "const gpt = $input.first().json;\nif (!gpt.choices || gpt.error) {\n  const errMsg = gpt.error?.message || 'GPT unavailable';\n  return [{ json: { reply: 'Ошибка: ' + errMsg, ok: false } }];\n}\nconst reply = gpt.choices[0].message.content.trim();\nreturn [{ json: { reply, ok: true } }];"
       }
     },
     {
       "id": "p5",
+      "name": "TTS",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1060, 300],
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.openai.com/v1/audio/speech",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "Authorization", "value": "={{ 'Bearer ' + $env.OPENAI_API_KEY }}" },
+            { "name": "Content-Type", "value": "application/json" }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "application/json",
+        "body": "={{ JSON.stringify({ model: 'tts-1', input: $json.reply, voice: 'onyx', response_format: 'mp3' }) }}",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "file",
+              "neverError": true
+            }
+          }
+        }
+      }
+    },
+    {
+      "id": "p6",
+      "name": "Build Response",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1280, 300],
+      "parameters": {
+        "jsCode": "// Reply comes from Extract Reply node (TTS overwrites $json)\nconst extracted = $('Extract Reply').item;\nconst reply = extracted.json.reply;\nconst ok = extracted.json.ok;\n\n// Audio binary from TTS node — n8n stores it as base64 in $binary.data.data\nconst ttsItem = $input.first();\nconst audio_b64 = ttsItem.binary?.data?.data || '';\n\nreturn [{ json: { reply, ok, audio_b64 } }];"
+      }
+    },
+    {
+      "id": "p7",
       "name": "Respond",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.1,
-      "position": [1080, 300],
+      "position": [1480, 300],
       "parameters": {
         "respondWith": "json",
         "responseBody": "={{ JSON.stringify($json) }}",
@@ -89,7 +127,9 @@
   "connections": {
     "PWA Webhook":    { "main": [[{ "node": "Build Prompt",   "type": "main", "index": 0 }]] },
     "Build Prompt":   { "main": [[{ "node": "GPT",            "type": "main", "index": 0 }]] },
-    "GPT":            { "main": [[{ "node": "Build Response", "type": "main", "index": 0 }]] },
+    "GPT":            { "main": [[{ "node": "Extract Reply",  "type": "main", "index": 0 }]] },
+    "Extract Reply":  { "main": [[{ "node": "TTS",            "type": "main", "index": 0 }]] },
+    "TTS":            { "main": [[{ "node": "Build Response", "type": "main", "index": 0 }]] },
     "Build Response": { "main": [[{ "node": "Respond",        "type": "main", "index": 0 }]] }
   }
 }

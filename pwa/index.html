@@ -1182,26 +1182,30 @@ function toast(msg){const e=document.getElementById('toast');e.textContent=msg;e
 // ══ INIT ═════════════════════════════════════
 document.getElementById('pm').addEventListener('click',function(e){if(e.target===this)closePM();});
 
-// Swipe to close voice overlay — global document listener, handles touchcancel too
+// Swipe to close voice overlay
 (function(){
-  let ts = null;
+  let sx=0, sy=0, swiping=false, fired=false;
+  const vo = document.getElementById('vo');
 
-  document.addEventListener('touchstart', e => {
-    if (!document.getElementById('vo').classList.contains('on')) return;
-    ts = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+  vo.addEventListener('touchstart', e=>{
+    sx = e.touches[0].clientX;
+    sy = e.touches[0].clientY;
+    swiping = true; fired = false;
   }, {passive:true});
 
-  // Detect during move on the overlay element directly (most reliable on iOS)
-  vo.addEventListener('touchmove', e => {
-    if (!ts) return;
-    const dx = Math.abs(e.touches[0].clientX - ts.x);
-    const dy = Math.abs(e.touches[0].clientY - ts.y);
-    // Any horizontal swipe > 60px (left or right), not too vertical
-    if (dx > 60 && dy < dx * 0.7) { ts = null; closeVoice(); }
+  vo.addEventListener('touchmove', e=>{
+    if (!swiping || fired) return;
+    const dx  = e.touches[0].clientX - sx;
+    const adx = Math.abs(dx);
+    const dy  = Math.abs(e.touches[0].clientY - sy);
+    if (adx > 60 && dy < adx * 0.7) {
+      fired = true; swiping = false;
+      closeVoice();
+    }
   }, {passive:true});
 
-  vo.addEventListener('touchend',    () => { ts = null; }, {passive:true});
-  vo.addEventListener('touchcancel', () => { ts = null; }, {passive:true});
+  vo.addEventListener('touchend',    ()=>{ swiping=false; }, {passive:true});
+  vo.addEventListener('touchcancel', ()=>{ swiping=false; }, {passive:true});
 })();
 
 loadChat();

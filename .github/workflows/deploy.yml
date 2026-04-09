@@ -15,15 +15,4 @@ jobs:
           host: 178.215.238.107
           username: root
           key: ${{ secrets.SERVER_SSH_KEY }}
-          script: |
-            # Add Claude/AWstore env vars if not present
-            if ! grep -q "ANTHROPIC_API_KEY" /root/n8n/docker-compose.yml; then
-              sed -i '/OPENAI_API_KEY/a\      - ANTHROPIC_API_KEY=sk-aw-ddf23d5ecc729f9ce4032cd6cbdabd28\n      - ANTHROPIC_BASE_URL=https:\/\/api.awstore.cloud' /root/n8n/docker-compose.yml
-            fi
-            # Show n8n admin user email (one-time debug)
-            echo "=== N8N USERS ==="
-            docker exec n8n-n8n-1 sqlite3 /home/node/.n8n/database.sqlite "SELECT email FROM user LIMIT 5;" 2>/dev/null \
-              || find /root/n8n -name "database.sqlite" -exec sqlite3 {} "SELECT email FROM user LIMIT 5;" \; 2>/dev/null \
-              || echo "sqlite not accessible"
-            # Run main deploy
-            bash /root/deploy.sh
+          script: bash /root/deploy.sh

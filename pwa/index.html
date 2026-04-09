@@ -891,7 +891,9 @@ async function processVoice(text) {
       await voSpeak(reply);
     }
   } catch(e) {
-    voSetTxt('Ошибка: ' + e.message);
+    const msg = (e.message || '').toLowerCase();
+    const userMsg = msg.includes('http') ? 'Нет связи' : 'Попробуй ещё раз';
+    voSetTxt(userMsg);
     await sleep(1500);
   }
 
@@ -926,7 +928,10 @@ async function playAudio(b64, fallbackText='') {
     }
     await ctx.resume();
 
-    const decoded = await ctx.decodeAudioData(bytes.buffer.slice(0));
+    // Use callback form — more reliable on iOS Safari than Promise form
+    const decoded = await new Promise((resolve, reject) => {
+      ctx.decodeAudioData(bytes.buffer.slice(0), resolve, reject);
+    });
     const source = ctx.createBufferSource();
     source.buffer = decoded;
 

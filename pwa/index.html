@@ -807,11 +807,19 @@ async function startVoice() {
   voActive=true; voProc=false;
   voSetSt('listen','Слушаю...');
   setOrbState('listen');
+  if (neural) neural.setMode('listen');
 
-  // Mic for visualization
+  // Reuse existing stream — avoids re-asking mic permission every session
   try {
-    mStream = await navigator.mediaDevices.getUserMedia({audio:true,video:false});
-    aCtx = new (window.AudioContext||window.webkitAudioContext)();
+    const needStream = !mStream || mStream.getTracks().some(t => t.readyState === 'ended');
+    if (needStream) {
+      mStream = await navigator.mediaDevices.getUserMedia({audio:true,video:false});
+    }
+    if (!aCtx || aCtx.state === 'closed') {
+      aCtx = new (window.AudioContext||window.webkitAudioContext)();
+    }
+    await aCtx.resume();
+    // Reconnect analyser each session
     aNode = aCtx.createAnalyser();
     aNode.fftSize = 128;
     aCtx.createMediaStreamSource(mStream).connect(aNode);
@@ -1012,9 +1020,11 @@ function stopAll() {
   if (recog) { try{recog.abort();}catch(e){} recog=null; }
   if (ttsAudioNode) { try{ttsAudioNode.stop();}catch(e){} ttsAudioNode=null; }
   if (window.speechSynthesis) speechSynthesis.cancel();
-  if (mStream) { mStream.getTracks().forEach(t=>t.stop()); mStream=null; }
-  if (aCtx) { try{aCtx.close();}catch(e){} aCtx=null; aNode=null; }
-  if (neural) { neural.analyser=null; neural.aData=null; neural.audioLevel=0; }
+  // Keep mStream alive — avoids re-asking mic permission on next session
+  // Suspend (not close) AudioContext to save battery
+  if (aCtx && aCtx.state !== 'closed') { try{aCtx.suspend();}catch(e){} }
+  aNode = null;
+  if (neural) { neural.setAnalyser(null); neural.audioLevel=0; }
 }
 
 function setOrbState(s) {

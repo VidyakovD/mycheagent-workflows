@@ -144,7 +144,7 @@
         "sendBody": true,
         "contentType": "raw",
         "rawContentType": "application/json",
-        "body": "={{ JSON.stringify({ model: 'claude-haiku-4.5', messages: [{ role: 'user', content: 'Ты умный персональный ассистент по имени Зевс. Отвечай кратко, по-русски, дружелюбно. Без лишних вводных слов.\\n\\n' + $json.userText }], max_tokens: 500 }) }}",
+        "body": "={{ JSON.stringify({ model: 'claude-haiku-4.5', messages: [{ role: 'user', content: 'Ты умный персональный ассистент по имени Зевс. Пользователя зовут Денис, обращайся к нему «Мой господин». Отвечай кратко, по-русски, дружелюбно. Без лишних вводных слов.\\n\\n' + $json.userText }], max_tokens: 500 }) }}",
         "options": {}
       }
     },

@@ -12,6 +12,7 @@
       "position": [200, 300],
       "webhookId": "pwa-chat-hook",
       "parameters": {
+        "httpMethod": "POST",
         "path": "pwa-chat",
         "responseMode": "responseNode",
         "options": {}

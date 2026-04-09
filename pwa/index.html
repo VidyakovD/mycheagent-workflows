@@ -552,7 +552,8 @@ body{background:var(--bg);color:var(--tx);
 
 <script>
 // ══ CONFIG ══════════════════════════════════
-const API = 'https://mycheagent.ru/webhook/pwa-chat';
+const API      = 'https://mycheagent.ru/webhook/pwa-chat';
+const DATA_API = 'https://mycheagent.ru/webhook/pwa-data';
 const sid = localStorage.getItem('sid') || (() => {
   const id = 'u' + Math.random().toString(36).slice(2,9);
   localStorage.setItem('sid', id); return id;
@@ -579,6 +580,29 @@ function save() {
   localStorage.setItem('sport',    JSON.stringify(sport));
   localStorage.setItem('projects', JSON.stringify(projects));
   localStorage.setItem('chatHist', JSON.stringify(chatHist.slice(-60)));
+  // Background sync to server (non-blocking, localStorage is primary)
+  fetch(DATA_API, {
+    method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({ action:'setAll', sessionId:sid, data:{tasks,notes,sport,projects} })
+  }).catch(()=>{});
+}
+
+// Load data from server on startup — overrides localStorage if server has data
+async function loadFromServer() {
+  try {
+    const r = await fetch(DATA_API, {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ action:'get', sessionId:sid })
+    });
+    if (!r.ok) return;
+    const d = await r.json();
+    let changed = false;
+    if (d.tasks?.length)    { tasks    = d.tasks;    localStorage.setItem('tasks',    JSON.stringify(tasks));    changed=true; }
+    if (d.notes?.length)    { notes    = d.notes;    localStorage.setItem('notes',    JSON.stringify(notes));    changed=true; }
+    if (d.sport?.length)    { sport    = d.sport;    localStorage.setItem('sport',    JSON.stringify(sport));    changed=true; }
+    if (d.projects?.length) { projects = d.projects; localStorage.setItem('projects', JSON.stringify(projects)); changed=true; }
+    if (changed) { renderT(); renderN(); renderS(); renderP(); }
+  } catch(e) {}
 }
 
 // ══ NAVIGATION ═══════════════════════════════
@@ -1209,6 +1233,7 @@ document.getElementById('pm').addEventListener('click',function(e){if(e.target==
 loadChat();
 renderT(); renderN(); renderS(); renderP();
 initVoices();
+loadFromServer(); // sync from server in background
 if('serviceWorker' in navigator) navigator.serviceWorker.register('/app/sw.js').catch(()=>{});
 </script>
 </body>

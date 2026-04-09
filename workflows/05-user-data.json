@@ -1,0 +1,55 @@
+{
+  "name": "05-user-data",
+  "id": "user-data-001",
+  "active": true,
+  "settings": { "executionOrder": "v1" },
+  "nodes": [
+    {
+      "id": "d1",
+      "name": "Data Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [200, 300],
+      "webhookId": "pwa-data-hook",
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "pwa-data",
+        "responseMode": "responseNode",
+        "options": {}
+      }
+    },
+    {
+      "id": "d2",
+      "name": "Handle Data",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [440, 300],
+      "parameters": {
+        "jsCode": "const raw = $input.first().json;\nconst body = (raw.body && raw.body.action) ? raw.body : raw;\nconst { action, sessionId } = body;\n\nif (!sessionId) return [{ json: { error: 'no sessionId' } }];\n\nconst store = $getWorkflowStaticData('global');\nif (!store.u) store.u = {};\nif (!store.u[sessionId]) store.u[sessionId] = {};\n\nif (action === 'get') {\n  const u = store.u[sessionId];\n  return [{ json: {\n    tasks:    u.tasks    || [],\n    notes:    u.notes    || [],\n    sport:    u.sport    || [],\n    projects: u.projects || []\n  }}];\n}\n\nif (action === 'setAll') {\n  const d = body.data || {};\n  const cols = ['tasks','notes','sport','projects'];\n  for (const c of cols) {\n    if (Array.isArray(d[c])) store.u[sessionId][c] = d[c];\n  }\n  return [{ json: { ok: true } }];\n}\n\nreturn [{ json: { error: 'unknown action' } }];"
+      }
+    },
+    {
+      "id": "d3",
+      "name": "Respond",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [660, 300],
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json }}",
+        "options": {
+          "responseHeaders": {
+            "entries": [
+              { "name": "Access-Control-Allow-Origin", "value": "*" }
+            ]
+          }
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Data Webhook": { "main": [[{ "node": "Handle Data", "type": "main", "index": 0 }]] },
+    "Handle Data":   { "main": [[{ "node": "Respond",      "type": "main", "index": 0 }]] }
+  },
+  "versionId": "d0000001-0000-0000-0000-000000000005"
+}

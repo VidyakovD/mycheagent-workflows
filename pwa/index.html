@@ -504,7 +504,7 @@ body{background:var(--bg);color:var(--tx);
   </div>
   <div class="vo-txt" id="voTxt"></div>
   <div class="vo-st" id="voSt">Нажми чтобы говорить</div>
-  <div class="vo-hint">← свайп для закрытия</div>
+  <div class="vo-hint">свайп → для закрытия</div>
 </div>
 
 <!-- TTS audio element — pre-created and unlocked on first tap (iOS autoplay fix) -->
@@ -1198,7 +1198,7 @@ document.getElementById('pm').addEventListener('click',function(e){if(e.target==
     const dx = e.touches[0].clientX - sx;
     const dy = Math.abs(e.touches[0].clientY - sy);
     // Close as soon as swipe is clearly horizontal and > 60px
-    if (dx > 60 && dy < dx * 0.7) {
+    if (dx < -60 && dy < -dx * 0.7) {
       fired = true; swiping = false;
       closeVoice();
     }

@@ -130,7 +130,23 @@ body{background:var(--bg);color:var(--tx);
   background:rgba(3,3,8,.97);
   opacity:0;pointer-events:none;transition:opacity .35s;
 }
-.vo.on{opacity:1;pointer-events:all}
+.vo.on{opacity:1;pointer-events:auto}
+
+/* ── VOICE CLOSE BUTTON ── */
+.vo-close{
+  position:absolute;
+  top:calc(env(safe-area-inset-top,0px) + 18px);
+  right:20px;
+  width:48px;height:48px;border-radius:50%;
+  background:rgba(255,255,255,.08);
+  border:1px solid rgba(255,255,255,.15);
+  display:flex;align-items:center;justify-content:center;
+  cursor:pointer;z-index:5;
+  -webkit-tap-highlight-color:transparent;
+  transition:background .2s;
+}
+.vo-close:active{background:rgba(255,255,255,.18);}
+.vo-close svg{width:20px;height:20px;stroke:rgba(255,255,255,.65);fill:none;stroke-linecap:round;stroke-linejoin:round;stroke-width:2;}
 #voC{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
 
 .vo-hint{
@@ -656,13 +672,16 @@ body{background:var(--bg);color:var(--tx);
 <!-- VOICE OVERLAY -->
 <div class="vo" id="vo">
   <canvas id="voC"></canvas>
+  <button class="vo-close" onclick="closeVoice()">
+    <svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+  </button>
   <div class="vo-r1"></div><div class="vo-r2"></div><div class="vo-r3"></div>
   <div class="vo-orb" id="voOrb" onclick="toggleVoice()">
     <svg viewBox="0 0 24 24"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
   </div>
   <div class="vo-txt" id="voTxt"></div>
   <div class="vo-st" id="voSt">Нажми чтобы говорить</div>
-  <div class="vo-hint">свайп в сторону для закрытия</div>
+  <div class="vo-hint">← свайп для закрытия</div>
 </div>
 
 <!-- TTS audio element — pre-created and unlocked on first tap (iOS autoplay fix) -->
@@ -1540,28 +1559,35 @@ function toast(msg){const e=document.getElementById('toast');e.textContent=msg;e
 // ══ INIT ═════════════════════════════════════
 document.getElementById('pm').addEventListener('click',function(e){if(e.target===this)closePM();});
 
-// Swipe to close voice overlay — uses Pointer Events (iOS 13+)
-// Avoids iOS touchmove threading/passive issues entirely
+// Swipe to close voice overlay
+// Listens on document (passive) with touchstart/touchend — avoids iOS pointercancel issues.
+// iOS cancels pointermove when it recognises a system gesture; touchend always fires.
 (function(){
-  let sx=0, sy=0, pid=null;
-  const vo = document.getElementById('vo');
+  let sx = 0, sy = 0, tracking = false;
 
-  vo.addEventListener('pointerdown', e=>{
-    sx = e.clientX; sy = e.clientY; pid = e.pointerId;
-  });
+  document.addEventListener('touchstart', function(e) {
+    if (!document.getElementById('vo').classList.contains('on')) return;
+    const t = e.touches[0];
+    sx = t.clientX; sy = t.clientY;
+    tracking = true;
+  }, { passive: true });
 
-  vo.addEventListener('pointermove', e=>{
-    if (pid === null || e.pointerId !== pid) return;
-    const adx = Math.abs(e.clientX - sx);
-    const ady = Math.abs(e.clientY - sy);
-    if (adx > 60 && ady < adx * 0.7) {
-      pid = null;
+  document.addEventListener('touchend', function(e) {
+    if (!tracking) return;
+    tracking = false;
+    if (!document.getElementById('vo').classList.contains('on')) return;
+    const t = e.changedTouches[0];
+    const dx = Math.abs(t.clientX - sx);
+    const dy = Math.abs(t.clientY - sy);
+    // Horizontal swipe: at least 80px, must be more horizontal than vertical
+    if (dx > 80 && dy < dx * 0.65) {
       closeVoice();
     }
-  });
+  }, { passive: true });
 
-  vo.addEventListener('pointerup',     ()=>{ pid=null; });
-  vo.addEventListener('pointercancel', ()=>{ pid=null; });
+  document.addEventListener('touchcancel', function() {
+    tracking = false;
+  }, { passive: true });
 })();
 
 loadChat();

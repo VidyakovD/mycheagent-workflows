@@ -773,6 +773,10 @@ async function loadFromServer() {
     if (d.ideas?.length)    { ideas    = d.ideas;     localStorage.setItem('ideas',    JSON.stringify(ideas));    changed=true; }
     if (d.finance?.length)  { finance  = d.finance;   localStorage.setItem('finance',  JSON.stringify(finance));  changed=true; }
     if (changed) { renderT(); renderN(); renderS(); renderP(); renderCal(); renderContent(); renderIdeas(); renderFin(); }
+    // Show unread reports from website bot in chat
+    if (Array.isArray(d.reports) && d.reports.length) {
+      d.reports.forEach(r => addMsg(r.text, 'b', true));
+    }
   } catch(e) {}
 }
 

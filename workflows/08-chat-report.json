@@ -1,0 +1,120 @@
+{
+  "name": "08-chat-report",
+  "id": "chat-report-001",
+  "active": true,
+  "settings": { "executionOrder": "v1" },
+  "nodes": [
+    {
+      "id": "cr1",
+      "name": "Report Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [200, 300],
+      "webhookId": "chat-report-hook",
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "chat-report",
+        "responseMode": "responseNode",
+        "options": {}
+      }
+    },
+    {
+      "id": "cr2",
+      "name": "Parse Report",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [420, 300],
+      "parameters": {
+        "jsCode": "const raw = $input.first().json;\nconst body = (raw.body && raw.body.platform) ? raw.body : raw;\nconst { platform, timestamp, userMessages, lastQuestion, botReply, messageCount } = body;\nconst ts = timestamp ? new Date(timestamp).toLocaleString('ru', { day:'numeric', month:'long', hour:'2-digit', minute:'2-digit' }) : new Date().toLocaleString('ru');\nreturn [{ json: { platform: platform || 'Сайт', ts, userMessages: userMessages || [], lastQuestion: lastQuestion || '', botReply: botReply || '', messageCount: messageCount || 0 } }];"
+      }
+    },
+    {
+      "id": "cr3",
+      "name": "GPT Summary",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [640, 300],
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.openai.com/v1/chat/completions",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "Authorization", "value": "={{ 'Bearer ' + $env.OPENAI_API_KEY }}" },
+            { "name": "Content-Type",  "value": "application/json" }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "application/json",
+        "body": "={{ JSON.stringify({ model: 'gpt-4o-mini', messages: [{ role: 'system', content: 'Ты аналитик диалогов. Пиши краткий отчёт на русском (3-5 строк). Определи: интерес пользователя, что спросил, что ответил бот, потенциал (горячий/тёплый/холодный). Используй эмодзи. Без лишних слов.' }, { role: 'user', content: 'Платформа: ' + $json.platform + '\\nВремя: ' + $json.ts + '\\nСообщений: ' + $json.messageCount + '\\nВопросы пользователя: ' + $json.userMessages.join(' | ') + '\\nПоследний вопрос: ' + $json.lastQuestion + '\\nОтвет бота: ' + $json.botReply }], max_tokens: 200 }) }}"
+      }
+    },
+    {
+      "id": "cr4",
+      "name": "Extract Summary",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [860, 300],
+      "parameters": {
+        "jsCode": "const res = $input.first().json;\nconst summary = res.choices?.[0]?.message?.content?.trim() || 'Не удалось сгенерировать отчёт';\nconst parsed = $('Parse Report').item.json;\nconst tgText = `📊 *Диалог на сайте* | ${parsed.ts}\\n🏢 ${parsed.platform} | ${parsed.messageCount} сообщений\\n\\n${summary}`;\nconst pwaText = `📊 Отчёт по диалогу (${parsed.platform}, ${parsed.ts}):\\n${summary}`;\nreturn [{ json: { tgText, pwaText, summary } }];"
+      }
+    },
+    {
+      "id": "cr5",
+      "name": "Send TG",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1080, 200],
+      "parameters": {
+        "method": "POST",
+        "url": "={{ 'https://api.telegram.org/bot' + $env.TELEGRAM_BOT_TOKEN + '/sendMessage' }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [{ "name": "Content-Type", "value": "application/json" }]
+        },
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "application/json",
+        "body": "={{ JSON.stringify({ chat_id: $env.TELEGRAM_CHAT_ID, text: $json.tgText, parse_mode: 'Markdown' }) }}"
+      }
+    },
+    {
+      "id": "cr6",
+      "name": "Save to PWA",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1080, 400],
+      "parameters": {
+        "jsCode": "const { pwaText } = $('Extract Summary').item.json;\nconst store = $getWorkflowStaticData('global');\nif (!store.reports) store.reports = [];\nstore.reports.unshift({ id: Date.now(), text: pwaText, ts: new Date().toISOString(), read: false });\n// Keep last 50 reports\nif (store.reports.length > 50) store.reports = store.reports.slice(0, 50);\nreturn [{ json: { ok: true } }];"
+      }
+    },
+    {
+      "id": "cr7",
+      "name": "Respond",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [1300, 300],
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({ ok: true }) }}",
+        "options": {
+          "responseHeaders": {
+            "entries": [
+              { "name": "Access-Control-Allow-Origin", "value": "*" }
+            ]
+          }
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Report Webhook":  { "main": [[{ "node": "Parse Report",    "type": "main", "index": 0 }]] },
+    "Parse Report":    { "main": [[{ "node": "GPT Summary",     "type": "main", "index": 0 }]] },
+    "GPT Summary":     { "main": [[{ "node": "Extract Summary", "type": "main", "index": 0 }]] },
+    "Extract Summary": { "main": [[{ "node": "Send TG",         "type": "main", "index": 0 }], [{ "node": "Save to PWA", "type": "main", "index": 0 }]] },
+    "Send TG":         { "main": [[{ "node": "Respond",         "type": "main", "index": 0 }]] },
+    "Save to PWA":     { "main": [[{ "node": "Respond",         "type": "main", "index": 0 }]] }
+  },
+  "versionId": "d0000001-0000-0000-0000-000000000008"
+}

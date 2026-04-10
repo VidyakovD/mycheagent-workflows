@@ -153,11 +153,21 @@
     {
       "id": "sc10",
       "name": "Save PWA Report",
-      "type": "n8n-nodes-base.code",
-      "typeVersion": 2,
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
       "position": [1300, 500],
       "parameters": {
-        "jsCode": "const { pwaText } = $('Build Report').item.json;\nconst store = $getWorkflowStaticData('global');\nif (!store.reports) store.reports = [];\nstore.reports.unshift({ id: Date.now(), text: pwaText, ts: new Date().toISOString(), read: false });\nif (store.reports.length > 50) store.reports = store.reports.slice(0, 50);\nreturn [{ json: { ok: true } }];"
+        "method": "POST",
+        "url": "https://mycheagent.ru/webhook/pwa-data",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [{ "name": "Content-Type", "value": "application/json" }]
+        },
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "application/json",
+        "body": "={{ JSON.stringify({ action: 'addReport', text: $json.pwaText }) }}",
+        "options": { "response": { "response": { "neverError": true } } }
       }
     },
     {

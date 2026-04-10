@@ -2,17 +2,27 @@
   "name": "07-ai-news",
   "id": "ai-news-001",
   "active": true,
-  "settings": { "executionOrder": "v1" },
+  "settings": {
+    "executionOrder": "v1"
+  },
   "nodes": [
     {
       "id": "an1",
       "name": "Every Morning",
       "type": "n8n-nodes-base.scheduleTrigger",
       "typeVersion": 1.1,
-      "position": [200, 300],
+      "position": [
+        200,
+        300
+      ],
       "parameters": {
         "rule": {
-          "interval": [{ "field": "cronExpression", "expression": "0 6 * * *" }]
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 6 * * *"
+            }
+          ]
         }
       }
     },
@@ -21,9 +31,12 @@
       "name": "Fetch RSS Feeds",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [440, 300],
+      "position": [
+        440,
+        300
+      ],
       "parameters": {
-        "jsCode": "const S=[\n  {n:'OpenAI',u:'https://openai.com/blog/rss/'},\n  {n:'Anthropic',u:'https://www.anthropic.com/rss.xml'},\n  {n:'Google AI',u:'https://blog.google/technology/ai/rss/'},\n  {n:'DeepMind',u:'https://deepmind.google/blog/rss/'},\n  {n:'Meta AI',u:'https://engineering.fb.com/category/ml-applications/feed/'},\n  {n:'Microsoft AI',u:'https://blogs.microsoft.com/ai/feed/'},\n  {n:'HuggingFace',u:'https://huggingface.co/blog/feed.xml'},\n  {n:'NVIDIA',u:'https://blogs.nvidia.com/feed/'},\n  {n:'AWS ML',u:'https://aws.amazon.com/blogs/machine-learning/feed/'},\n  {n:'Google Cloud AI',u:'https://cloud.google.com/blog/topics/ai-machine-learning/rss/'},\n  {n:'TechCrunch AI',u:'https://techcrunch.com/category/artificial-intelligence/feed/'},\n  {n:'The Verge AI',u:'https://www.theverge.com/ai-artificial-intelligence/rss/index.xml'},\n  {n:'VentureBeat AI',u:'https://venturebeat.com/ai/feed/'},\n  {n:'Wired AI',u:'https://www.wired.com/feed/tag/ai/latest/rss'},\n  {n:'Ars Technica',u:'https://feeds.arstechnica.com/arstechnica/technology-lab'},\n  {n:'MIT Tech Review',u:'https://www.technologyreview.com/feed/'},\n  {n:'ZDNet AI',u:'https://www.zdnet.com/topic/artificial-intelligence/rss.xml'},\n  {n:'Engadget',u:'https://www.engadget.com/rss.xml'},\n  {n:'CNET',u:'https://www.cnet.com/rss/news/'},\n  {n:'ArXiv AI',u:'http://arxiv.org/rss/cs.AI'},\n  {n:'ArXiv ML',u:'http://arxiv.org/rss/cs.LG'},\n  {n:'Berkeley BAIR',u:'https://bair.berkeley.edu/blog/feed.xml'},\n  {n:'Habr ML',u:'https://habr.com/ru/rss/hub/machine_learning/articles/'},\n  {n:'Habr AI',u:'https://habr.com/ru/rss/hub/artificial_intelligence/articles/'},\n  {n:'Habr ChatGPT',u:'https://habr.com/ru/rss/hub/chatgpt/articles/'},\n  {n:'Hacker News',u:'https://news.ycombinator.com/rss'},\n  {n:'Reddit ML',u:'https://www.reddit.com/r/MachineLearning/.rss'},\n  {n:'Reddit AI',u:'https://www.reddit.com/r/artificial/.rss'},\n  {n:'Forbes Tech',u:'https://www.forbes.com/innovation/feed/'},\n  {n:'Reuters Tech',u:'https://feeds.reuters.com/reuters/technologyNews'},\n  {n:'BBC Tech',u:'http://feeds.bbci.co.uk/news/technology/rss.xml'},\n  {n:'Guardian Tech',u:'https://www.theguardian.com/technology/artificialintelligenceai/rss'},\n  {n:'MarkTechPost',u:'https://www.marktechpost.com/feed/'},\n  {n:'Synced Review',u:'https://syncedreview.com/feed/'},\n  {n:'Analytics Vidhya',u:'https://www.analyticsvidhya.com/feed/'},\n  {n:'ML Mastery',u:'https://machinelearningmastery.com/feed/'},\n  {n:'The Batch',u:'https://www.deeplearning.ai/the-batch/rss/'},\n  {n:'TOPBOTS',u:'https://www.topbots.com/feed/'},\n  {n:'Gradient Flow',u:'https://gradientflow.com/feed/'},\n  {n:'Fast Company AI',u:'https://www.fastcompany.com/technology/rss'},\n  {n:'IBM Research',u:'https://research.ibm.com/blog/rss'},\n  {n:'Stability AI',u:'https://stability.ai/blog?format=rss'},\n  {n:'Cohere',u:'https://txt.cohere.com/rss/'},\n  {n:'Papers With Code',u:'https://paperswithcode.com/blog/rss'},\n  {n:'CNBC Tech',u:'https://www.cnbc.com/id/100727362/device/rss/rss.html'},\n  {n:'9to5Google',u:'https://9to5google.com/feed/'},\n  {n:'InfoQ AI',u:'https://www.infoq.com/ai-ml-data-eng/rss/'},\n  {n:'Scale AI',u:'https://scale.com/blog/rss'},\n  {n:'Mistral',u:'https://mistral.ai/fr/news/rss/'},\n  {n:'Netflix Tech',u:'https://netflixtechblog.com/feed'},\n  {n:'LinkedIn Eng',u:'https://engineering.linkedin.com/blog.rss.html'},\n  {n:'Interfax IT',u:'https://www.interfax.ru/rss/it/'}\n];\n\nfunction t(s){return s?s.replace(/<\\!\\[CDATA\\[/g,'').replace(/\\]\\]>/g,'').replace(/<[^>]+>/g,'').replace(/&amp;/g,'&').replace(/&lt;/g,'<').replace(/&gt;/g,'>').replace(/&#\\d+;/g,'').trim():'';}\nfunction pd(s){if(!s)return null;try{const d=new Date(s);return isNaN(d)?null:d;}catch(e){return null;}}\nfunction parse(xml,src){\n  const items=[];\n  const rss=[...xml.matchAll(/<item>([\\s\\S]*?)<\\/item>/g)];\n  for(const[,raw] of rss){\n    const title=t((/<title[^>]*>([\\s\\S]*?)<\\/title>/.exec(raw)||['',''])[1]);\n    const link=t((/<link>([\\s\\S]*?)<\\/link>/.exec(raw)||['',''])[1])||t((/<guid[^>]*>([\\s\\S]*?)<\\/guid>/.exec(raw)||['',''])[1]);\n    const date=pd(t((/<pubDate>([\\s\\S]*?)<\\/pubDate>/.exec(raw)||['',''])[1]));\n    const desc=t((/<description>([\\s\\S]*?)<\\/description>/.exec(raw)||['',''])[1]).slice(0,150);\n    if(title&&title.length>5)items.push({src,title,link,date,desc});\n  }\n  if(!items.length){\n    const atom=[...xml.matchAll(/<entry>([\\s\\S]*?)<\\/entry>/g)];\n    for(const[,raw] of atom){\n      const title=t((/<title[^>]*>([\\s\\S]*?)<\\/title>/.exec(raw)||['',''])[1]);\n      const link=(/<link[^>]+href=\"([^\"]+)\"/.exec(raw)||['',''])[1];\n      const date=pd(t((/<published>([\\s\\S]*?)<\\/published>/.exec(raw)||/<updated>([\\s\\S]*?)<\\/updated>/.exec(raw)||['',''])[1]));\n      const desc=t((/<summary[^>]*>([\\s\\S]*?)<\\/summary>/.exec(raw)||['',''])[1]).slice(0,150);\n      if(title&&title.length>5)items.push({src,title,link,date,desc});\n    }\n  }\n  return items;\n}\n\nconst res=await Promise.allSettled(S.map(async s=>{\n  const c=new AbortController();\n  const timer=setTimeout(()=>c.abort(),7000);\n  try{\n    const r=await fetch(s.u,{signal:c.signal,headers:{'User-Agent':'Mozilla/5.0 (compatible; NewsBot/1.0)'}});\n    return parse(await r.text(),s.n);\n  }catch(e){return [];}finally{clearTimeout(timer);}\n}));\n\nconst now=new Date();\nconst cutoff=new Date(now-26*3600*1000);\nconst seen=new Set();\nconst articles=[];\nfor(const r of res){\n  if(r.status!=='fulfilled')continue;\n  for(const a of r.value){\n    const k=a.title.toLowerCase().slice(0,40);\n    if(seen.has(k))continue;\n    seen.add(k);\n    if(!a.date||a.date>=cutoff)articles.push(a);\n  }\n}\narticles.sort((a,b)=>(b.date||new Date(0))-(a.date||new Date(0)));\nconst fetched=res.filter(r=>r.status==='fulfilled'&&r.value.length>0).length;\nreturn [{json:{articles:articles.slice(0,40),fetched,total:S.length}}];"
+        "jsCode": "const S=[\n  {n:'Google AI',u:'https://blog.google/technology/ai/rss/'},\n  {n:'Meta AI',u:'https://engineering.fb.com/category/ml-applications/feed/'},\n  {n:'Microsoft AI',u:'https://blogs.microsoft.com/ai/feed/'},\n  {n:'HuggingFace',u:'https://huggingface.co/blog/feed.xml'},\n  {n:'NVIDIA',u:'https://blogs.nvidia.com/feed/'},\n  {n:'AWS ML',u:'https://aws.amazon.com/blogs/machine-learning/feed/'},\n  {n:'Wired AI',u:'https://www.wired.com/feed/tag/ai/latest/rss'},\n  {n:'Ars Technica',u:'https://feeds.arstechnica.com/arstechnica/technology-lab'},\n  {n:'MIT Tech Review',u:'https://www.technologyreview.com/feed/'},\n  {n:'ZDNet AI',u:'https://www.zdnet.com/topic/artificial-intelligence/rss.xml'},\n  {n:'Engadget',u:'https://www.engadget.com/rss.xml'},\n  {n:'TechCrunch AI',u:'https://techcrunch.com/category/artificial-intelligence/feed/'},\n  {n:'ArXiv AI',u:'http://arxiv.org/rss/cs.AI'},\n  {n:'ArXiv ML',u:'http://arxiv.org/rss/cs.LG'},\n  {n:'Habr ML',u:'https://habr.com/ru/rss/hub/machine_learning/articles/'},\n  {n:'Habr AI',u:'https://habr.com/ru/rss/hub/artificial_intelligence/articles/'},\n  {n:'Habr ChatGPT',u:'https://habr.com/ru/rss/hub/chatgpt/articles/'},\n  {n:'Hacker News',u:'https://news.ycombinator.com/rss'},\n  {n:'Reddit ML',u:'https://www.reddit.com/r/MachineLearning/.rss'},\n  {n:'Reddit AI',u:'https://www.reddit.com/r/artificial/.rss'},\n  {n:'BBC Tech',u:'http://feeds.bbci.co.uk/news/technology/rss.xml'},\n  {n:'Guardian Tech',u:'https://www.theguardian.com/technology/artificialintelligenceai/rss'},\n  {n:'Forbes Tech',u:'https://www.forbes.com/innovation/feed/'},\n  {n:'CNBC Tech',u:'https://www.cnbc.com/id/100727362/device/rss/rss.html'},\n  {n:'Gradient Flow',u:'https://gradientflow.com/feed/'},\n  {n:'ML Mastery',u:'https://machinelearningmastery.com/feed/'},\n  {n:'Analytics Vidhya',u:'https://www.analyticsvidhya.com/feed/'},\n  {n:'9to5Google',u:'https://9to5google.com/feed/'},\n  {n:'Google Cloud AI',u:'https://cloud.google.com/blog/topics/ai-machine-learning/rss/'},\n  {n:'VentureBeat',u:'https://venturebeat.com/feed/'},\n  {n:'The Verge',u:'https://www.theverge.com/rss/index.xml'},\n  {n:'OpenAI news',u:'https://openai.com/news/rss/'},\n  {n:'Anthropic',u:'https://www.anthropic.com/news/rss'},\n  {n:'DeepMind',u:'https://blog.google/products/deepmind/rss/'},\n  {n:'InfoQ AI',u:'https://www.infoq.com/ai-ml-data-eng/rss/'},\n  {n:'Fast Company',u:'https://www.fastcompany.com/technology/rss'},\n  {n:'Stability AI',u:'https://stability.ai/blog?format=rss'},\n  {n:'Cohere',u:'https://cohere.com/blog/rss'},\n  {n:'Scale AI',u:'https://scale.com/blog/rss'},\n  {n:'Mistral',u:'https://mistral.ai/fr/news/rss/'},\n  {n:'LinkedIn Eng',u:'https://engineering.linkedin.com/blog.rss.html'},\n  {n:'Interfax IT',u:'https://www.interfax.ru/rss/it/'},\n  {n:'TOPBOTS',u:'https://www.topbots.com/feed/'},\n  {n:'Synced Review',u:'https://syncedreview.com/feed/'},\n  {n:'MarkTechPost',u:'https://www.marktechpost.com/feed/'},\n  {n:'Apple ML',u:'https://machinelearning.apple.com/rss'},\n  {n:'Towards DS',u:'https://medium.com/feed/towards-data-science'},\n  {n:'Neptune AI',u:'https://neptune.ai/blog/feed'},\n  {n:'Weights Biases',u:'https://wandb.ai/fully-connected/feed'},\n  {n:'EleutherAI',u:'https://blog.eleuther.ai/rss/'},\n  {n:'Allen AI',u:'https://blog.allenai.org/feed'}\n];\n\nfunction t(s){return s?s.replace(/<\\!\\[CDATA\\[/g,'').replace(/\\]\\]>/g,'').replace(/<[^>]+>/g,'').replace(/&amp;/g,'&').replace(/&lt;/g,'<').replace(/&gt;/g,'>').replace(/&#\\d+;/g,'').trim():'';}\nfunction pd(s){if(!s)return null;try{const d=new Date(s);return isNaN(d)?null:d;}catch(e){return null;}}\nfunction parse(xml,src){\n  const items=[];\n  const rss=[...xml.matchAll(/<item>([\\s\\S]*?)<\\/item>/g)];\n  for(const[,raw] of rss){\n    const title=t((/<title[^>]*>([\\s\\S]*?)<\\/title>/.exec(raw)||['',''])[1]);\n    const link=t((/<link>([\\s\\S]*?)<\\/link>/.exec(raw)||['',''])[1])||t((/<guid[^>]*>([\\s\\S]*?)<\\/guid>/.exec(raw)||['',''])[1]);\n    const date=pd(t((/<pubDate>([\\s\\S]*?)<\\/pubDate>/.exec(raw)||['',''])[1]));\n    const desc=t((/<description>([\\s\\S]*?)<\\/description>/.exec(raw)||['',''])[1]).slice(0,150);\n    if(title&&title.length>5)items.push({src,title,link,date,desc});\n  }\n  if(!items.length){\n    const atom=[...xml.matchAll(/<entry>([\\s\\S]*?)<\\/entry>/g)];\n    for(const[,raw] of atom){\n      const title=t((/<title[^>]*>([\\s\\S]*?)<\\/title>/.exec(raw)||['',''])[1]);\n      const link=(/<link[^>]+href=\"([^\"]+)\"/.exec(raw)||['',''])[1];\n      const date=pd(t((/<published>([\\s\\S]*?)<\\/published>/.exec(raw)||/<updated>([\\s\\S]*?)<\\/updated>/.exec(raw)||['',''])[1]));\n      const desc=t((/<summary[^>]*>([\\s\\S]*?)<\\/summary>/.exec(raw)||['',''])[1]).slice(0,150);\n      if(title&&title.length>5)items.push({src,title,link,date,desc});\n    }\n  }\n  return items;\n}\n\nconst res=await Promise.allSettled(S.map(async s=>{\n  const c=new AbortController();\n  const timer=setTimeout(()=>c.abort(),7000);\n  try{\n    const r=await fetch(s.u,{signal:c.signal,headers:{'User-Agent':'Mozilla/5.0 (compatible; NewsBot/1.0)'}});\n    return parse(await r.text(),s.n);\n  }catch(e){return [];}finally{clearTimeout(timer);}\n}));\n\nconst now=new Date();\nconst cutoff=new Date(now-26*3600*1000);\nconst seen=new Set();\nconst articles=[];\nfor(const r of res){\n  if(r.status!=='fulfilled')continue;\n  for(const a of r.value){\n    const k=a.title.toLowerCase().slice(0,40);\n    if(seen.has(k))continue;\n    seen.add(k);\n    if(!a.date||a.date>=cutoff)articles.push(a);\n  }\n}\narticles.sort((a,b)=>(b.date||new Date(0))-(a.date||new Date(0)));\nconst fetched=res.filter(r=>r.status==='fulfilled'&&r.value.length>0).length;\nreturn [{json:{articles:articles.slice(0,40),fetched,total:S.length}}];"
       }
     },
     {
@@ -31,15 +44,24 @@
       "name": "GPT Digest",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [680, 300],
+      "position": [
+        680,
+        300
+      ],
       "parameters": {
         "method": "POST",
         "url": "https://api.openai.com/v1/chat/completions",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
-            { "name": "Authorization", "value": "={{ 'Bearer ' + $env.OPENAI_API_KEY }}" },
-            { "name": "Content-Type",  "value": "application/json" }
+            {
+              "name": "Authorization",
+              "value": "={{ 'Bearer ' + $env.OPENAI_API_KEY }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
           ]
         },
         "sendBody": true,
@@ -53,7 +75,10 @@
       "name": "Extract Post",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [920, 300],
+      "position": [
+        920,
+        300
+      ],
       "parameters": {
         "jsCode": "const res=$input.first().json;\nif(!res.choices)return [{json:{post:'🤖 Дайджест ИИ-новостей временно недоступен.'}}];\nconst post=res.choices[0].message.content.trim();\nreturn [{json:{post}}];"
       }
@@ -63,19 +88,33 @@
       "name": "Send TG",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [1160, 200],
+      "position": [
+        1160,
+        200
+      ],
       "parameters": {
         "method": "POST",
         "url": "={{ 'https://api.telegram.org/bot' + $env.TELEGRAM_BOT_TOKEN + '/sendMessage' }}",
         "sendHeaders": true,
         "headerParameters": {
-          "parameters": [{ "name": "Content-Type", "value": "application/json" }]
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
         },
         "sendBody": true,
         "contentType": "raw",
         "rawContentType": "application/json",
         "body": "={{ JSON.stringify({ chat_id: $env.TELEGRAM_CHAT_ID, text: $json.post, parse_mode: 'Markdown' }) }}",
-        "options": { "response": { "response": { "neverError": true } } }
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          }
+        }
       }
     },
     {
@@ -83,27 +122,88 @@
       "name": "Save PWA",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [1160, 400],
+      "position": [
+        1160,
+        400
+      ],
       "parameters": {
         "method": "POST",
         "url": "https://mycheagent.ru/webhook/pwa-data",
         "sendHeaders": true,
         "headerParameters": {
-          "parameters": [{ "name": "Content-Type", "value": "application/json" }]
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
         },
         "sendBody": true,
         "contentType": "raw",
         "rawContentType": "application/json",
         "body": "={{ JSON.stringify({ action: 'addReport', text: '📰 ' + $('Extract Post').item.json.post }) }}",
-        "options": { "response": { "response": { "neverError": true } } }
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          }
+        }
       }
     }
   ],
   "connections": {
-    "Every Morning":   { "main": [[{ "node": "Fetch RSS Feeds", "type": "main", "index": 0 }]] },
-    "Fetch RSS Feeds": { "main": [[{ "node": "GPT Digest",      "type": "main", "index": 0 }]] },
-    "GPT Digest":      { "main": [[{ "node": "Extract Post",    "type": "main", "index": 0 }]] },
-    "Extract Post":    { "main": [[{ "node": "Send TG",         "type": "main", "index": 0 }], [{ "node": "Save PWA", "type": "main", "index": 0 }]] }
+    "Every Morning": {
+      "main": [
+        [
+          {
+            "node": "Fetch RSS Feeds",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch RSS Feeds": {
+      "main": [
+        [
+          {
+            "node": "GPT Digest",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "GPT Digest": {
+      "main": [
+        [
+          {
+            "node": "Extract Post",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract Post": {
+      "main": [
+        [
+          {
+            "node": "Send TG",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Save PWA",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
   },
   "versionId": "d0000001-0000-0000-0000-000000000007"
 }

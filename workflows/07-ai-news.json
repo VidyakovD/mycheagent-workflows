@@ -10,7 +10,7 @@
       "id": "an1",
       "name": "Every Morning",
       "type": "n8n-nodes-base.scheduleTrigger",
-      "typeVersion": 1.1,
+      "typeVersion": 1.2,
       "position": [
         200,
         300
@@ -32,7 +32,7 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        440,
+        420,
         300
       ],
       "parameters": {
@@ -41,11 +41,11 @@
     },
     {
       "id": "an3",
-      "name": "Claude Digest",
+      "name": "Claude Posts",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
-        680,
+        640,
         300
       ],
       "parameters": {
@@ -69,90 +69,22 @@
           ]
         },
         "sendBody": true,
-        "contentType": "raw",
-        "rawContentType": "application/json",
-        "body": "={{ JSON.stringify({\n  model: 'claude-opus-4-6',\n  max_tokens: 1200,\n  stream: false,\n  system: 'Ты Зевс — ИИ-ассистент Дениса Видякова. Пишешь ежедневный дайджест ИИ-новостей на русском. Строгий фильтр: только новости про ИИ — новые модели, релизы, обновления продуктов, новые фичи, прорывные исследования. Политика, бизнес без ИИ-контекста, смартфоны, ОС — пропускай. Формат: заголовок ДАЙДЖЕСТ ИИ-НОВОСТЕЙ — [дата]. Затем ровно 7 новостей с эмодзи, каждая 2-3 предложения с аналитикой что это значит для индустрии. В конце — 2-3 предложения общего вывода о трендах. Только обычный текст без Markdown.',\n  messages: [{\n    role: 'user',\n    content: 'Сегодня ' + new Date().toLocaleDateString('ru-RU', {day:'numeric',month:'long',year:'numeric'}) + '. Источников: ' + $json.fetched + '/' + $json.total + '. Свежих статей: ' + $json.articles.length + '.\n\n' + $json.articles.map((a,i) => (i+1)+'. ['+a.src+'] '+a.title+(a.desc?' — '+a.desc:'')).join('\n')\n  }]\n}) }}"
+        "specifyBody": "string",
+        "body": "={{ JSON.stringify({\n  model: 'claude-opus-4-6',\n  max_tokens: 1500,\n  stream: false,\n  system: 'Ты Зевс — ИИ-ассистент Дениса Видякова. Пишешь ежедневный дайджест ИИ-новостей на русском для Telegram-канала Студия ЧЕ (видеомонтаж и нейросети). Строгий фильтр: только новости про ИИ — новые модели, релизы нейросетей, новые фичи, обновления ИИ-инструментов. Начни с заголовка: ДАЙДЖЕСТ ИИ-НОВОСТЕЙ — [дата из запроса]. Затем ровно 7 новостей с эмодзи, каждая 2-3 предложения с аналитикой что это значит для видеомейкеров и контент-мейкеров. В конце — 2-3 предложения общего вывода о трендах. Только обычный текст без Markdown.',\n  messages: [{\n    role: 'user',\n    content: 'Сегодня ' + new Date().toLocaleDateString('ru-RU', {day:'numeric',month:'long',year:'numeric'}) + '. Источников: ' + $json.fetched + '/' + $json.total + '. Свежих статей: ' + $json.articles.length + '.\n\n' + $json.articles.map((a,i) => (i+1)+'. ['+a.src+'] '+a.title+(a.desc?' — '+a.desc:'')).join('\n')\n  }]\n}) }}",
+        "options": {}
       }
     },
     {
       "id": "an4",
-      "name": "Extract Post",
+      "name": "Send to Denis",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        920,
+        860,
         300
       ],
       "parameters": {
-        "jsCode": "const res=$input.first().json;\nif(res.content){const b=res.content.find(c=>c.type==='text');if(b)return [{json:{post:b.text.trim()}}];}\nif(res.choices)return [{json:{post:res.choices[0].message.content.trim()}}];\nreturn [{json:{post:'Дайджест ИИ-новостей временно недоступен.'}}];"
-      }
-    },
-    {
-      "id": "an5",
-      "name": "Send TG",
-      "type": "n8n-nodes-base.httpRequest",
-      "typeVersion": 4.2,
-      "position": [
-        1160,
-        200
-      ],
-      "parameters": {
-        "method": "POST",
-        "url": "={{ 'https://api.telegram.org/bot' + $env.TELEGRAM_BOT_TOKEN + '/sendMessage' }}",
-        "sendHeaders": true,
-        "headerParameters": {
-          "parameters": [
-            {
-              "name": "Content-Type",
-              "value": "application/json"
-            }
-          ]
-        },
-        "sendBody": true,
-        "contentType": "raw",
-        "rawContentType": "application/json",
-        "body": "={{ JSON.stringify({ chat_id: $env.TELEGRAM_CHAT_ID, text: $json.post }) }}",
-        "options": {
-          "response": {
-            "response": {
-              "neverError": true
-            }
-          }
-        }
-      }
-    },
-    {
-      "id": "an6",
-      "name": "Save PWA",
-      "type": "n8n-nodes-base.httpRequest",
-      "typeVersion": 4.2,
-      "position": [
-        1160,
-        400
-      ],
-      "parameters": {
-        "method": "POST",
-        "url": "https://mycheagent.ru/webhook/pwa-data",
-        "sendHeaders": true,
-        "headerParameters": {
-          "parameters": [
-            {
-              "name": "Content-Type",
-              "value": "application/json"
-            }
-          ]
-        },
-        "sendBody": true,
-        "contentType": "raw",
-        "rawContentType": "application/json",
-        "body": "={{ JSON.stringify({ action: 'addReport', text: '📰 ' + $('Extract Post').item.json.post }) }}",
-        "options": {
-          "response": {
-            "response": {
-              "neverError": true
-            }
-          }
-        }
+        "jsCode": "const res = $input.first().json;\nconst textBlock = res.content ? res.content.find(c => c.type === 'text') : null;\nif (!textBlock) return [{ json: { ok: false } }];\n\nconst post = textBlock.text.trim();\nconst BOT_TOKEN = $env.TELEGRAM_BOT_TOKEN;\nconst DENIS_ID = 211279650;\nconst PWA_URL = 'https://mycheagent.ru/webhook/pwa-data';\nconst id = 'digest_' + Date.now();\n\n// Save to pending store\nawait fetch(PWA_URL, {\n  method: 'POST',\n  headers: { 'Content-Type': 'application/json' },\n  body: JSON.stringify({ action: 'savePending', id, text: post })\n});\n\n// Save to PWA reports too\nawait fetch(PWA_URL, {\n  method: 'POST',\n  headers: { 'Content-Type': 'application/json' },\n  body: JSON.stringify({ action: 'addReport', text: '📰 ' + post })\n});\n\n// Send to Denis with approve button\nawait fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {\n  method: 'POST',\n  headers: { 'Content-Type': 'application/json' },\n  body: JSON.stringify({\n    chat_id: DENIS_ID,\n    text: post,\n    reply_markup: {\n      inline_keyboard: [[\n        { text: '✅ Опубликовать в канал', callback_data: `channel:${id}` },\n        { text: '❌ Не публиковать', callback_data: `channel_skip:${id}` }\n      ]]\n    }\n  })\n});\n\nreturn [{ json: { ok: true } }];"
       }
     }
   ],
@@ -172,36 +104,18 @@
       "main": [
         [
           {
-            "node": "Claude Digest",
+            "node": "Claude Posts",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "Extract Post": {
+    "Claude Posts": {
       "main": [
         [
           {
-            "node": "Send TG",
-            "type": "main",
-            "index": 0
-          }
-        ],
-        [
-          {
-            "node": "Save PWA",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Claude Digest": {
-      "main": [
-        [
-          {
-            "node": "Extract Post",
+            "node": "Send to Denis",
             "type": "main",
             "index": 0
           }

@@ -2,21 +2,32 @@
   "name": "01-orchestrator",
   "id": "orchestrator-001",
   "active": true,
-  "settings": { "executionOrder": "v1" },
+  "settings": {
+    "executionOrder": "v1"
+  },
   "nodes": [
     {
       "id": "n1",
       "name": "Telegram Trigger",
       "type": "n8n-nodes-base.telegramTrigger",
       "typeVersion": 1.1,
-      "position": [200, 300],
+      "position": [
+        200,
+        300
+      ],
       "webhookId": "mycheagent-main-bot",
       "parameters": {
-        "updates": ["message", "callback_query"],
+        "updates": [
+          "message",
+          "callback_query"
+        ],
         "additionalFields": {}
       },
       "credentials": {
-        "telegramApi": { "id": "fbg2O80BR8u1tCRB", "name": "Telegram account" }
+        "telegramApi": {
+          "id": "fbg2O80BR8u1tCRB",
+          "name": "Telegram account"
+        }
       }
     },
     {
@@ -24,7 +35,10 @@
       "name": "Router",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [420, 300],
+      "position": [
+        420,
+        300
+      ],
       "parameters": {
         "jsCode": "const input = $input.first().json;\nconst cbq = input.callback_query;\nif (cbq) {\n  return [{ json: {\n    type: 'callback',\n    chatId: cbq.message.chat.id,\n    callbackId: cbq.id,\n    data: cbq.data || '',\n    isVoice: false, text: '', fileId: null\n  }}];\n}\nconst msg = input.message;\nif (!msg) return [];\nconst chatId = msg.chat.id;\nconst text = msg.text || '';\nconst isVoice = !!msg.voice;\nif (!isVoice && !text) return [];\nconst isStart = text === '/start' || text === '/menu';\n// Admin commands for site-chat bot management\nconst isAdmin = /^\\/курсы|^\\/добавить |^\\/удалить |^\\/промпт|^\\/myid/i.test(text);\nif (isAdmin) return [{ json: { type: 'admin', chatId, text, isVoice: false, fileId: null, callbackId: null, data: null } }];\nreturn [{ json: {\n  type: isStart ? 'start' : (isVoice ? 'voice' : 'text'),\n  chatId, isVoice, text,\n  fileId: isVoice ? msg.voice.file_id : null,\n  callbackId: null, data: null\n}}];"
       }
@@ -34,13 +48,36 @@
       "name": "Is Cmd or CB?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2,
-      "position": [640, 300],
+      "position": [
+        640,
+        300
+      ],
       "parameters": {
         "conditions": {
-          "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "strict" },
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
           "conditions": [
-            { "id": "c10", "leftValue": "={{ $json.type }}", "rightValue": "start",    "operator": { "type": "string", "operation": "equals" } },
-            { "id": "c11", "leftValue": "={{ $json.type }}", "rightValue": "callback", "operator": { "type": "string", "operation": "equals" } }
+            {
+              "id": "c10",
+              "leftValue": "={{ $json.type }}",
+              "rightValue": "start",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            },
+            {
+              "id": "c11",
+              "leftValue": "={{ $json.type }}",
+              "rightValue": "callback",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
           ],
           "combinator": "or"
         },
@@ -52,12 +89,27 @@
       "name": "Is Start?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2,
-      "position": [860, 160],
+      "position": [
+        860,
+        160
+      ],
       "parameters": {
         "conditions": {
-          "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "strict" },
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
           "conditions": [
-            { "id": "c12", "leftValue": "={{ $json.type }}", "rightValue": "start", "operator": { "type": "string", "operation": "equals" } }
+            {
+              "id": "c12",
+              "leftValue": "={{ $json.type }}",
+              "rightValue": "start",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
           ],
           "combinator": "and"
         },
@@ -69,16 +121,26 @@
       "name": "Send Menu",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [1080, 60],
+      "position": [
+        1080,
+        60
+      ],
       "parameters": {
         "method": "POST",
         "url": "={{ 'https://api.telegram.org/bot' + $env.TELEGRAM_BOT_TOKEN + '/sendMessage' }}",
         "sendHeaders": true,
-        "headerParameters": { "parameters": [{ "name": "Content-Type", "value": "application/json" }] },
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
         "sendBody": true,
         "contentType": "raw",
         "rawContentType": "application/json",
-        "body": "={{ JSON.stringify({ chat_id: $json.chatId, text: '\uD83D\uDD31 *\u0417\u0435\u0432\u0441* \u0433\u043e\u0442\u043e\u0432, \u041c\u043e\u0439 \u0433\u043e\u0441\u043f\u043e\u0434\u0438\u043d. \u0421\u043f\u0440\u043e\u0441\u0438 \u0447\u0442\u043e \u0443\u0433\u043e\u0434\u043d\u043e \u0438\u043b\u0438 \u043e\u0442\u043a\u0440\u043e\u0439 \u041c\u0435\u043d\u044e.', parse_mode: 'Markdown' }) }}",
+        "body": "={{ JSON.stringify({ chat_id: $json.chatId, text: '🔱 *Зевс* готов, Мой господин. Спроси что угодно или открой Меню.', parse_mode: 'Markdown' }) }}",
         "options": {}
       }
     },
@@ -87,9 +149,12 @@
       "name": "Set Section",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [1080, 260],
+      "position": [
+        1080,
+        260
+      ],
       "parameters": {
-        "jsCode": "const { chatId, callbackId, data } = $input.first().json;\nconst [prefix, value] = (data || 'section:chat').split(':');\nconst section = value || 'chat';\nconst store = $getWorkflowStaticData('global');\nif (!store.sessions) store.sessions = {};\nstore.sessions[String(chatId)] = { section, isAgent: prefix === 'agent' };\nconst names = {\n  tasks:'\uD83D\uDCCB Задачи', notes:'\uD83D\uDCDD Заметки',\n  sport:'\uD83C\uDFCB\uFE0F Спорт', work:'\uD83D\uDCBC Работа',\n  ideas:'\uD83D\uDCA1 Идеи', app:'\uD83C\uDF10 Приложение',\n  producer:'\uD83C\uDFAC Продюсер', writer:'\u270D\uFE0F Сценарист',\n  editor:'\uD83C\uDFA5 Монтажёр', sales:'\uD83D\uDCB0 Продажник'\n};\nreturn [{ json: { chatId, callbackId, section, sectionName: names[section] || section } }];"
+        "jsCode": "const { chatId, callbackId, data } = $input.first().json;\nconst [prefix, value] = (data || 'section:chat').split(':');\nconst section = value || 'chat';\nconst store = $getWorkflowStaticData('global');\nif (!store.sessions) store.sessions = {};\nstore.sessions[String(chatId)] = { section, isAgent: prefix === 'agent' };\nconst names = {\n  tasks:'📋 Задачи', notes:'📝 Заметки',\n  sport:'🏋️ Спорт', work:'💼 Работа',\n  ideas:'💡 Идеи', app:'🌐 Приложение',\n  producer:'🎬 Продюсер', writer:'✍️ Сценарист',\n  editor:'🎥 Монтажёр', sales:'💰 Продажник'\n};\nreturn [{ json: { chatId, callbackId, section, sectionName: names[section] || section } }];"
       }
     },
     {
@@ -97,12 +162,22 @@
       "name": "Answer CB",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [1300, 260],
+      "position": [
+        1300,
+        260
+      ],
       "parameters": {
         "method": "POST",
         "url": "={{ 'https://api.telegram.org/bot' + $env.TELEGRAM_BOT_TOKEN + '/answerCallbackQuery' }}",
         "sendHeaders": true,
-        "headerParameters": { "parameters": [{ "name": "Content-Type", "value": "application/json" }] },
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
         "sendBody": true,
         "contentType": "raw",
         "rawContentType": "application/json",
@@ -115,16 +190,26 @@
       "name": "Send Section Msg",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [1520, 260],
+      "position": [
+        1520,
+        260
+      ],
       "parameters": {
         "method": "POST",
         "url": "={{ 'https://api.telegram.org/bot' + $env.TELEGRAM_BOT_TOKEN + '/sendMessage' }}",
         "sendHeaders": true,
-        "headerParameters": { "parameters": [{ "name": "Content-Type", "value": "application/json" }] },
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
         "sendBody": true,
         "contentType": "raw",
         "rawContentType": "application/json",
-        "body": "={{ JSON.stringify({ chat_id: $('Set Section').item.json.chatId, text: '*' + $('Set Section').item.json.sectionName + '*\n\u0413\u043e\u0442\u043e\u0432, \u041c\u043e\u0439 \u0433\u043e\u0441\u043f\u043e\u0434\u0438\u043d. \u0427\u0442\u043e \u0434\u0435\u043b\u0430\u0435\u043c?', parse_mode: 'Markdown' }) }}",
+        "body": "={{ JSON.stringify({ chat_id: $('Set Section').item.json.chatId, text: '*' + $('Set Section').item.json.sectionName + '*\nГотов, Мой господин. Что делаем?', parse_mode: 'Markdown' }) }}",
         "options": {}
       }
     },
@@ -133,11 +218,28 @@
       "name": "Is Voice?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2,
-      "position": [860, 440],
+      "position": [
+        860,
+        440
+      ],
       "parameters": {
         "conditions": {
-          "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "strict" },
-          "conditions": [{ "id": "c1", "leftValue": "={{ $json.isVoice }}", "rightValue": true, "operator": { "type": "boolean", "operation": "true" } }],
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "c1",
+              "leftValue": "={{ $json.isVoice }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true"
+              }
+            }
+          ],
           "combinator": "and"
         },
         "options": {}
@@ -148,7 +250,10 @@
       "name": "Get TG File",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [1080, 320],
+      "position": [
+        1080,
+        320
+      ],
       "parameters": {
         "url": "={{ 'https://api.telegram.org/bot' + $env.TELEGRAM_BOT_TOKEN + '/getFile?file_id=' + $json.fileId }}",
         "options": {}
@@ -159,10 +264,20 @@
       "name": "Download Voice",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [1300, 320],
+      "position": [
+        1300,
+        320
+      ],
       "parameters": {
         "url": "={{ 'https://api.telegram.org/file/bot' + $env.TELEGRAM_BOT_TOKEN + '/' + $json.result.file_path }}",
-        "options": { "response": { "response": { "responseFormat": "file", "outputPropertyName": "data" } } }
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "file",
+              "outputPropertyName": "data"
+            }
+          }
+        }
       }
     },
     {
@@ -170,19 +285,44 @@
       "name": "Whisper",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [1520, 320],
+      "position": [
+        1520,
+        320
+      ],
       "parameters": {
         "method": "POST",
         "url": "https://api.openai.com/v1/audio/transcriptions",
         "sendHeaders": true,
-        "headerParameters": { "parameters": [{ "name": "Authorization", "value": "={{ 'Bearer ' + $env.OPENAI_API_KEY }}" }] },
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "={{ 'Bearer ' + $env.OPENAI_API_KEY }}"
+            }
+          ]
+        },
         "sendBody": true,
         "contentType": "multipart-form-data",
-        "bodyParameters": { "parameters": [
-          { "name": "model", "value": "whisper-1", "parameterType": "formData" },
-          { "name": "language", "value": "ru", "parameterType": "formData" },
-          { "name": "file", "value": "data", "parameterType": "formBinaryData", "inputDataFieldName": "data" }
-        ]},
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "model",
+              "value": "whisper-1",
+              "parameterType": "formData"
+            },
+            {
+              "name": "language",
+              "value": "ru",
+              "parameterType": "formData"
+            },
+            {
+              "name": "file",
+              "value": "data",
+              "parameterType": "formBinaryData",
+              "inputDataFieldName": "data"
+            }
+          ]
+        },
         "options": {}
       }
     },
@@ -191,7 +331,10 @@
       "name": "Prep Voice",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [1740, 320],
+      "position": [
+        1740,
+        320
+      ],
       "parameters": {
         "jsCode": "const chatId = $('Router').item.json.chatId;\nconst text = $input.first().json.text;\nconst store = $getWorkflowStaticData('global');\nconst section = store.sessions?.[String(chatId)]?.section || 'chat';\nconst prompts = {\n  chat:'Ты умный персональный ассистент по имени Зевс. Пользователя зовут Денис, обращайся к нему «Мой господин». Отвечай кратко, по-русски, дружелюбно. Без лишних вводных слов.',\n  tasks:'Ты ассистент Зевс по задачам. Пользователя зовут Денис, «Мой господин». Помогай с задачами и приоритетами. Кратко, по-русски.',\n  notes:'Ты ассистент Зевс по заметкам. Пользователя зовут Денис, «Мой господин». Структурируй идеи и мысли. Кратко, по-русски.',\n  sport:'Ты фитнес-ассистент Зевс. Пользователя зовут Денис, «Мой господин». Тренировки, калории, питание. Кратко, по-русски.',\n  work:'Ты бизнес-ассистент Зевс. Пользователя зовут Денис, «Мой господин». Рабочие задачи и проекты. Кратко, по-русски.',\n  ideas:'Ты творческий ассистент Зевс. Пользователя зовут Денис, «Мой господин». Принимай идеи, структурируй. Кратко, по-русски.',\n  producer:'Ты ИИ-агент «Продюсер». Помогаешь Денису (обращайся «Мой господин») с продюсированием контента: стратегия, монетизация, аудитория, планирование. Конкретные советы, по-русски.',\n  writer:'Ты ИИ-агент «Сценарист». Помогаешь Денису (обращайся «Мой господин») писать сценарии, скрипты, тексты для видео. По-русски.',\n  editor:'Ты ИИ-агент «Монтажёр». Помогаешь Денису (обращайся «Мой господин») с монтажом: тайминг, переходы, структура ролика. По-русски.',\n  sales:'Ты ИИ-агент «Продажник». Помогаешь Денису (обращайся «Мой господин») с продажами: скрипты, офферы, возражения, воронки. По-русски.'\n};\nreturn [{ json: { chatId, userText: text, isVoice: true, systemPrompt: prompts[section] || prompts.chat } }];"
       }
@@ -201,7 +344,10 @@
       "name": "Prep Text",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [1080, 540],
+      "position": [
+        1080,
+        540
+      ],
       "parameters": {
         "jsCode": "const d = $input.first().json;\nconst store = $getWorkflowStaticData('global');\nconst session = store.sessions?.[String(d.chatId)] || {};\nconst section = session.section || 'chat';\nconst prompts = {\n  chat:'Ты умный персональный ассистент по имени Зевс. Пользователя зовут Денис, обращайся к нему «Мой господин». Отвечай кратко, по-русски, дружелюбно. Без лишних вводных слов.',\n  tasks:'Ты ассистент Зевс по задачам. Пользователя зовут Денис, «Мой господин». Помогай с задачами и приоритетами. Кратко, по-русски.',\n  notes:'Ты ассистент Зевс по заметкам. Пользователя зовут Денис, «Мой господин». Структурируй идеи и мысли. Кратко, по-русски.',\n  sport:'Ты фитнес-ассистент Зевс. Пользователя зовут Денис, «Мой господин». Тренировки, калории, питание. Кратко, по-русски.',\n  work:'Ты бизнес-ассистент Зевс. Пользователя зовут Денис, «Мой господин». Рабочие задачи и проекты. Кратко, по-русски.',\n  ideas:'Ты творческий ассистент Зевс. Пользователя зовут Денис, «Мой господин». Принимай идеи, структурируй. Кратко, по-русски.',\n  producer:'Ты ИИ-агент «Продюсер». Помогаешь Денису (обращайся «Мой господин») с продюсированием контента: стратегия, монетизация, аудитория, планирование. Конкретные советы, по-русски.',\n  writer:'Ты ИИ-агент «Сценарист». Помогаешь Денису (обращайся «Мой господин») писать сценарии, скрипты, тексты для видео. Структура: крючок — суть — CTA. По-русски.',\n  editor:'Ты ИИ-агент «Монтажёр». Помогаешь Денису (обращайся «Мой господин») с монтажом и постпродакшном: тайминг, переходы, цвет, структура ролика. По-русски.',\n  sales:'Ты ИИ-агент «Продажник». Помогаешь Денису (обращайся «Мой господин») с продажами: скрипты, офферы, работа с возражениями, воронки. По-русски.'\n};\nreturn [{ json: { chatId: d.chatId, userText: d.text, isVoice: false, systemPrompt: prompts[section] || prompts.chat } }];"
       }
@@ -211,15 +357,26 @@
       "name": "GPT",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [1960, 430],
+      "position": [
+        1960,
+        430
+      ],
       "parameters": {
         "method": "POST",
         "url": "={{ $env.ANTHROPIC_BASE_URL + '/v1/chat/completions' }}",
         "sendHeaders": true,
-        "headerParameters": { "parameters": [
-          { "name": "Authorization", "value": "={{ 'Bearer ' + $env.ANTHROPIC_API_KEY }}" },
-          { "name": "Content-Type", "value": "application/json" }
-        ]},
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "={{ 'Bearer ' + $env.ANTHROPIC_API_KEY }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
         "sendBody": true,
         "contentType": "raw",
         "rawContentType": "application/json",
@@ -232,7 +389,10 @@
       "name": "Build Reply",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [2180, 430],
+      "position": [
+        2180,
+        430
+      ],
       "parameters": {
         "jsCode": "const res = $input.first().json;\nconst text = res.choices?.[0]?.message?.content || 'Не удалось получить ответ';\nconst chatId = $('Router').item.json.chatId;\nconst isVoice = $('Router').item.json.isVoice;\nreturn [{ json: { chatId, text, isVoice } }];"
       }
@@ -242,11 +402,28 @@
       "name": "Reply Voice?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2,
-      "position": [2400, 430],
+      "position": [
+        2400,
+        430
+      ],
       "parameters": {
         "conditions": {
-          "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "strict" },
-          "conditions": [{ "id": "c2", "leftValue": "={{ $json.isVoice }}", "rightValue": true, "operator": { "type": "boolean", "operation": "true" } }],
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "c2",
+              "leftValue": "={{ $json.isVoice }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true"
+              }
+            }
+          ],
           "combinator": "and"
         },
         "options": {}
@@ -257,20 +434,38 @@
       "name": "TTS",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [2620, 320],
+      "position": [
+        2620,
+        320
+      ],
       "parameters": {
         "method": "POST",
         "url": "https://api.openai.com/v1/audio/speech",
         "sendHeaders": true,
-        "headerParameters": { "parameters": [
-          { "name": "Authorization", "value": "={{ 'Bearer ' + $env.OPENAI_API_KEY }}" },
-          { "name": "Content-Type", "value": "application/json" }
-        ]},
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "={{ 'Bearer ' + $env.OPENAI_API_KEY }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
         "sendBody": true,
         "contentType": "raw",
         "rawContentType": "application/json",
         "body": "={{ JSON.stringify({ model: 'tts-1', input: $json.text, voice: 'nova', response_format: 'mp3' }) }}",
-        "options": { "response": { "response": { "responseFormat": "file", "outputPropertyName": "data" } } }
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "file",
+              "outputPropertyName": "data"
+            }
+          }
+        }
       }
     },
     {
@@ -278,16 +473,30 @@
       "name": "Send Voice",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [2840, 320],
+      "position": [
+        2840,
+        320
+      ],
       "parameters": {
         "method": "POST",
         "url": "={{ 'https://api.telegram.org/bot' + $env.TELEGRAM_BOT_TOKEN + '/sendVoice' }}",
         "sendBody": true,
         "contentType": "multipart-form-data",
-        "bodyParameters": { "parameters": [
-          { "name": "chat_id", "value": "={{ $('Build Reply').item.json.chatId }}", "parameterType": "formData" },
-          { "name": "voice",   "value": "data", "parameterType": "formBinaryData", "inputDataFieldName": "data" }
-        ]},
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "chat_id",
+              "value": "={{ $('Build Reply').item.json.chatId }}",
+              "parameterType": "formData"
+            },
+            {
+              "name": "voice",
+              "value": "data",
+              "parameterType": "formBinaryData",
+              "inputDataFieldName": "data"
+            }
+          ]
+        },
         "options": {}
       }
     },
@@ -296,12 +505,22 @@
       "name": "Send Text",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [2620, 540],
+      "position": [
+        2620,
+        540
+      ],
       "parameters": {
         "method": "POST",
         "url": "={{ 'https://api.telegram.org/bot' + $env.TELEGRAM_BOT_TOKEN + '/sendMessage' }}",
         "sendHeaders": true,
-        "headerParameters": { "parameters": [{ "name": "Content-Type", "value": "application/json" }] },
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
         "sendBody": true,
         "contentType": "raw",
         "rawContentType": "application/json",
@@ -314,11 +533,28 @@
       "name": "Is Admin?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2,
-      "position": [640, 600],
+      "position": [
+        640,
+        600
+      ],
       "parameters": {
         "conditions": {
-          "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "strict" },
-          "conditions": [{ "id": "c20", "leftValue": "={{ $json.type }}", "rightValue": "admin", "operator": { "type": "string", "operation": "equals" } }],
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "c20",
+              "leftValue": "={{ $json.type }}",
+              "rightValue": "admin",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
           "combinator": "and"
         },
         "options": {}
@@ -329,7 +565,10 @@
       "name": "Handle Admin",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [860, 600],
+      "position": [
+        860,
+        600
+      ],
       "parameters": {
         "jsCode": "const { chatId, text } = $input.first().json;\nconst store = $getWorkflowStaticData('global');\nif (!store.siteConfig) store.siteConfig = {};\nif (!store.siteConfig.courses) store.siteConfig.courses = [];\n\nlet reply = '';\n\n// /курсы — show courses list\nif (/^\\/курсы/i.test(text)) {\n  if (!store.siteConfig.courses.length) { reply = '📋 Курсов пока нет.'; }\n  else { reply = '📋 *Курсы Студии ЧЕ:*\\n\\n' + store.siteConfig.courses.map((c,i) => `${i+1}. \"${c.name}\" — ${c.price}${c.level?' ('+c.level+')':''}`).join('\\n'); }\n}\n// /добавить Название — 9990 ₽ (уровень)\nelse if (/^\\/добавить /i.test(text)) {\n  const raw = text.replace(/^\\/добавить /i, '').trim();\n  const m = raw.match(/^(.+?)\\s*—\\s*([\\d\\s]+[₽руб.]+.*)$/i);\n  if (!m) { reply = '⚠️ Формат: /добавить Название курса — 9 990 ₽'; }\n  else {\n    const name = m[1].trim();\n    const price = m[2].trim();\n    store.siteConfig.courses.push({ name, price });\n    reply = `✅ Добавлен курс:\\n\"${name}\" — ${price}`;\n  }\n}\n// /удалить Название\nelse if (/^\\/удалить /i.test(text)) {\n  const name = text.replace(/^\\/удалить /i, '').trim().toLowerCase();\n  const before = store.siteConfig.courses.length;\n  store.siteConfig.courses = store.siteConfig.courses.filter(c => !c.name.toLowerCase().includes(name));\n  const removed = before - store.siteConfig.courses.length;\n  reply = removed ? `🗑 Удалено курсов: ${removed}` : '⚠️ Курс не найден. Проверь название.';\n}\n// /промпт — show base prompt\nelse if (/^\\/промпт/i.test(text)) {\n  const p = store.siteConfig.basePrompt || '(не задан)';\n  reply = '📝 *Системный промпт бота:*\\n\\n' + p.slice(0, 3000);\n}\n// /myid — get telegram chat id\nelse if (/^\\/myid/i.test(text)) {\n  reply = '🆔 Твой chat id: ' + chatId;\n}\n\nreturn [{ json: { chatId, reply } }];"
       }
@@ -339,54 +578,390 @@
       "name": "Send Admin Reply",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [1080, 600],
+      "position": [
+        1080,
+        600
+      ],
       "parameters": {
         "method": "POST",
         "url": "={{ 'https://api.telegram.org/bot' + $env.TELEGRAM_BOT_TOKEN + '/sendMessage' }}",
         "sendHeaders": true,
-        "headerParameters": { "parameters": [{ "name": "Content-Type", "value": "application/json" }] },
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
         "sendBody": true,
         "contentType": "raw",
         "rawContentType": "application/json",
         "body": "={{ JSON.stringify({ chat_id: $json.chatId, text: $json.reply, parse_mode: 'Markdown' }) }}",
         "options": {}
       }
+    },
+    {
+      "id": "n24",
+      "name": "Is Channel CB?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        1080,
+        360
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "c30",
+              "leftValue": "={{ $json.data }}",
+              "rightValue": "channel:",
+              "operator": {
+                "type": "string",
+                "operation": "startsWith"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "n25",
+      "name": "Publish to Channel",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1300,
+        360
+      ],
+      "parameters": {
+        "jsCode": "const { chatId, callbackId, data } = $input.first().json;\nconst postId = data.replace(/^channel:/, '');\nconst BOT_TOKEN = $env.TELEGRAM_BOT_TOKEN;\nconst CHANNEL_ID = '-1002046512562';\nconst PWA_URL = 'https://mycheagent.ru/webhook/pwa-data';\n\n// Get post text from pending store\nconst fetchRes = await fetch(PWA_URL, {\n  method: 'POST',\n  headers: { 'Content-Type': 'application/json' },\n  body: JSON.stringify({ action: 'getPending', id: postId })\n});\nconst fetchData = await fetchRes.json();\nconst text = fetchData.text;\n\nif (!text) {\n  await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/answerCallbackQuery`, {\n    method: 'POST',\n    headers: { 'Content-Type': 'application/json' },\n    body: JSON.stringify({ callback_query_id: callbackId, text: '⚠️ Пост не найден или уже опубликован' })\n  });\n  return [{ json: { ok: false } }];\n}\n\n// Post to channel\nawait fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {\n  method: 'POST',\n  headers: { 'Content-Type': 'application/json' },\n  body: JSON.stringify({ chat_id: CHANNEL_ID, text })\n});\n\n// Answer callback\nawait fetch(`https://api.telegram.org/bot${BOT_TOKEN}/answerCallbackQuery`, {\n  method: 'POST',\n  headers: { 'Content-Type': 'application/json' },\n  body: JSON.stringify({ callback_query_id: callbackId, text: '✅ Опубликовано в канал!' })\n});\n\n// Delete pending post from store\nawait fetch(PWA_URL, {\n  method: 'POST',\n  headers: { 'Content-Type': 'application/json' },\n  body: JSON.stringify({ action: 'savePending', id: postId, text: null })\n});\n\nreturn [{ json: { ok: true, chatId } }];"
+      }
+    },
+    {
+      "id": "n26",
+      "name": "Skip Post",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1300,
+        440
+      ],
+      "parameters": {
+        "jsCode": "const { callbackId } = $input.first().json;\nconst BOT_TOKEN = $env.TELEGRAM_BOT_TOKEN;\nawait fetch(`https://api.telegram.org/bot${BOT_TOKEN}/answerCallbackQuery`, {\n  method: 'POST',\n  headers: { 'Content-Type': 'application/json' },\n  body: JSON.stringify({ callback_query_id: callbackId, text: '⏭ Пропущено' })\n});\nreturn [{ json: { ok: true } }];"
+      }
+    },
+    {
+      "id": "n27",
+      "name": "Is Skip CB?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        1080,
+        440
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "c31",
+              "leftValue": "={{ $json.data }}",
+              "rightValue": "channel_skip:",
+              "operator": {
+                "type": "string",
+                "operation": "startsWith"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      }
     }
   ],
   "connections": {
-    "Telegram Trigger": { "main": [[{ "node": "Router",       "type": "main", "index": 0 }]] },
-    "Router":           { "main": [[{ "node": "Is Admin?",    "type": "main", "index": 0 }]] },
-    "Is Admin?":        { "main": [
-                            [{ "node": "Handle Admin",  "type": "main", "index": 0 }],
-                            [{ "node": "Is Cmd or CB?", "type": "main", "index": 0 }]
-                          ]},
-    "Handle Admin":     { "main": [[{ "node": "Send Admin Reply", "type": "main", "index": 0 }]] },
-    "Is Cmd or CB?":    { "main": [
-                            [{ "node": "Is Start?",   "type": "main", "index": 0 }],
-                            [{ "node": "Is Voice?",   "type": "main", "index": 0 }]
-                          ]},
-    "Is Start?":        { "main": [
-                            [{ "node": "Send Menu",      "type": "main", "index": 0 }],
-                            [{ "node": "Set Section",    "type": "main", "index": 0 }]
-                          ]},
-    "Set Section":      { "main": [[{ "node": "Answer CB",       "type": "main", "index": 0 }]] },
-    "Answer CB":        { "main": [[{ "node": "Send Section Msg", "type": "main", "index": 0 }]] },
-    "Is Voice?":        { "main": [
-                            [{ "node": "Get TG File", "type": "main", "index": 0 }],
-                            [{ "node": "Prep Text",   "type": "main", "index": 0 }]
-                          ]},
-    "Get TG File":      { "main": [[{ "node": "Download Voice", "type": "main", "index": 0 }]] },
-    "Download Voice":   { "main": [[{ "node": "Whisper",        "type": "main", "index": 0 }]] },
-    "Whisper":          { "main": [[{ "node": "Prep Voice",     "type": "main", "index": 0 }]] },
-    "Prep Voice":       { "main": [[{ "node": "GPT",            "type": "main", "index": 0 }]] },
-    "Prep Text":        { "main": [[{ "node": "GPT",            "type": "main", "index": 0 }]] },
-    "GPT":              { "main": [[{ "node": "Build Reply",    "type": "main", "index": 0 }]] },
-    "Build Reply":      { "main": [[{ "node": "Reply Voice?",   "type": "main", "index": 0 }]] },
-    "Reply Voice?":     { "main": [
-                            [{ "node": "TTS",       "type": "main", "index": 0 }],
-                            [{ "node": "Send Text", "type": "main", "index": 0 }]
-                          ]},
-    "TTS":              { "main": [[{ "node": "Send Voice", "type": "main", "index": 0 }]] }
+    "Telegram Trigger": {
+      "main": [
+        [
+          {
+            "node": "Router",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Router": {
+      "main": [
+        [
+          {
+            "node": "Is Admin?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Is Admin?": {
+      "main": [
+        [
+          {
+            "node": "Handle Admin",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Is Cmd or CB?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Handle Admin": {
+      "main": [
+        [
+          {
+            "node": "Send Admin Reply",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Is Cmd or CB?": {
+      "main": [
+        [
+          {
+            "node": "Is Start?",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Is Voice?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Is Start?": {
+      "main": [
+        [
+          {
+            "node": "Send Menu",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Is Channel CB?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set Section": {
+      "main": [
+        [
+          {
+            "node": "Answer CB",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Answer CB": {
+      "main": [
+        [
+          {
+            "node": "Send Section Msg",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Is Voice?": {
+      "main": [
+        [
+          {
+            "node": "Get TG File",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Prep Text",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get TG File": {
+      "main": [
+        [
+          {
+            "node": "Download Voice",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Download Voice": {
+      "main": [
+        [
+          {
+            "node": "Whisper",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Whisper": {
+      "main": [
+        [
+          {
+            "node": "Prep Voice",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prep Voice": {
+      "main": [
+        [
+          {
+            "node": "GPT",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prep Text": {
+      "main": [
+        [
+          {
+            "node": "GPT",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "GPT": {
+      "main": [
+        [
+          {
+            "node": "Build Reply",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Reply": {
+      "main": [
+        [
+          {
+            "node": "Reply Voice?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Reply Voice?": {
+      "main": [
+        [
+          {
+            "node": "TTS",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Send Text",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "TTS": {
+      "main": [
+        [
+          {
+            "node": "Send Voice",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Is Channel CB?": {
+      "main": [
+        [
+          {
+            "node": "Publish to Channel",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Is Skip CB?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Is Skip CB?": {
+      "main": [
+        [
+          {
+            "node": "Skip Post",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Set Section",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
   },
   "versionId": "a0000001-0000-0000-0000-000000000001"
 }

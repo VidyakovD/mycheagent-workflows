@@ -2,14 +2,19 @@
   "name": "05-user-data",
   "id": "user-data-001",
   "active": true,
-  "settings": { "executionOrder": "v1" },
+  "settings": {
+    "executionOrder": "v1"
+  },
   "nodes": [
     {
       "id": "d1",
       "name": "Data Webhook",
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2,
-      "position": [200, 300],
+      "position": [
+        200,
+        300
+      ],
       "webhookId": "pwa-data-hook",
       "parameters": {
         "httpMethod": "POST",
@@ -23,9 +28,12 @@
       "name": "Handle Data",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [440, 300],
+      "position": [
+        440,
+        300
+      ],
       "parameters": {
-        "jsCode": "const raw = $input.first().json;\nconst body = (raw.body && raw.body.action) ? raw.body : raw;\nconst { action, sessionId } = body;\n\nconst store = $getWorkflowStaticData('global');\n\n// ── Site config actions (no sessionId needed) ──\nif (action === 'getSiteConfig') {\n  const cfg = store.siteConfig || {};\n  return [{ json: {\n    basePrompt: cfg.basePrompt || '',\n    courses: cfg.courses || []\n  }}];\n}\n\nif (action === 'addReport') {\n  if (!store.reports) store.reports = [];\n  store.reports.unshift({ id: Date.now(), text: body.text || '', ts: new Date().toISOString(), read: false });\n  if (store.reports.length > 50) store.reports = store.reports.slice(0, 50);\n  return [{ json: { ok: true } }];\n}\n\nif (action === 'setSiteConfig') {\n  if (!store.siteConfig) store.siteConfig = {};\n  if (typeof body.basePrompt === 'string') store.siteConfig.basePrompt = body.basePrompt;\n  if (Array.isArray(body.courses)) store.siteConfig.courses = body.courses;\n  return [{ json: { ok: true } }];\n}\n\n// ── User data actions (require sessionId) ──\nif (!sessionId) return [{ json: { error: 'no sessionId' } }];\n\nif (!store.u) store.u = {};\nif (!store.u[sessionId]) store.u[sessionId] = {};\n\nif (action === 'get') {\n  const u = store.u[sessionId];\n  const reports = (store.reports || []).filter(r => !r.read);\n  (store.reports || []).forEach(r => { r.read = true; });\n  return [{ json: {\n    tasks:    u.tasks    || [],\n    notes:    u.notes    || [],\n    sport:    u.sport    || [],\n    projects: u.projects || [],\n    calendar: u.calendar || [],\n    content:  u.content  || [],\n    ideas:    u.ideas    || [],\n    finance:  u.finance  || [],\n    reports:  reports\n  }}];\n}\n\nif (action === 'setAll') {\n  const d = body.data || {};\n  const cols = ['tasks','notes','sport','projects','calendar','content','ideas','finance'];\n  for (const c of cols) {\n    if (Array.isArray(d[c])) store.u[sessionId][c] = d[c];\n  }\n  return [{ json: { ok: true } }];\n}\n\nreturn [{ json: { error: 'unknown action' } }];"
+        "jsCode": "const raw = $input.first().json;\nconst body = (raw.body && raw.body.action) ? raw.body : raw;\nconst { action, sessionId } = body;\n\nconst store = $getWorkflowStaticData('global');\n\n// ── Site config actions (no sessionId needed) ──\nif (action === 'getSiteConfig') {\n  const cfg = store.siteConfig || {};\n  return [{ json: {\n    basePrompt: cfg.basePrompt || '',\n    courses: cfg.courses || []\n  }}];\n}\n\nif (action === 'addReport') {\n  if (!store.reports) store.reports = [];\n  store.reports.unshift({ id: Date.now(), text: body.text || '', ts: new Date().toISOString(), read: false });\n  if (store.reports.length > 50) store.reports = store.reports.slice(0, 50);\n  return [{ json: { ok: true } }];\n}\n\nif (action === 'setSiteConfig') {\n  if (!store.siteConfig) store.siteConfig = {};\n  if (typeof body.basePrompt === 'string') store.siteConfig.basePrompt = body.basePrompt;\n  if (Array.isArray(body.courses)) store.siteConfig.courses = body.courses;\n  return [{ json: { ok: true } }];\n}\n\n\nif (action === 'savePending') {\n  if (!store.pending) store.pending = {};\n  store.pending[body.id] = body.text;\n  return [{ json: { ok: true } }];\n}\n\nif (action === 'getPending') {\n  const text = (store.pending || {})[body.id] || null;\n  return [{ json: { text } }];\n}\n\nif (action === 'getChannelSettings') {\n  return [{ json: store.channelSettings || { autoPost9: false, autoPost13: true, autoPost19: true } }];\n}\n\nif (action === 'setChannelSettings') {\n  store.channelSettings = Object.assign(store.channelSettings || {}, body.settings || {});\n  return [{ json: { ok: true } }];\n}\n\n// ── User data actions (require sessionId) ──\nif (!sessionId) return [{ json: { error: 'no sessionId' } }];\n\nif (!store.u) store.u = {};\nif (!store.u[sessionId]) store.u[sessionId] = {};\n\nif (action === 'get') {\n  const u = store.u[sessionId];\n  const reports = (store.reports || []).filter(r => !r.read);\n  (store.reports || []).forEach(r => { r.read = true; });\n  return [{ json: {\n    tasks:    u.tasks    || [],\n    notes:    u.notes    || [],\n    sport:    u.sport    || [],\n    projects: u.projects || [],\n    calendar: u.calendar || [],\n    content:  u.content  || [],\n    ideas:    u.ideas    || [],\n    finance:  u.finance  || [],\n    reports:  reports\n  }}];\n}\n\nif (action === 'setAll') {\n  const d = body.data || {};\n  const cols = ['tasks','notes','sport','projects','calendar','content','ideas','finance'];\n  for (const c of cols) {\n    if (Array.isArray(d[c])) store.u[sessionId][c] = d[c];\n  }\n  return [{ json: { ok: true } }];\n}\n\n\n\n\n\n\nreturn [{ json: { error: 'unknown action' } }];"
       }
     },
     {
@@ -33,14 +41,20 @@
       "name": "Respond",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1,
-      "position": [660, 300],
+      "position": [
+        660,
+        300
+      ],
       "parameters": {
         "respondWith": "json",
         "responseBody": "={{ $json }}",
         "options": {
           "responseHeaders": {
             "entries": [
-              { "name": "Access-Control-Allow-Origin", "value": "*" }
+              {
+                "name": "Access-Control-Allow-Origin",
+                "value": "*"
+              }
             ]
           }
         }
@@ -48,8 +62,28 @@
     }
   ],
   "connections": {
-    "Data Webhook": { "main": [[{ "node": "Handle Data", "type": "main", "index": 0 }]] },
-    "Handle Data":   { "main": [[{ "node": "Respond",      "type": "main", "index": 0 }]] }
+    "Data Webhook": {
+      "main": [
+        [
+          {
+            "node": "Handle Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Handle Data": {
+      "main": [
+        [
+          {
+            "node": "Respond",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
   },
   "versionId": "d0000001-0000-0000-0000-000000000005"
 }

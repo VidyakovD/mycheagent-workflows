@@ -466,6 +466,21 @@ body{background:var(--bg);color:var(--tx);
 .fin-seg button{flex:1;padding:8px;border-radius:12px;border:1px solid rgba(155,93,229,.25);background:transparent;color:var(--sm);font-size:13px;cursor:pointer;transition:all .2s;}
 .fin-seg button.on{background:rgba(155,93,229,.2);color:var(--p);border-color:var(--p);}
 
+/* ── STUDIACHE CONFIG ── */
+.sc-block{background:rgba(255,255,255,.04);border:1px solid rgba(155,93,229,.2);border-radius:16px;padding:16px;margin-bottom:14px;}
+.sc-label{font-size:12px;color:var(--p);text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;font-weight:600;}
+.sc-prompt{width:100%;background:rgba(255,255,255,.06);border:1px solid rgba(155,93,229,.25);border-radius:12px;padding:12px;color:var(--tx);font-size:13px;font-family:inherit;resize:vertical;min-height:180px;line-height:1.5;outline:none;}
+.sc-prompt:focus{border-color:rgba(155,93,229,.6);}
+.sc-save-btn{width:100%;padding:12px;background:linear-gradient(135deg,var(--p),#7b2fe0);border:none;border-radius:14px;color:#fff;font-size:15px;font-weight:600;cursor:pointer;margin-top:10px;transition:opacity .2s;}
+.sc-save-btn:active{opacity:.8;}
+.sc-save-btn:disabled{opacity:.4;}
+.sc-course-row{display:flex;gap:8px;align-items:center;padding:10px 0;border-bottom:1px solid rgba(255,255,255,.05);}
+.sc-course-row:last-child{border-bottom:none;}
+.sc-course-info{flex:1;}
+.sc-course-name{font-size:14px;color:var(--tx);}
+.sc-course-price{font-size:12px;color:var(--p);margin-top:2px;}
+.sc-status{font-size:12px;color:var(--g);text-align:center;padding:6px 0;}
+
 /* ── IDEAS ── */
 .idea-ai-btn{width:100%;padding:11px;background:linear-gradient(135deg,rgba(155,93,229,.25),rgba(100,120,255,.25));border:1px solid rgba(155,93,229,.4);border-radius:14px;color:var(--tx);font-size:14px;cursor:pointer;margin-bottom:12px;display:flex;align-items:center;justify-content:center;gap:8px;}
 .idea-ai-btn svg{width:18px;height:18px;stroke:var(--p);fill:none;stroke-linecap:round;stroke-linejoin:round;stroke-width:2;}
@@ -595,6 +610,11 @@ body{background:var(--bg);color:var(--tx);
         <div class="hc-title">Финансы</div>
         <div class="hc-sub" id="hc-finance-sub">Нет записей</div>
       </div>
+      <div class="hub-card" onclick="goSec('studiache')" style="grid-column:1/-1;border-color:rgba(0,240,255,.25);">
+        <div class="hc-ico">🎓</div>
+        <div class="hc-title">Студия ЧЕ — Бот</div>
+        <div class="hc-sub" id="hc-studiache-sub">Промпт и курсы сайтового бота</div>
+      </div>
     </div>
   </div>
 
@@ -664,6 +684,37 @@ body{background:var(--bg);color:var(--tx);
     <div class="qadd">
       <input id="finii" placeholder="5000 Зарплата..." onkeydown="if(event.key==='Enter')addFin()">
       <button class="badd" onclick="addFin()"><svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></button>
+    </div>
+  </div>
+
+
+  <!-- STUDIACHE BOT CONFIG -->
+  <div class="sec" id="s-studiache">
+    <div class="sec-back" onclick="goSec('hub')">
+      <svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg>
+      Разделы
+    </div>
+    <div class="sh">🎓 Студия ЧЕ — Бот</div>
+    <div class="list" id="sc-content" style="padding-bottom:20px;">
+
+      <div class="sc-block">
+        <div class="sc-label">Системный промпт</div>
+        <textarea class="sc-prompt" id="sc-prompt-ta" placeholder="Загрузка..."></textarea>
+        <div id="sc-prompt-status" class="sc-status"></div>
+        <button class="sc-save-btn" onclick="scSavePrompt()">Сохранить промпт</button>
+      </div>
+
+      <div class="sc-block">
+        <div class="sc-label">Курсы</div>
+        <div id="sc-courses-list"></div>
+        <div class="qadd" style="margin-top:10px;">
+          <input id="sc-course-name" placeholder='Название курса — 4 990 ₽' style="flex:1" onkeydown="if(event.key==='Enter')scAddCourse()">
+          <button class="badd" onclick="scAddCourse()">
+            <svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          </button>
+        </div>
+      </div>
+
     </div>
   </div>
 
@@ -818,12 +869,13 @@ function goSec(name) {
   const el = document.getElementById('s-'+name);
   if (el) el.classList.add('on');
   curSec = name;
-  if (name==='hub')      renderHub();
-  if (name==='projects') renderP();
-  if (name==='calendar') renderCal();
-  if (name==='content')  renderContent();
-  if (name==='ideas')    renderIdeas();
-  if (name==='finance')  renderFin();
+  if (name==='hub')       renderHub();
+  if (name==='projects')  renderP();
+  if (name==='calendar')  renderCal();
+  if (name==='content')   renderContent();
+  if (name==='ideas')     renderIdeas();
+  if (name==='finance')   renderFin();
+  if (name==='studiache') scLoad();
 }
 
 // ══ CHAT ═════════════════════════════════════
@@ -1543,6 +1595,86 @@ function renderFin() {
     <div class="famt ${e.type==='in'?'famt-in':'famt-out'}">${e.type==='in'?'+':'−'}${e.amount.toLocaleString('ru')} ₽</div>
     <button class="ibtn" style="margin-left:6px" onclick="delFin(${e.id})">${xSvg()}</button>
   </div>`).join('');
+}
+
+// ══ STUDIACHE BOT CONFIG ══════════════════════
+let scCourses = [];
+
+async function scLoad() {
+  try {
+    const r = await fetch(DATA_API, {
+      method: 'POST', headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ action: 'getSiteConfig' })
+    });
+    const d = await r.json();
+    document.getElementById('sc-prompt-ta').value = d.basePrompt || '';
+    scCourses = d.courses || [];
+    scRenderCourses();
+    const sub = scCourses.length ? scCourses.length + ' курс(ов)' : 'Нет курсов';
+    const el = document.getElementById('hc-studiache-sub');
+    if (el) el.textContent = sub;
+  } catch(e) {
+    document.getElementById('sc-prompt-ta').value = '';
+    scCourses = [];
+  }
+}
+
+async function scSave() {
+  const basePrompt = document.getElementById('sc-prompt-ta').value;
+  await fetch(DATA_API, {
+    method: 'POST', headers: {'Content-Type':'application/json'},
+    body: JSON.stringify({ action: 'setSiteConfig', basePrompt, courses: scCourses })
+  });
+}
+
+async function scSavePrompt() {
+  const btn = document.querySelector('.sc-save-btn');
+  const st = document.getElementById('sc-prompt-status');
+  btn.disabled = true; btn.textContent = 'Сохраняю...';
+  try {
+    await scSave();
+    st.textContent = '✅ Сохранено'; st.style.color = 'var(--g)';
+  } catch(e) {
+    st.textContent = '❌ Ошибка'; st.style.color = 'var(--r)';
+  }
+  btn.disabled = false; btn.textContent = 'Сохранить промпт';
+  setTimeout(() => { st.textContent = ''; }, 3000);
+}
+
+function scAddCourse() {
+  const inp = document.getElementById('sc-course-name');
+  const raw = inp.value.trim(); if (!raw) return;
+  const m = raw.match(/^(.+?)\s*—\s*([\d\s]+[₽руб.]*.*)$/i);
+  if (m) {
+    scCourses.push({ name: m[1].trim(), price: m[2].trim() });
+  } else {
+    scCourses.push({ name: raw, price: '' });
+  }
+  inp.value = '';
+  scRenderCourses();
+  scSave().catch(() => {});
+}
+
+function scDelCourse(i) {
+  scCourses.splice(i, 1);
+  scRenderCourses();
+  scSave().catch(() => {});
+}
+
+function scRenderCourses() {
+  const el = document.getElementById('sc-courses-list'); if (!el) return;
+  if (!scCourses.length) {
+    el.innerHTML = '<div style="font-size:13px;color:var(--sm);padding:8px 0;">Нет курсов</div>';
+    return;
+  }
+  el.innerHTML = scCourses.map((c,i) => `
+    <div class="sc-course-row">
+      <div class="sc-course-info">
+        <div class="sc-course-name">${esc(c.name)}</div>
+        ${c.price ? `<div class="sc-course-price">${esc(c.price)}</div>` : ''}
+      </div>
+      <button class="ibtn" onclick="scDelCourse(${i})">${xSvg()}</button>
+    </div>`).join('');
 }
 
 // ══ UTILS ════════════════════════════════════

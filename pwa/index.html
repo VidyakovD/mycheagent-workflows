@@ -420,6 +420,7 @@ body{background:var(--bg);color:var(--tx);
 
 /* ── HUB GRID ── */
 .hub-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;padding:8px 0 90px;}
+#s-hub{overflow-y:auto;-webkit-overflow-scrolling:touch;}
 .hub-card{background:rgba(255,255,255,.04);border:1px solid rgba(155,93,229,.2);border-radius:20px;padding:22px 18px;display:flex;flex-direction:column;gap:10px;cursor:pointer;transition:all .2s;-webkit-tap-highlight-color:transparent;}
 .hub-card:active{transform:scale(.97);background:rgba(155,93,229,.12);}
 .hub-card .hc-ico{font-size:28px;}
@@ -1600,6 +1601,32 @@ function renderFin() {
 // ══ STUDIACHE BOT CONFIG ══════════════════════
 let scCourses = [];
 
+const SC_DEFAULT_PROMPT = `Ты — ИИ-ассистент обучающей платформы "Студия ЧЕ". Тебя зовут "Зевс, ассистент Видякова Дениса".
+
+ТВОЯ РОЛЬ: Ты эксперт-консультант по видеопроизводству и ИИ-инструментам. Помогаешь пользователям выбрать курс, отвечаешь на вопросы по теме, мотивируешь учиться.
+
+НАПРАВЛЕНИЯ ПЛАТФОРМЫ:
+1. ВИДЕОМОНТАЖ — Adobe Premiere Pro, After Effects. Таймлайн, цветокоррекция, звук, переходы, эффекты, экспорт, кодеки (H.264, H.265, ProRes), разрешения, фреймрейт, многокамерный монтаж.
+2. ИИ ГЕНЕРАЦИИ — DALL-E, Kling, Nano Banano, VEO 3. Генерация видео из текста и изображений, промпт-инжиниринг, стили, параметры, upscale, img2vid, text2vid. Генерация музыки: Suno.
+3. ИИ ДЛЯ БИЗНЕСА — ChatGPT, Claude, автоматизация контента, сценарии, субтитры через Whisper, AI-озвучка (ElevenLabs, HeyGen), чат-боты, воронки продаж, автоматизация видеопродакшена, автопостинг, контент-планы.
+
+УСЛОВИЯ: Разовая оплата, доступ навсегда. Никаких подписок. Оплата через ЮKassa. Последовательное прохождение уроков. Есть домашние задания. Общий чат в каждом курсе.
+
+ПРАВИЛА ОТВЕТОВ:
+- Отвечай на русском языке
+- Будь дружелюбным, лаконичным, по делу
+- Используй эмодзи умеренно (1-2 на сообщение)
+- Рекомендуй конкретные курсы, когда уместно
+- Если вопрос не по теме — вежливо верни к теме видеопроизводства и ИИ
+- Максимум 3-4 предложения на ответ
+- Не выдумывай курсы, которых нет в списке
+- Если спрашивают про цены — называй точные
+- Мотивируй людей начать обучение`;
+
+const SC_DEFAULT_COURSES = [
+  { name: 'Основы видеомонтажа и анимации в Premiere Pro и After Effects', price: '4 990 ₽', level: 'для новичков' }
+];
+
 async function scLoad() {
   try {
     const r = await fetch(DATA_API, {
@@ -1607,15 +1634,19 @@ async function scLoad() {
       body: JSON.stringify({ action: 'getSiteConfig' })
     });
     const d = await r.json();
-    document.getElementById('sc-prompt-ta').value = d.basePrompt || '';
-    scCourses = d.courses || [];
+    // Use server value if exists, otherwise show default
+    document.getElementById('sc-prompt-ta').value = d.basePrompt || SC_DEFAULT_PROMPT;
+    scCourses = (d.courses && d.courses.length) ? d.courses : [...SC_DEFAULT_COURSES];
+    // If server was empty, auto-save defaults so bot gets them immediately
+    if (!d.basePrompt || !d.courses?.length) await scSave();
     scRenderCourses();
     const sub = scCourses.length ? scCourses.length + ' курс(ов)' : 'Нет курсов';
     const el = document.getElementById('hc-studiache-sub');
     if (el) el.textContent = sub;
   } catch(e) {
-    document.getElementById('sc-prompt-ta').value = '';
-    scCourses = [];
+    document.getElementById('sc-prompt-ta').value = SC_DEFAULT_PROMPT;
+    scCourses = [...SC_DEFAULT_COURSES];
+    scRenderCourses();
   }
 }
 

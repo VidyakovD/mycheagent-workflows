@@ -41,7 +41,7 @@
     },
     {
       "id": "an3",
-      "name": "GPT Digest",
+      "name": "Claude Digest",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
@@ -50,13 +50,17 @@
       ],
       "parameters": {
         "method": "POST",
-        "url": "https://api.openai.com/v1/chat/completions",
+        "url": "={{ $env.ANTHROPIC_BASE_URL + '/v1/messages' }}",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
             {
-              "name": "Authorization",
-              "value": "={{ 'Bearer ' + $env.OPENAI_API_KEY }}"
+              "name": "x-api-key",
+              "value": "={{ $env.ANTHROPIC_API_KEY }}"
+            },
+            {
+              "name": "anthropic-version",
+              "value": "2023-06-01"
             },
             {
               "name": "Content-Type",
@@ -67,7 +71,7 @@
         "sendBody": true,
         "contentType": "raw",
         "rawContentType": "application/json",
-        "body": "={{ JSON.stringify({ model: 'gpt-4o-mini', messages: [{ role: 'system', content: 'Ты Зевс — ИИ-ассистент Дениса. Пиши ежедневный дайджест ИИ-новостей на русском для Telegram. Формат: жирный заголовок с датой, затем 8-12 самых важных новостей с эмодзи и кратким описанием (1-2 предложения). В конце — итог одним абзацем. Используй только * для жирного (Markdown). Максимум 3500 знаков. Группируй по темам: релизы/продукты, исследования, бизнес, регулирование.' }, { role: 'user', content: 'Проверено ' + $json.fetched + ' из ' + $json.total + ' источников. Найдено статей: ' + $json.articles.length + '.\\n\\nСтатьи:\\n' + $json.articles.map((a,i)=>(i+1)+'. ['+a.src+'] '+a.title+(a.desc?': '+a.desc:'')).join('\\n') }], max_tokens: 1200 }) }}"
+        "body": "={{ JSON.stringify({\n  model: 'claude-opus-4-6',\n  max_tokens: 1500,\n  stream: false,\n  system: 'Ты Зевс — ИИ-ассистент Дениса Видякова. Пишешь ежедневный дайджест ИИ-новостей на русском. Начни с заголовка: ДАЙДЖЕСТ ИИ-НОВОСТЕЙ — [дата из запроса]. Затем 8-12 важнейших новостей с эмодзи, каждая 1-2 предложения с аналитикой. В конце — краткий вывод о трендах. Только обычный текст без Markdown.',\n  messages: [{\n    role: 'user',\n    content: 'Сегодня ' + new Date().toLocaleDateString('ru-RU', {day:'numeric',month:'long',year:'numeric'}) + '. Источников: ' + $json.fetched + '/' + $json.total + '. Свежих статей: ' + $json.articles.length + '.\n\n' + $json.articles.map((a,i) => (i+1)+'. ['+a.src+'] '+a.title+(a.desc?' — '+a.desc:'')).join('\n')\n  }]\n}) }}"
       }
     },
     {
@@ -80,7 +84,7 @@
         300
       ],
       "parameters": {
-        "jsCode": "const res=$input.first().json;\nif(!res.choices)return [{json:{post:'🤖 Дайджест ИИ-новостей временно недоступен.'}}];\nconst post=res.choices[0].message.content.trim();\nreturn [{json:{post}}];"
+        "jsCode": "const res=$input.first().json;\nif(res.content){const b=res.content.find(c=>c.type==='text');if(b)return [{json:{post:b.text.trim()}}];}\nif(res.choices)return [{json:{post:res.choices[0].message.content.trim()}}];\nreturn [{json:{post:'Дайджест ИИ-новостей временно недоступен.'}}];"
       }
     },
     {
@@ -168,18 +172,7 @@
       "main": [
         [
           {
-            "node": "GPT Digest",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "GPT Digest": {
-      "main": [
-        [
-          {
-            "node": "Extract Post",
+            "node": "Claude Digest",
             "type": "main",
             "index": 0
           }
@@ -198,6 +191,17 @@
         [
           {
             "node": "Save PWA",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Claude Digest": {
+      "main": [
+        [
+          {
+            "node": "Extract Post",
             "type": "main",
             "index": 0
           }

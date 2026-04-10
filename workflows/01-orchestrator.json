@@ -634,60 +634,126 @@
       }
     },
     {
-      "id": "n25",
-      "name": "Publish to Channel",
-      "type": "n8n-nodes-base.code",
-      "typeVersion": 2,
+      "id": "n25a",
+      "name": "Get Pending Post",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
       "position": [
         1300,
-        360
+        300
       ],
       "parameters": {
-        "jsCode": "const { chatId, callbackId, data } = $input.first().json;\nconst postId = data.replace(/^channel:/, '');\nconst BOT_TOKEN = $env.TELEGRAM_BOT_TOKEN;\nconst CHANNEL_ID = '-1002046512562';\n\n// Get post text from pending store\nconst fetchRes = await $helpers.request({\n  method: 'POST',\n  url: 'https://mycheagent.ru/webhook/pwa-data',\n  headers: { 'Content-Type': 'application/json' },\n  body: JSON.stringify({ action: 'getPending', id: postId }),\n  resolveWithFullResponse: false\n});\nconst fetchData = JSON.parse(fetchRes);\nconst text = fetchData.text;\n\nif (!text) {\n  await $helpers.request({\n    method: 'POST',\n    url: `https://api.telegram.org/bot${BOT_TOKEN}/answerCallbackQuery`,\n    headers: { 'Content-Type': 'application/json' },\n    body: JSON.stringify({ callback_query_id: callbackId, text: '⚠️ Пост не найден или уже опубликован' }),\n    resolveWithFullResponse: false\n  });\n  return [{ json: { ok: false } }];\n}\n\n// Post to channel\nawait $helpers.request({\n  method: 'POST',\n  url: `https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`,\n  headers: { 'Content-Type': 'application/json' },\n  body: JSON.stringify({ chat_id: CHANNEL_ID, text }),\n  resolveWithFullResponse: false\n});\n\n// Answer callback\nawait $helpers.request({\n  method: 'POST',\n  url: `https://api.telegram.org/bot${BOT_TOKEN}/answerCallbackQuery`,\n  headers: { 'Content-Type': 'application/json' },\n  body: JSON.stringify({ callback_query_id: callbackId, text: '✅ Опубликовано в канал!' }),\n  resolveWithFullResponse: false\n});\n\n// Clear pending\nawait $helpers.request({\n  method: 'POST',\n  url: 'https://mycheagent.ru/webhook/pwa-data',\n  headers: { 'Content-Type': 'application/json' },\n  body: JSON.stringify({ action: 'savePending', id: postId, text: null }),\n  resolveWithFullResponse: false\n});\n\nreturn [{ json: { ok: true } }];"
-      }
-    },
-    {
-      "id": "n26",
-      "name": "Skip Post",
-      "type": "n8n-nodes-base.code",
-      "typeVersion": 2,
-      "position": [
-        1300,
-        440
-      ],
-      "parameters": {
-        "jsCode": "const { callbackId } = $input.first().json;\nconst BOT_TOKEN = $env.TELEGRAM_BOT_TOKEN;\nawait $helpers.request({\n  method: 'POST',\n  url: `https://api.telegram.org/bot${BOT_TOKEN}/answerCallbackQuery`,\n  headers: { 'Content-Type': 'application/json' },\n  body: JSON.stringify({ callback_query_id: callbackId, text: '⏭ Пропущено' }),\n  resolveWithFullResponse: false\n});\nreturn [{ json: { ok: true } }];"
-      }
-    },
-    {
-      "id": "n27",
-      "name": "Is Skip CB?",
-      "type": "n8n-nodes-base.if",
-      "typeVersion": 2,
-      "position": [
-        1080,
-        440
-      ],
-      "parameters": {
-        "conditions": {
-          "options": {
-            "caseSensitive": true,
-            "leftValue": "",
-            "typeValidation": "strict"
-          },
-          "conditions": [
+        "method": "POST",
+        "url": "https://mycheagent.ru/webhook/pwa-data",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
             {
-              "id": "c31",
-              "leftValue": "={{ $json.data }}",
-              "rightValue": "channel_skip:",
-              "operator": {
-                "type": "string",
-                "operation": "startsWith"
-              }
+              "name": "Content-Type",
+              "value": "application/json"
             }
-          ],
-          "combinator": "and"
+          ]
         },
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "application/json",
+        "body": "={{ JSON.stringify({ action: 'getPending', id: $json.data.replace('channel:', '') }) }}",
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          }
+        }
+      }
+    },
+    {
+      "id": "n25b",
+      "name": "Post to Channel",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1520,
+        300
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "={{ 'https://api.telegram.org/bot' + $env.TELEGRAM_BOT_TOKEN + '/sendMessage' }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "application/json",
+        "body": "={{ JSON.stringify({ chat_id: '-1002046512562', text: $json.text }) }}",
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          }
+        }
+      }
+    },
+    {
+      "id": "n25c",
+      "name": "Answer Published",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1740,
+        300
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "={{ 'https://api.telegram.org/bot' + $env.TELEGRAM_BOT_TOKEN + '/answerCallbackQuery' }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "application/json",
+        "body": "={{ JSON.stringify({ callback_query_id: $('Is Channel CB?').item.json.callbackId, text: '✅ Опубликовано в канал!' }) }}",
+        "options": {}
+      }
+    },
+    {
+      "id": "n26a",
+      "name": "Answer Skipped",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1300,
+        440
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "={{ 'https://api.telegram.org/bot' + $env.TELEGRAM_BOT_TOKEN + '/answerCallbackQuery' }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "application/json",
+        "body": "={{ JSON.stringify({ callback_query_id: $json.callbackId, text: '⏭ Пропущено' }) }}",
         "options": {}
       }
     }
@@ -930,29 +996,44 @@
       "main": [
         [
           {
-            "node": "Publish to Channel",
+            "node": "Get Pending Post",
             "type": "main",
             "index": 0
           }
         ],
         [
           {
-            "node": "Is Skip CB?",
+            "node": "Answer Skipped",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "Is Skip CB?": {
+    "Get Pending Post": {
       "main": [
         [
           {
-            "node": "Skip Post",
+            "node": "Post to Channel",
             "type": "main",
             "index": 0
           }
-        ],
+        ]
+      ]
+    },
+    "Post to Channel": {
+      "main": [
+        [
+          {
+            "node": "Answer Published",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Answer Skipped": {
+      "main": [
         [
           {
             "node": "Set Section",

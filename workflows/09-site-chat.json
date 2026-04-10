@@ -1,0 +1,201 @@
+{
+  "name": "09-site-chat",
+  "id": "site-chat-001",
+  "active": true,
+  "settings": { "executionOrder": "v1" },
+  "nodes": [
+    {
+      "id": "sc1",
+      "name": "Site Chat Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [200, 300],
+      "webhookId": "site-chat-hook",
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "site-chat",
+        "responseMode": "responseNode",
+        "options": {}
+      }
+    },
+    {
+      "id": "sc2",
+      "name": "Parse Event",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [420, 300],
+      "parameters": {
+        "jsCode": "const raw = $input.first().json;\nconst body = (raw.body && raw.body.sessionId) ? raw.body : raw;\nconst { sessionId, event, messages, lastMessage, platform, timestamp } = body;\nreturn [{ json: { sessionId, event: event || 'message', messages: messages || [], lastMessage: lastMessage || '', platform: platform || 'Студия ЧЕ', timestamp } }];"
+      }
+    },
+    {
+      "id": "sc3",
+      "name": "Is End?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [640, 300],
+      "parameters": {
+        "conditions": {
+          "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "strict" },
+          "conditions": [
+            { "id": "c1", "leftValue": "={{ $json.event }}", "rightValue": "end", "operator": { "type": "string", "operation": "equals" } }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      }
+    },
+
+    {
+      "id": "sc4",
+      "name": "GPT Reply",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [860, 160],
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.openai.com/v1/chat/completions",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "Authorization", "value": "={{ 'Bearer ' + $env.OPENAI_API_KEY }}" },
+            { "name": "Content-Type",  "value": "application/json" }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "application/json",
+        "body": "={{ JSON.stringify({ model: 'gpt-4o-mini', messages: [{ role: 'system', content: 'Ты ИИ-ассистент школы Студия ЧЕ. Помогай пользователям выбрать курс, отвечай на вопросы об обучении. Будь дружелюбным и конкретным. Отвечай по-русски. Не придумывай курсы — если не знаешь точной информации, предложи связаться с менеджером.' }, ...$json.messages], max_tokens: 300 }) }}"
+      }
+    },
+    {
+      "id": "sc5",
+      "name": "Extract Reply",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1080, 160],
+      "parameters": {
+        "jsCode": "const res = $input.first().json;\nif (!res.choices || res.error) {\n  return [{ json: { reply: 'Извините, произошла ошибка. Пожалуйста, попробуйте ещё раз или свяжитесь с менеджером.' } }];\n}\nconst reply = res.choices[0].message.content.trim();\nreturn [{ json: { reply } }];"
+      }
+    },
+    {
+      "id": "sc6",
+      "name": "Respond with Reply",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [1300, 160],
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({ reply: $json.reply }) }}",
+        "options": {
+          "responseCode": 200,
+          "responseHeaders": {
+            "entries": [
+              { "name": "Content-Type",                "value": "application/json" },
+              { "name": "Access-Control-Allow-Origin", "value": "*" }
+            ]
+          }
+        }
+      }
+    },
+
+    {
+      "id": "sc7",
+      "name": "GPT Summary",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [860, 440],
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.openai.com/v1/chat/completions",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "Authorization", "value": "={{ 'Bearer ' + $env.OPENAI_API_KEY }}" },
+            { "name": "Content-Type",  "value": "application/json" }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "application/json",
+        "body": "={{ JSON.stringify({ model: 'gpt-4o-mini', messages: [{ role: 'system', content: 'Ты аналитик диалогов. Напиши краткое резюме диалога (3-5 строк) для владельца школы. Укажи: что интересовало пользователя, какие курсы спрашивал, насколько готов к покупке (горячий/тёплый/холодный), нужно ли перезвонить. Используй эмодзи. По-русски.' }, { role: 'user', content: 'Диалог:\\n' + $json.messages.map(m => m.role + ': ' + m.content).join('\\n') }], max_tokens: 250 }) }}"
+      }
+    },
+    {
+      "id": "sc8",
+      "name": "Build Report",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1080, 440],
+      "parameters": {
+        "jsCode": "const res = $input.first().json;\nconst summary = res.choices?.[0]?.message?.content?.trim() || 'Не удалось сгенерировать резюме';\nconst parsed = $('Parse Event').item.json;\nconst ts = parsed.timestamp ? new Date(parsed.timestamp).toLocaleString('ru', { day:'numeric', month:'long', hour:'2-digit', minute:'2-digit' }) : new Date().toLocaleString('ru');\nconst msgCount = parsed.messages.length;\nconst tgText = `📊 *Диалог завершён* | ${ts}\\n🏢 ${parsed.platform} | ${msgCount} сообщений\\n\\n${summary}`;\nconst pwaText = `📊 Диалог на сайте (${parsed.platform}, ${ts}, ${msgCount} сообщ.):\\n${summary}`;\nreturn [{ json: { tgText, pwaText } }];"
+      }
+    },
+    {
+      "id": "sc9",
+      "name": "Send TG Report",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1300, 380],
+      "parameters": {
+        "method": "POST",
+        "url": "={{ 'https://api.telegram.org/bot' + $env.TELEGRAM_BOT_TOKEN + '/sendMessage' }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [{ "name": "Content-Type", "value": "application/json" }]
+        },
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "application/json",
+        "body": "={{ JSON.stringify({ chat_id: $env.TELEGRAM_CHAT_ID, text: $json.tgText, parse_mode: 'Markdown' }) }}"
+      }
+    },
+    {
+      "id": "sc10",
+      "name": "Save PWA Report",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1300, 500],
+      "parameters": {
+        "jsCode": "const { pwaText } = $('Build Report').item.json;\nconst store = $getWorkflowStaticData('global');\nif (!store.reports) store.reports = [];\nstore.reports.unshift({ id: Date.now(), text: pwaText, ts: new Date().toISOString(), read: false });\nif (store.reports.length > 50) store.reports = store.reports.slice(0, 50);\nreturn [{ json: { ok: true } }];"
+      }
+    },
+    {
+      "id": "sc11",
+      "name": "Respond OK",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [1520, 440],
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={ JSON.stringify({ ok: true }) }",
+        "options": {
+          "responseCode": 200,
+          "responseHeaders": {
+            "entries": [
+              { "name": "Content-Type",                "value": "application/json" },
+              { "name": "Access-Control-Allow-Origin", "value": "*" }
+            ]
+          }
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Site Chat Webhook": { "main": [[{ "node": "Parse Event", "type": "main", "index": 0 }]] },
+    "Parse Event":       { "main": [[{ "node": "Is End?",     "type": "main", "index": 0 }]] },
+    "Is End?": {
+      "main": [
+        [{ "node": "GPT Summary",      "type": "main", "index": 0 }],
+        [{ "node": "GPT Reply",        "type": "main", "index": 0 }]
+      ]
+    },
+    "GPT Reply":     { "main": [[{ "node": "Extract Reply",    "type": "main", "index": 0 }]] },
+    "Extract Reply": { "main": [[{ "node": "Respond with Reply","type": "main", "index": 0 }]] },
+    "GPT Summary":   { "main": [[{ "node": "Build Report",     "type": "main", "index": 0 }]] },
+    "Build Report":  { "main": [[{ "node": "Send TG Report",   "type": "main", "index": 0 }], [{ "node": "Save PWA Report", "type": "main", "index": 0 }]] },
+    "Send TG Report":  { "main": [[{ "node": "Respond OK",     "type": "main", "index": 0 }]] },
+    "Save PWA Report": { "main": [[{ "node": "Respond OK",     "type": "main", "index": 0 }]] }
+  },
+  "versionId": "d0000001-0000-0000-0000-000000000009"
+}

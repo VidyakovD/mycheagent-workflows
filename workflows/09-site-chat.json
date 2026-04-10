@@ -75,7 +75,7 @@
       "typeVersion": 2,
       "position": [1080, 160],
       "parameters": {
-        "jsCode": "const res = $input.first().json;\nif (!res.choices || res.error) {\n  return [{ json: { reply: 'Извините, произошла ошибка. Пожалуйста, попробуйте ещё раз или свяжитесь с менеджером.' } }];\n}\nconst reply = res.choices[0].message.content.trim();\nreturn [{ json: { reply } }];"
+        "jsCode": "const res = $input.first().json;\nif (!res.choices || res.error) {\n  const errDetail = res.error?.message || res.error?.code || JSON.stringify(res).slice(0,200);\n  throw new Error('GPT error: ' + errDetail);\n}\nconst reply = res.choices[0].message.content.trim();\nreturn [{ json: { reply } }];"
       }
     },
     {

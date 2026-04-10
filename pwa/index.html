@@ -916,7 +916,7 @@ class Neural {
     window.addEventListener('resize', ()=>this._resize());
   }
   _resize() { this.w=this.cv.width=window.innerWidth; this.h=this.cv.height=window.innerHeight; }
-  setAnalyser(a) { this.analyser=a; this.aData=new Uint8Array(a.frequencyBinCount); }
+  setAnalyser(a) { this.analyser=a; this.aData=a ? new Uint8Array(a.frequencyBinCount) : null; }
   setMode(m) { this.mode=m; }
   draw() {
     const {cx:c,w,h,nodes,rings,f,mode}=this;

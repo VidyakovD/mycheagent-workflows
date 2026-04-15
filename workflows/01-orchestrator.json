@@ -40,7 +40,7 @@
         300
       ],
       "parameters": {
-        "jsCode": "const input = $input.first().json;\nconst cbq = input.callback_query;\nif (cbq) {\n  return [{ json: {\n    type: 'callback',\n    chatId: cbq.message.chat.id,\n    callbackId: cbq.id,\n    data: cbq.data || '',\n    isVoice: false, text: '', fileId: null\n  }}];\n}\nconst msg = input.message;\nif (!msg) return [];\nconst chatId = msg.chat.id;\nconst text = msg.text || '';\nconst isVoice = !!msg.voice;\nif (!isVoice && !text) return [];\nconst isStart = text === '/start' || text === '/menu';\n// Admin commands for site-chat bot management\nconst isAdmin = /^\\/курсы|^\\/добавить |^\\/удалить |^\\/промпт|^\\/myid/i.test(text);\nif (isAdmin) return [{ json: { type: 'admin', chatId, text, isVoice: false, fileId: null, callbackId: null, data: null } }];\nreturn [{ json: {\n  type: isStart ? 'start' : (isVoice ? 'voice' : 'text'),\n  chatId, isVoice, text,\n  fileId: isVoice ? msg.voice.file_id : null,\n  callbackId: null, data: null\n}}];"
+        "jsCode": "const input = $input.first().json;\nconst cbq = input.callback_query;\nif (cbq) {\n  return [{ json: {\n    type: 'callback',\n    chatId: cbq.message.chat.id,\n    callbackId: cbq.id,\n    data: cbq.data || '',\n    isVoice: false, text: '', fileId: null,\n    fileName: null, fileMime: null, fileSize: 0\n  }}];\n}\nconst msg = input.message;\nif (!msg) return [];\nconst chatId = msg.chat.id;\nconst text = msg.text || msg.caption || '';\nconst isVoice = !!msg.voice;\n\n// Document or photo detection\nconst isDoc = !!msg.document;\nconst isPhoto = !!(msg.photo && msg.photo.length);\nif (isDoc) {\n  return [{ json: {\n    type: 'file', chatId, isVoice: false, text,\n    fileId: msg.document.file_id,\n    fileName: msg.document.file_name || 'document',\n    fileMime: msg.document.mime_type || '',\n    fileSize: msg.document.file_size || 0,\n    fileType: 'document',\n    callbackId: null, data: null\n  }}];\n}\nif (isPhoto) {\n  const best = msg.photo[msg.photo.length - 1];\n  return [{ json: {\n    type: 'file', chatId, isVoice: false, text,\n    fileId: best.file_id,\n    fileName: 'photo_' + Date.now() + '.jpg',\n    fileMime: 'image/jpeg',\n    fileSize: best.file_size || 0,\n    fileType: 'photo',\n    callbackId: null, data: null\n  }}];\n}\n\nif (!isVoice && !text) return [];\nconst isStart = text === '/start' || text === '/menu';\nconst isAdmin = /^\\/курсы|^\\/добавить |^\\/удалить |^\\/промпт|^\\/myid/i.test(text);\nif (isAdmin) return [{ json: { type: 'admin', chatId, text, isVoice: false, fileId: null, fileName: null, fileMime: null, fileSize: 0, callbackId: null, data: null } }];\nreturn [{ json: {\n  type: isStart ? 'start' : (isVoice ? 'voice' : 'text'),\n  chatId, isVoice, text,\n  fileId: isVoice ? msg.voice.file_id : null,\n  fileName: null, fileMime: null, fileSize: 0,\n  callbackId: null, data: null\n}}];"
       }
     },
     {
@@ -349,7 +349,7 @@
         540
       ],
       "parameters": {
-        "jsCode": "const d = $input.first().json;\nconst store = $getWorkflowStaticData('global');\nconst session = store.sessions?.[String(d.chatId)] || {};\nconst section = session.section || 'chat';\nconst prompts = {\n  chat:'Ты умный персональный ассистент по имени Зевс. Пользователя зовут Денис, обращайся к нему «Мой господин». Отвечай кратко, по-русски, дружелюбно. Без лишних вводных слов.',\n  tasks:'Ты ассистент Зевс по задачам. Пользователя зовут Денис, «Мой господин». Помогай с задачами и приоритетами. Кратко, по-русски.',\n  notes:'Ты ассистент Зевс по заметкам. Пользователя зовут Денис, «Мой господин». Структурируй идеи и мысли. Кратко, по-русски.',\n  sport:'Ты фитнес-ассистент Зевс. Пользователя зовут Денис, «Мой господин». Тренировки, калории, питание. Кратко, по-русски.',\n  work:'Ты бизнес-ассистент Зевс. Пользователя зовут Денис, «Мой господин». Рабочие задачи и проекты. Кратко, по-русски.',\n  ideas:'Ты творческий ассистент Зевс. Пользователя зовут Денис, «Мой господин». Принимай идеи, структурируй. Кратко, по-русски.',\n  producer:'Ты ИИ-агент «Продюсер». Помогаешь Денису (обращайся «Мой господин») с продюсированием контента: стратегия, монетизация, аудитория, планирование. Конкретные советы, по-русски.',\n  writer:'Ты ИИ-агент «Сценарист». Помогаешь Денису (обращайся «Мой господин») писать сценарии, скрипты, тексты для видео. Структура: крючок — суть — CTA. По-русски.',\n  editor:'Ты ИИ-агент «Монтажёр». Помогаешь Денису (обращайся «Мой господин») с монтажом и постпродакшном: тайминг, переходы, цвет, структура ролика. По-русски.',\n  sales:'Ты ИИ-агент «Продажник». Помогаешь Денису (обращайся «Мой господин») с продажами: скрипты, офферы, работа с возражениями, воронки. По-русски.'\n};\nreturn [{ json: { chatId: d.chatId, userText: d.text, isVoice: false, systemPrompt: prompts[section] || prompts.chat } }];"
+        "jsCode": "const d = $input.first().json;\nconst store = $getWorkflowStaticData('global');\nconst session = store.sessions?.[String(d.chatId)] || {};\nconst section = session.section || 'chat';\nconst prompts = {\n  chat:'Ты умный персональный ассистент по имени Зевс. Пользователя зовут Денис, обращайся к нему «Мой господин». Отвечай кратко, по-русски, дружелюбно. Без лишних вводных слов.\\n\\nФАЙЛЫ: Если пользователь просит найти, скинуть, отправить файл или документ — вставь в ответ тег [FILE_SEARCH: запрос] где запрос — ключевые слова для поиска. Например: «скинь КП» → [FILE_SEARCH: КП]. «покажи мои файлы» → [FILE_SEARCH: ]. Тег должен быть в конце ответа.',\n  tasks:'Ты ассистент Зевс по задачам. Пользователя зовут Денис, «Мой господин». Помогай с задачами и приоритетами. Кратко, по-русски.',\n  notes:'Ты ассистент Зевс по заметкам. Пользователя зовут Денис, «Мой господин». Структурируй идеи и мысли. Кратко, по-русски.',\n  sport:'Ты фитнес-ассистент Зевс. Пользователя зовут Денис, «Мой господин». Тренировки, калории, питание. Кратко, по-русски.',\n  work:'Ты бизнес-ассистент Зевс. Пользователя зовут Денис, «Мой господин». Рабочие задачи и проекты. Кратко, по-русски.\\n\\nФАЙЛЫ: Если пользователь просит найти, скинуть файл — вставь тег [FILE_SEARCH: запрос] в конце ответа.',\n  ideas:'Ты творческий ассистент Зевс. Пользователя зовут Денис, «Мой господин». Принимай идеи, структурируй. Кратко, по-русски.',\n  producer:'Ты ИИ-агент «Продюсер». Помогаешь Денису (обращайся «Мой господин») с продюсированием контента: стратегия, монетизация, аудитория, планирование. Конкретные советы, по-русски.',\n  writer:'Ты ИИ-агент «Сценарист». Помогаешь Денису (обращайся «Мой господин») писать сценарии, скрипты, тексты для видео. Структура: крючок — суть — CTA. По-русски.',\n  editor:'Ты ИИ-агент «Монтажёр». Помогаешь Денису (обращайся «Мой господин») с монтажом и постпродакшном: тайминг, переходы, цвет, структура ролика. По-русски.',\n  sales:'Ты ИИ-агент «Продажник». Помогаешь Денису (обращайся «Мой господин») с продажами: скрипты, офферы, работа с возражениями, воронки. По-русски.'\n};\nreturn [{ json: { chatId: d.chatId, userText: d.text, isVoice: false, systemPrompt: prompts[section] || prompts.chat } }];"
       }
     },
     {
@@ -730,6 +730,247 @@
       }
     },
     {
+      "id": "n27",
+      "name": "Is File?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        860,
+        500
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "cf1",
+              "leftValue": "={{ $json.type }}",
+              "rightValue": "file",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "n30",
+      "name": "Get File URL",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1080,
+        700
+      ],
+      "parameters": {
+        "url": "={{ 'https://api.telegram.org/bot' + $env.TELEGRAM_BOT_TOKEN + '/getFile?file_id=' + $json.fileId }}",
+        "options": {}
+      }
+    },
+    {
+      "id": "n31",
+      "name": "Download File",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1300,
+        700
+      ],
+      "parameters": {
+        "url": "={{ 'https://api.telegram.org/file/bot' + $env.TELEGRAM_BOT_TOKEN + '/' + $json.result.file_path }}",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "file",
+              "outputPropertyName": "fileData"
+            }
+          }
+        }
+      }
+    },
+    {
+      "id": "n32",
+      "name": "Save to Server",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1520,
+        700
+      ],
+      "parameters": {
+        "jsCode": "const fs = require('fs');\nconst path = require('path');\nconst ctx = $('Is File?').first().json;\nconst chatId = String(ctx.chatId);\nconst ts = Date.now();\nconst safeName = (ctx.fileName || 'file').replace(/[^a-zA-Z0-9а-яА-ЯёЁ._-]/g, '_');\nconst dir = '/files/' + chatId;\n\n// Create directory if not exists\nif (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });\n\nconst filePath = dir + '/' + ts + '_' + safeName;\n\n// Get binary data and write\nconst binaryData = $input.first().binary.fileData;\nconst buffer = Buffer.from(binaryData.data, 'base64');\nfs.writeFileSync(filePath, buffer);\n\nreturn [{ json: {\n  chatId: ctx.chatId,\n  fileId: 'f_' + ts,\n  fileName: ctx.fileName,\n  fileType: ctx.fileType || 'document',\n  fileMime: ctx.fileMime || '',\n  fileSize: ctx.fileSize || buffer.length,\n  filePath: filePath,\n  caption: ctx.text || '',\n  ts: new Date().toISOString()\n}}];"
+      }
+    },
+    {
+      "id": "n33",
+      "name": "GPT Describe",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1740,
+        700
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.openai.com/v1/chat/completions",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "={{ 'Bearer ' + $env.OPENAI_API_KEY }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "application/json",
+        "body": "={{ JSON.stringify({ model: 'gpt-4o-mini', messages: [{ role: 'system', content: 'Опиши файл одним предложением на русском (что это, для чего). Также выдели 3-5 ключевых тегов через запятую. Формат ответа строго:\\nОПИСАНИЕ: ...\\nТЕГИ: тег1, тег2, тег3' }, { role: 'user', content: 'Файл: ' + $json.fileName + '\\nТип: ' + $json.fileMime + '\\nРазмер: ' + Math.round(($json.fileSize||0)/1024) + ' КБ' + ($json.caption ? '\\nПодпись: ' + $json.caption : '') }], max_tokens: 150 }) }}",
+        "options": {}
+      }
+    },
+    {
+      "id": "n34",
+      "name": "Save File Index",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1960,
+        700
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "https://mycheagent.ru/webhook/pwa-data",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "application/json",
+        "body": "={{ (function() { const saved = $('Save to Server').first().json; const gptRaw = $json.choices?.[0]?.message?.content || ''; const descMatch = gptRaw.match(/ОПИСАНИЕ:\\s*(.+)/i); const tagsMatch = gptRaw.match(/ТЕГИ:\\s*(.+)/i); const description = descMatch ? descMatch[1].trim() : saved.fileName; const tags = tagsMatch ? tagsMatch[1].split(',').map(t=>t.trim()) : []; return JSON.stringify({ action: 'addFile', id: saved.fileId, chatId: saved.chatId, name: saved.fileName, type: saved.fileType, mime: saved.fileMime, size: saved.fileSize, path: saved.filePath, description: description, tags: tags }); })() }}",
+        "options": {}
+      }
+    },
+    {
+      "id": "n35",
+      "name": "Confirm File Saved",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2180,
+        700
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "={{ 'https://api.telegram.org/bot' + $env.TELEGRAM_BOT_TOKEN + '/sendMessage' }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "application/json",
+        "body": "={{ (function() { const saved = $('Save to Server').first().json; const gptRaw = $('GPT Describe').first().json.choices?.[0]?.message?.content || ''; const descMatch = gptRaw.match(/ОПИСАНИЕ:\\s*(.+)/i); const desc = descMatch ? descMatch[1].trim() : 'файл сохранён'; return JSON.stringify({ chat_id: saved.chatId, text: '✅ Сохранил: ' + saved.fileName + '\\n📝 ' + desc + '\\n\\nСпроси «скинь ' + saved.fileName.split('.')[0] + '» чтобы получить обратно.' }); })() }}",
+        "options": {}
+      }
+    },
+    {
+      "id": "n36",
+      "name": "Has File Request?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        2400,
+        530
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "cf2",
+              "leftValue": "={{ $json.text }}",
+              "rightValue": "[FILE_SEARCH:",
+              "operator": {
+                "type": "string",
+                "operation": "contains"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "n37",
+      "name": "Search Files",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2620,
+        630
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "https://mycheagent.ru/webhook/pwa-data",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "application/json",
+        "body": "={{ (function() { const text = $json.text; const m = text.match(/\\[FILE_SEARCH:\\s*(.+?)\\]/); const query = m ? m[1].trim() : ''; return JSON.stringify({ action: 'searchFiles', query: query, chatId: $json.chatId }); })() }}",
+        "options": {}
+      }
+    },
+    {
+      "id": "n38",
+      "name": "Send Found File",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2840,
+        630
+      ],
+      "parameters": {
+        "jsCode": "const fs = require('fs');\nconst files = $json.files || [];\nconst chatId = $('Build Reply').first().json.chatId;\nconst botToken = $env.TELEGRAM_BOT_TOKEN;\n\nif (!files.length) {\n  // No files found — send text message\n  const resp = await $helpers.request({\n    method: 'POST',\n    url: 'https://api.telegram.org/bot' + botToken + '/sendMessage',\n    headers: { 'Content-Type': 'application/json' },\n    body: JSON.stringify({ chat_id: chatId, text: '🔍 Файл не найден. Попробуй другой запрос.' })\n  });\n  return [{ json: { ok: true, sent: 'not_found' } }];\n}\n\nconst f = files[0];\n// Read file from disk and send as document\ntry {\n  const buffer = fs.readFileSync(f.path);\n  const base64 = buffer.toString('base64');\n  \n  // Use n8n binary helper to send\n  const FormData = require('form-data');\n  const form = new FormData();\n  form.append('chat_id', String(chatId));\n  form.append('caption', '📎 ' + f.name + (f.description ? '\\n' + f.description : ''));\n  form.append('document', buffer, { filename: f.name, contentType: f.mime || 'application/octet-stream' });\n  \n  const resp = await $helpers.request({\n    method: 'POST',\n    url: 'https://api.telegram.org/bot' + botToken + '/sendDocument',\n    headers: form.getHeaders(),\n    body: form\n  });\n  return [{ json: { ok: true, sent: f.name } }];\n} catch(e) {\n  const resp = await $helpers.request({\n    method: 'POST',\n    url: 'https://api.telegram.org/bot' + botToken + '/sendMessage',\n    headers: { 'Content-Type': 'application/json' },\n    body: JSON.stringify({ chat_id: chatId, text: '⚠️ Файл найден (' + f.name + '), но не могу отправить: ' + e.message })\n  });\n  return [{ json: { ok: false, error: e.message } }];\n}"
+      }
+    },
+    {
       "id": "n26a",
       "name": "Answer Skipped",
       "type": "n8n-nodes-base.httpRequest",
@@ -821,7 +1062,91 @@
         ],
         [
           {
+            "node": "Is File?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Is File?": {
+      "main": [
+        [
+          {
+            "node": "Get File URL",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
             "node": "Is Voice?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get File URL": {
+      "main": [
+        [
+          {
+            "node": "Download File",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Download File": {
+      "main": [
+        [
+          {
+            "node": "Save to Server",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Save to Server": {
+      "main": [
+        [
+          {
+            "node": "GPT Describe",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "GPT Describe": {
+      "main": [
+        [
+          {
+            "node": "Save File Index",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Save File Index": {
+      "main": [
+        [
+          {
+            "node": "Confirm File Saved",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Search Files": {
+      "main": [
+        [
+          {
+            "node": "Send Found File",
             "type": "main",
             "index": 0
           }
@@ -954,6 +1279,24 @@
     },
     "Build Reply": {
       "main": [
+        [
+          {
+            "node": "Has File Request?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Has File Request?": {
+      "main": [
+        [
+          {
+            "node": "Search Files",
+            "type": "main",
+            "index": 0
+          }
+        ],
         [
           {
             "node": "Reply Voice?",

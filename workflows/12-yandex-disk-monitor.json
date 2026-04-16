@@ -1,0 +1,166 @@
+{
+  "name": "12-yandex-disk-monitor",
+  "id": "yd-monitor-001",
+  "active": true,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "nodes": [
+    {
+      "id": "yd1",
+      "name": "Every 5 Min",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [200, 300],
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "minutes",
+              "minutesInterval": 5
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "yd2",
+      "name": "Get Recent Files",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [420, 300],
+      "parameters": {
+        "method": "GET",
+        "url": "https://cloud-api.yandex.net/v1/disk/resources/files?sort=-modified&limit=30&fields=items.name,items.path,items.modified,items.size,items.type",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "={{ 'OAuth ' + $env.YANDEX_DISK_TOKEN }}"
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          }
+        }
+      }
+    },
+    {
+      "id": "yd3",
+      "name": "Detect New",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [640, 300],
+      "parameters": {
+        "jsCode": "const store = $getWorkflowStaticData('global');\nconst items = $json.items || [];\n\nif (!items.length && $json.error) {\n  return [{ json: { hasNew: false, error: $json.error || 'API error' } }];\n}\n\nconst lastCheck = store.lastCheck || new Date(Date.now() - 5 * 60 * 1000).toISOString();\nconst now = new Date().toISOString();\n\n// Filter files modified after last check\nconst newFiles = items.filter(f => f.modified > lastCheck);\n\n// Group by folder\nconst folders = {};\nfor (const f of newFiles) {\n  const parts = (f.path || '').replace('disk:', '').split('/');\n  parts.pop(); // remove filename\n  const folder = parts.join('/') || '/';\n  if (!folders[folder]) folders[folder] = [];\n  folders[folder].push(f.name);\n}\n\nstore.lastCheck = now;\n\nif (!newFiles.length) {\n  return [{ json: { hasNew: false } }];\n}\n\n// Build message\nlet msg = '📁 Новые файлы на Яндекс.Диске:\\n';\nfor (const [folder, files] of Object.entries(folders)) {\n  msg += '\\n📂 ' + folder + ' — ' + files.length + ' файл(ов)\\n';\n  for (const name of files) {\n    msg += '  • ' + name + '\\n';\n  }\n}\n\nreturn [{ json: { hasNew: true, message: msg.trim(), count: newFiles.length } }];"
+      }
+    },
+    {
+      "id": "yd4",
+      "name": "Has New?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [860, 300],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "ydc1",
+              "leftValue": "={{ $json.hasNew }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "yd5",
+      "name": "Notify Denis",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1080, 240],
+      "parameters": {
+        "method": "POST",
+        "url": "={{ 'https://api.telegram.org/bot' + $env.TELEGRAM_BOT_TOKEN + '/sendMessage' }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "application/json",
+        "body": "={{ JSON.stringify({ chat_id: 211279650, text: $json.message }) }}",
+        "options": {}
+      }
+    }
+  ],
+  "connections": {
+    "Every 5 Min": {
+      "main": [
+        [
+          {
+            "node": "Get Recent Files",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Recent Files": {
+      "main": [
+        [
+          {
+            "node": "Detect New",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Detect New": {
+      "main": [
+        [
+          {
+            "node": "Has New?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Has New?": {
+      "main": [
+        [
+          {
+            "node": "Notify Denis",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        []
+      ]
+    }
+  },
+  "versionId": "d0000001-0000-0000-0000-000000000012"
+}

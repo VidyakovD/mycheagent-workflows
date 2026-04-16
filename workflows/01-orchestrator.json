@@ -349,7 +349,7 @@
         540
       ],
       "parameters": {
-        "jsCode": "const d = $input.first().json;\nconst store = $getWorkflowStaticData('global');\nconst session = store.sessions?.[String(d.chatId)] || {};\nconst section = session.section || 'chat';\nconst prompts = {\n  chat:'Ты умный персональный ассистент по имени Зевс. Пользователя зовут Денис, обращайся к нему «Мой господин». Отвечай кратко, по-русски, дружелюбно. Без лишних вводных слов.\\n\\nФАЙЛЫ: Если пользователь просит найти, скинуть, отправить файл или документ — вставь в ответ тег [FILE_SEARCH: запрос] где запрос — ключевые слова для поиска. Например: «скинь КП» → [FILE_SEARCH: КП]. «покажи мои файлы» → [FILE_SEARCH: ]. Тег должен быть в конце ответа.',\n  tasks:'Ты ассистент Зевс по задачам. Пользователя зовут Денис, «Мой господин». Помогай с задачами и приоритетами. Кратко, по-русски.',\n  notes:'Ты ассистент Зевс по заметкам. Пользователя зовут Денис, «Мой господин». Структурируй идеи и мысли. Кратко, по-русски.',\n  sport:'Ты фитнес-ассистент Зевс. Пользователя зовут Денис, «Мой господин». Тренировки, калории, питание. Кратко, по-русски.',\n  work:'Ты бизнес-ассистент Зевс. Пользователя зовут Денис, «Мой господин». Рабочие задачи и проекты. Кратко, по-русски.\\n\\nФАЙЛЫ: Если пользователь просит найти, скинуть файл — вставь тег [FILE_SEARCH: запрос] в конце ответа.',\n  ideas:'Ты творческий ассистент Зевс. Пользователя зовут Денис, «Мой господин». Принимай идеи, структурируй. Кратко, по-русски.',\n  producer:'Ты ИИ-агент «Продюсер». Помогаешь Денису (обращайся «Мой господин») с продюсированием контента: стратегия, монетизация, аудитория, планирование. Конкретные советы, по-русски.',\n  writer:'Ты ИИ-агент «Сценарист». Помогаешь Денису (обращайся «Мой господин») писать сценарии, скрипты, тексты для видео. Структура: крючок — суть — CTA. По-русски.',\n  editor:'Ты ИИ-агент «Монтажёр». Помогаешь Денису (обращайся «Мой господин») с монтажом и постпродакшном: тайминг, переходы, цвет, структура ролика. По-русски.',\n  sales:'Ты ИИ-агент «Продажник». Помогаешь Денису (обращайся «Мой господин») с продажами: скрипты, офферы, работа с возражениями, воронки. По-русски.'\n};\nreturn [{ json: { chatId: d.chatId, userText: d.text, isVoice: false, systemPrompt: prompts[section] || prompts.chat } }];"
+        "jsCode": "const d = $input.first().json;\nconst store = $getWorkflowStaticData('global');\nconst session = store.sessions?.[String(d.chatId)] || {};\nconst section = session.section || 'chat';\nconst prompts = {\n  chat:'Ты умный персональный ассистент по имени Зевс. Пользователя зовут Денис, обращайся к нему «Мой господин». Отвечай кратко, по-русски, дружелюбно. Без лишних вводных слов.\\n\\nФАЙЛЫ: Если пользователь просит найти, скинуть, отправить файл или документ — вставь в ответ тег [FILE_SEARCH: запрос]. Например: «скинь КП» → [FILE_SEARCH: КП].\\nПОЧТА: Если пользователь спрашивает про письмо, почту, email — вставь тег [EMAIL_CONTEXT: запрос]. Например: «что за письмо пришло?» → [EMAIL_CONTEXT: последнее]. «письмо от банка» → [EMAIL_CONTEXT: банк].',\n  tasks:'Ты ассистент Зевс по задачам. Пользователя зовут Денис, «Мой господин». Помогай с задачами и приоритетами. Кратко, по-русски.',\n  notes:'Ты ассистент Зевс по заметкам. Пользователя зовут Денис, «Мой господин». Структурируй идеи и мысли. Кратко, по-русски.',\n  sport:'Ты фитнес-ассистент Зевс. Пользователя зовут Денис, «Мой господин». Тренировки, калории, питание. Кратко, по-русски.',\n  work:'Ты бизнес-ассистент Зевс. Пользователя зовут Денис, «Мой господин». Рабочие задачи и проекты. Кратко, по-русски.\\n\\nФАЙЛЫ: Если пользователь просит найти, скинуть файл — вставь тег [FILE_SEARCH: запрос] в конце ответа.',\n  ideas:'Ты творческий ассистент Зевс. Пользователя зовут Денис, «Мой господин». Принимай идеи, структурируй. Кратко, по-русски.',\n  producer:'Ты ИИ-агент «Продюсер». Помогаешь Денису (обращайся «Мой господин») с продюсированием контента: стратегия, монетизация, аудитория, планирование. Конкретные советы, по-русски.',\n  writer:'Ты ИИ-агент «Сценарист». Помогаешь Денису (обращайся «Мой господин») писать сценарии, скрипты, тексты для видео. Структура: крючок — суть — CTA. По-русски.',\n  editor:'Ты ИИ-агент «Монтажёр». Помогаешь Денису (обращайся «Мой господин») с монтажом и постпродакшном: тайминг, переходы, цвет, структура ролика. По-русски.',\n  sales:'Ты ИИ-агент «Продажник». Помогаешь Денису (обращайся «Мой господин») с продажами: скрипты, офферы, работа с возражениями, воронки. По-русски.'\n};\nreturn [{ json: { chatId: d.chatId, userText: d.text, isVoice: false, systemPrompt: prompts[section] || prompts.chat } }];"
       }
     },
     {
@@ -898,6 +898,167 @@
       }
     },
     {
+      "id": "n40",
+      "name": "Is YD Upload?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [1520, 800],
+      "parameters": {
+        "conditions": {
+          "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "strict" },
+          "conditions": [
+            {
+              "id": "cyd1",
+              "leftValue": "={{ ($json.caption || '').toLowerCase() }}",
+              "rightValue": "диск:|yd:|яд:",
+              "operator": { "type": "string", "operation": "regex" }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "n41",
+      "name": "Get YD Upload URL",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1740, 800],
+      "parameters": {
+        "method": "GET",
+        "url": "={{ (function() { const cap = $('Save to Server').first().json.caption || ''; const m = cap.match(/(?:диск:|yd:|яд:)\\s*(.+)/i); const folder = m ? m[1].trim().replace(/\\/$/, '') : ''; const name = $('Save to Server').first().json.fileName; return 'https://cloud-api.yandex.net/v1/disk/resources/upload?path=' + encodeURIComponent(folder + '/' + name) + '&overwrite=true'; })() }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "Authorization", "value": "={{ 'OAuth ' + $env.YANDEX_DISK_TOKEN }}" }
+          ]
+        },
+        "options": { "response": { "response": { "neverError": true } } }
+      }
+    },
+    {
+      "id": "n42",
+      "name": "Upload to YD",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1960, 800],
+      "parameters": {
+        "jsCode": "const fs = require('fs');\nconst uploadUrl = $json.href;\nif (!uploadUrl) {\n  return [{ json: { ok: false, error: $json.error || 'No upload URL' } }];\n}\nconst filePath = $('Save to Server').first().json.filePath;\nconst buffer = fs.readFileSync(filePath);\n\nconst resp = await $helpers.request({\n  method: 'PUT',\n  url: uploadUrl,\n  body: buffer,\n  headers: { 'Content-Type': 'application/octet-stream' },\n  encoding: null\n});\n\nreturn [{ json: { ok: true, filePath: $('Save to Server').first().json.filePath, fileName: $('Save to Server').first().json.fileName } }];"
+      }
+    },
+    {
+      "id": "n43",
+      "name": "Confirm YD Upload",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [2180, 800],
+      "parameters": {
+        "method": "POST",
+        "url": "={{ 'https://api.telegram.org/bot' + $env.TELEGRAM_BOT_TOKEN + '/sendMessage' }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "Content-Type", "value": "application/json" }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "application/json",
+        "body": "={{ (function() { const cap = $('Save to Server').first().json.caption || ''; const m = cap.match(/(?:диск:|yd:|яд:)\\s*(.+)/i); const folder = m ? m[1].trim() : '/'; return JSON.stringify({ chat_id: $('Save to Server').first().json.chatId, text: '✅ Загружено на Яндекс.Диск:\\n📂 ' + folder + $('Save to Server').first().json.fileName }); })() }}",
+        "options": {}
+      }
+    },
+    {
+      "id": "n44",
+      "name": "Has Email Query?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [2400, 630],
+      "parameters": {
+        "conditions": {
+          "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "strict" },
+          "conditions": [
+            {
+              "id": "cem1",
+              "leftValue": "={{ $json.text }}",
+              "rightValue": "[EMAIL_CONTEXT:",
+              "operator": { "type": "string", "operation": "contains" }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "n45",
+      "name": "Get Email Context",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [2620, 730],
+      "parameters": {
+        "method": "POST",
+        "url": "https://mycheagent.ru/webhook/pwa-data",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "Content-Type", "value": "application/json" }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "application/json",
+        "body": "={{ (function() { const text = $('Build Reply').first().json.text; const m = text.match(/\\[EMAIL_CONTEXT:\\s*(.+?)\\]/); const query = m ? m[1].trim() : ''; return JSON.stringify({ action: 'searchEmails', query: query }); })() }}",
+        "options": {}
+      }
+    },
+    {
+      "id": "n46",
+      "name": "GPT Email Answer",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [2840, 730],
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.ANTHROPIC_BASE_URL + '/v1/chat/completions' }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "Authorization", "value": "={{ 'Bearer ' + $env.ANTHROPIC_API_KEY }}" },
+            { "name": "Content-Type", "value": "application/json" }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "application/json",
+        "body": "={{ (function() { const emails = $json.emails || []; const userQ = $('Router').first().json.text; const context = emails.map(e => 'От: ' + e.from + '\\nТема: ' + e.subject + '\\nТекст: ' + (e.body || '').slice(0, 1000) + '\\n---').join('\\n'); return JSON.stringify({ model: 'claude-haiku-4.5', messages: [{ role: 'user', content: 'Ты ассистент Зевс. Пользователь спрашивает про почту. Вот контекст последних писем:\\n\\n' + context + '\\n\\nВопрос: ' + userQ + '\\n\\nОтветь кратко, по-русски, обращайся «Мой господин».' }], max_tokens: 500 }); })() }}",
+        "options": {}
+      }
+    },
+    {
+      "id": "n47",
+      "name": "Send Email Answer",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [3060, 730],
+      "parameters": {
+        "method": "POST",
+        "url": "={{ 'https://api.telegram.org/bot' + $env.TELEGRAM_BOT_TOKEN + '/sendMessage' }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "Content-Type", "value": "application/json" }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "application/json",
+        "body": "={{ JSON.stringify({ chat_id: $('Router').first().json.chatId, text: $json.choices?.[0]?.message?.content || 'Не нашёл информации по этому письму' }) }}",
+        "options": {}
+      }
+    },
+    {
       "id": "n36",
       "name": "Has File Request?",
       "type": "n8n-nodes-base.if",
@@ -1113,7 +1274,47 @@
       "main": [
         [
           {
+            "node": "Is YD Upload?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Is YD Upload?": {
+      "main": [
+        [
+          {
+            "node": "Get YD Upload URL",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
             "node": "GPT Describe",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get YD Upload URL": {
+      "main": [
+        [
+          {
+            "node": "Upload to YD",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Upload to YD": {
+      "main": [
+        [
+          {
+            "node": "Confirm YD Upload",
             "type": "main",
             "index": 0
           }
@@ -1281,7 +1482,47 @@
       "main": [
         [
           {
+            "node": "Has Email Query?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Has Email Query?": {
+      "main": [
+        [
+          {
+            "node": "Get Email Context",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
             "node": "Has File Request?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Email Context": {
+      "main": [
+        [
+          {
+            "node": "GPT Email Answer",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "GPT Email Answer": {
+      "main": [
+        [
+          {
+            "node": "Send Email Answer",
             "type": "main",
             "index": 0
           }

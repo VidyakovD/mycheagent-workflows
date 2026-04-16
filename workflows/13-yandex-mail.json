@@ -1,0 +1,193 @@
+{
+  "name": "13-yandex-mail",
+  "id": "ya-mail-001",
+  "active": true,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "nodes": [
+    {
+      "id": "m1",
+      "name": "Email Trigger",
+      "type": "n8n-nodes-base.emailReadImap",
+      "typeVersion": 2,
+      "position": [200, 300],
+      "parameters": {
+        "mailbox": "INBOX",
+        "postProcessAction": "read",
+        "options": {
+          "allowUnauthorizedCerts": true
+        }
+      },
+      "credentials": {
+        "imap": {
+          "id": "yandex-mail-imap",
+          "name": "Yandex Mail IMAP"
+        }
+      }
+    },
+    {
+      "id": "m2",
+      "name": "Parse Email",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [420, 300],
+      "parameters": {
+        "jsCode": "const email = $input.first().json;\n\nconst from = email.from?.text || email.from?.value?.[0]?.address || email.from || 'Unknown';\nconst subject = email.subject || '(без темы)';\nconst body = (email.text || email.html || '').replace(/<[^>]+>/g, ' ').replace(/\\s+/g, ' ').trim().slice(0, 2000);\nconst date = email.date || new Date().toISOString();\nconst emailId = 'em_' + Date.now();\n\n// Detect priority\nconst haystack = (subject + ' ' + body).toLowerCase();\nconst urgentWords = ['оплата', 'оплачен', 'чек', 'код', 'подтвержд', 'invoice', 'payment', 'receipt', 'verify', 'verification', 'код подтверждения', 'пароль', 'password', 'активац', 'заказ', 'order'];\nconst isUrgent = urgentWords.some(w => haystack.includes(w));\n\nreturn [{ json: { emailId, from, subject, body, date, isUrgent } }];"
+      }
+    },
+    {
+      "id": "m3",
+      "name": "GPT Summary",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [640, 300],
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.openai.com/v1/chat/completions",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "={{ 'Bearer ' + $env.OPENAI_API_KEY }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "application/json",
+        "body": "={{ JSON.stringify({ model: 'gpt-4o-mini', messages: [{ role: 'system', content: 'Ты почтовый ассистент Зевс. Дай выжимку письма на русском: от кого, о чём, нужно ли действие.\\nЕсли это оплата/чек/код/подтверждение — начни с 🔴 ВАЖНО.\\nЕсли спам/рассылка/реклама — начни с 📭 и будь максимально краток (1 строка).\\nДля обычных писем — 2-4 строки.' }, { role: 'user', content: 'От: ' + $json.from + '\\nТема: ' + $json.subject + '\\nТекст:\\n' + $json.body }], max_tokens: 300 }) }}",
+        "options": {}
+      }
+    },
+    {
+      "id": "m4",
+      "name": "Build Notification",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [860, 300],
+      "parameters": {
+        "jsCode": "const parsed = $('Parse Email').first().json;\nconst gptRes = $input.first().json;\nconst summary = gptRes.choices?.[0]?.message?.content || 'Не удалось обработать письмо';\n\nconst msg = '📧 Новое письмо:\\nОт: ' + parsed.from + '\\n\\n' + summary + '\\n\\n💬 Спроси подробнее — я помню контекст';\n\nreturn [{ json: { emailId: parsed.emailId, from: parsed.from, subject: parsed.subject, body: parsed.body, date: parsed.date, summary, message: msg } }];"
+      }
+    },
+    {
+      "id": "m5",
+      "name": "Send to Denis",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1080, 300],
+      "parameters": {
+        "method": "POST",
+        "url": "={{ 'https://api.telegram.org/bot' + $env.TELEGRAM_BOT_TOKEN + '/sendMessage' }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "application/json",
+        "body": "={{ JSON.stringify({ chat_id: 211279650, text: $json.message }) }}",
+        "options": {}
+      }
+    },
+    {
+      "id": "m6",
+      "name": "Save Context",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1300, 300],
+      "parameters": {
+        "method": "POST",
+        "url": "https://mycheagent.ru/webhook/pwa-data",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "application/json",
+        "body": "={{ JSON.stringify({ action: 'addEmailContext', emailId: $json.emailId, from: $json.from, subject: $json.subject, body: $json.body, date: $json.date, summary: $json.summary }) }}",
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          }
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Email Trigger": {
+      "main": [
+        [
+          {
+            "node": "Parse Email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Email": {
+      "main": [
+        [
+          {
+            "node": "GPT Summary",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "GPT Summary": {
+      "main": [
+        [
+          {
+            "node": "Build Notification",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Notification": {
+      "main": [
+        [
+          {
+            "node": "Send to Denis",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send to Denis": {
+      "main": [
+        [
+          {
+            "node": "Save Context",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "versionId": "d0000001-0000-0000-0000-000000000013"
+}

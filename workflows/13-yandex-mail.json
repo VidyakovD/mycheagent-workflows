@@ -15,8 +15,10 @@
       "parameters": {
         "mailbox": "INBOX",
         "postProcessAction": "read",
+        "format": "simple",
         "options": {
-          "allowUnauthorizedCerts": true
+          "allowUnauthorizedCerts": true,
+          "customEmailConfig": "{ \"fetchSize\": 50000 }"
         }
       },
       "credentials": {

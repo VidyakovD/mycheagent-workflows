@@ -1,0 +1,530 @@
+{
+  "updatedAt": "2026-04-12T18:52:04.858Z",
+  "createdAt": "2026-04-12T12:27:33.068Z",
+  "id": "avito-chat-001",
+  "name": "11-avito-chat",
+  "description": null,
+  "active": true,
+  "isArchived": false,
+  "nodes": [
+    {
+      "id": "av1",
+      "name": "Avito Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        200,
+        300
+      ],
+      "webhookId": "avito-messages-hook",
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "avito-messages",
+        "responseMode": "onReceived",
+        "options": {}
+      }
+    },
+    {
+      "id": "av2",
+      "name": "Parse Incoming",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        420,
+        300
+      ],
+      "parameters": {
+        "jsCode": "const raw = $input.first().json;\nconst body = raw.body || raw;\n\n// Avito webhook payload\nconst value = body.value || body;\n\nconst chatId = value.chat_id || value.chatId || '';\nconst authorId = String(value.author_id || value.authorId || '');\nconst msgId = value.id || '';\nconst text = value.content?.text || value.text || '';\n\n// Item ID — the ad this chat is about\nconst itemId = String(value.item_id || value.itemId || body.item_id || '');\n\nif (!chatId || !text) {\n  throw new Error('SKIP: no chatId or text');\n}\n\nreturn [{ json: { chatId, authorId, msgId, text, itemId } }];"
+      }
+    },
+    {
+      "id": "av3",
+      "name": "Get Token",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        640,
+        300
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.avito.ru/token",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/x-www-form-urlencoded"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "form-urlencoded",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "grant_type",
+              "value": "client_credentials"
+            },
+            {
+              "name": "client_id",
+              "value": "={{ $env.AVITO_CLIENT_ID }}"
+            },
+            {
+              "name": "client_secret",
+              "value": "={{ $env.AVITO_CLIENT_SECRET }}"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "av4",
+      "name": "Get Self",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        860,
+        300
+      ],
+      "parameters": {
+        "method": "GET",
+        "url": "https://api.avito.ru/core/v1/accounts/self",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "={{ 'Bearer ' + $json.access_token }}"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "av5",
+      "name": "Merge Context",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1080,
+        300
+      ],
+      "parameters": {
+        "jsCode": "const token = $('Get Token').first().json.access_token;\nconst userId = String($input.first().json.id);\nconst parsed = $('Parse Incoming').first().json;\n\n// Don't reply to our own messages\nif (parsed.authorId === userId) {\n  throw new Error('SKIP: own message');\n}\n\n// Dedup: don't reply to same message twice\nconst store = $getWorkflowStaticData('global');\nif (!store.replied) store.replied = {};\nif (store.replied[parsed.chatId] === parsed.msgId) {\n  throw new Error('SKIP: already replied');\n}\n\nreturn [{ json: { token, userId, chatId: parsed.chatId, msgId: parsed.msgId, lastText: parsed.text, itemId: parsed.itemId || '' } }];"
+      }
+    },
+    {
+      "id": "av6",
+      "name": "Get Chat History",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1300,
+        300
+      ],
+      "parameters": {
+        "method": "GET",
+        "url": "={{ 'https://api.avito.ru/messenger/v2/accounts/' + $json.userId + '/chats/' + $json.chatId + '/messages?limit=10' }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "={{ 'Bearer ' + $json.token }}"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "av6c",
+      "name": "Get Item Info",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1520,
+        300
+      ],
+      "parameters": {
+        "method": "GET",
+        "url": "={{ 'https://api.avito.ru/core/v1/items/' + $('Merge Context').first().json.itemId }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "={{ 'Bearer ' + $('Merge Context').first().json.token }}"
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          }
+        }
+      }
+    },
+    {
+      "id": "av6b",
+      "name": "Get Site Config",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1520,
+        300
+      ],
+      "parameters": {
+        "method": "GET",
+        "url": "https://mycheagent.ru/webhook/site-config",
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          }
+        }
+      }
+    },
+    {
+      "id": "av7",
+      "name": "Prepare GPT Body",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1520,
+        300
+      ],
+      "parameters": {
+        "jsCode": "const ctx = $('Merge Context').first().json;\nconst msgs = ($('Get Chat History').first().json.messages || []).slice().reverse();\n\nconst conversation = msgs\n  .filter(m => m.content?.text)\n  .map(m => ({\n    role: String(m.author_id) === String(ctx.userId) ? 'assistant' : 'user',\n    content: m.content.text\n  }));\n\n// Ensure last message is from user\nif (!conversation.length || conversation[conversation.length-1].role !== 'user') {\n  conversation.push({ role: 'user', content: ctx.lastText });\n}\n\n// Item info (which ad they wrote from)\nconst itemData = $('Get Item Info').first().json;\nconst itemTitle = itemData.title || itemData.name || '';\nconst itemCategory = itemData.category?.name || '';\nconst itemLine = itemTitle ? `\\n\\nОБЪЯВЛЕНИЕ: Человек написал по объявлению «${itemTitle}»${itemCategory ? ' (категория: ' + itemCategory + ')' : ''}. Отвечай с учётом этого контекста.` : '';\n\n// Get shared config from site-chat workflow\nconst siteConf = $input.first().json;\nconst basePrompt = siteConf.basePrompt || 'Ты — ассистент платформы Студия ЧЕ по видеомонтажу и ИИ.';\nconst courses = siteConf.courses || [];\n\nconst coursesList = courses.map((c,i) => `${i+1}. \"${c.name}\" — ${c.price}${c.level ? ' ('+c.level+')' : ''}`).join('\\n');\n\nconst systemPrompt = basePrompt + '\\n\\nКУРСЫ НА ПЛАТФОРМЕ:\\n' + coursesList + itemLine + `\n\nДОПОЛНИТЕЛЬНЫЕ ПРАВИЛА ДЛЯ АВИТО:\n- Отвечай кратко (2-3 предложения), как живой эксперт, не как продавец\n- НЕ навязывай курсы и не зови на сайт без явного запроса\n- Если человек спрашивает про тему — помогай по существу\n- Добавь SEND_SITE_LINK в самый конец ответа ТОЛЬКО если человек явно выразил желание учиться/купить/записаться. Триггеры: хочу записаться, хочу попробовать, хочу поучиться, хочу начать, хочу купить, хочу курс, интересует курс, как записаться, как купить, как оплатить, где ссылка, сколько стоит, готов учиться, давайте начнём, давайте попробуем, запишите меня, расскажи подробнее о курсе, что входит в курс, как проходит обучение, есть ли рассрочка, когда старт, можно ли купить, беру, покупаю, оформляю\n- Не выдумывай цены и курсы которых нет в списке`;\n\nconst body = JSON.stringify({\n  model: 'gpt-4o-mini',\n  messages: [{ role: 'system', content: systemPrompt }, ...conversation],\n  max_tokens: 200\n});\n\nreturn [{ json: { gptBody: body, token: ctx.token, userId: ctx.userId, chatId: ctx.chatId, msgId: ctx.msgId } }];"
+      }
+    },
+    {
+      "id": "av8",
+      "name": "GPT Reply",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1740,
+        300
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.openai.com/v1/chat/completions",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "={{ 'Bearer ' + $env.OPENAI_API_KEY }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "application/json",
+        "body": "={{ $json.gptBody }}"
+      }
+    },
+    {
+      "id": "av9",
+      "name": "Extract Reply",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1960,
+        300
+      ],
+      "parameters": {
+        "jsCode": "const gptRes = $input.first().json;\nconst prev = $('Prepare GPT Body').first().json;\nlet reply = gptRes.choices?.[0]?.message?.content?.trim() || 'Добрый день! Чем могу помочь? 😊';\n\nconst sendLink = reply.includes('SEND_SITE_LINK');\nreply = reply.replace('SEND_SITE_LINK', '').trim();\n\nreturn [{ json: { reply, sendLink, token: prev.token, userId: prev.userId, chatId: prev.chatId, msgId: prev.msgId } }];"
+      }
+    },
+    {
+      "id": "av10",
+      "name": "Send Avito Reply",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2180,
+        300
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "={{ 'https://api.avito.ru/messenger/v2/accounts/' + $json.userId + '/chats/' + $json.chatId + '/messages' }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "={{ 'Bearer ' + $json.token }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "application/json",
+        "body": "={{ JSON.stringify({ message: { text: $json.reply }, type: 'text' }) }}"
+      }
+    },
+    {
+      "id": "av11",
+      "name": "Should Send Link?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        2400,
+        300
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "c1",
+              "leftValue": "={{ $('Extract Reply').item.json.sendLink }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "av12",
+      "name": "Send Site Link",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2620,
+        160
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "={{ 'https://api.avito.ru/messenger/v2/accounts/' + $('Extract Reply').item.json.userId + '/chats/' + $('Extract Reply').item.json.chatId + '/messages' }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "={{ 'Bearer ' + $('Extract Reply').item.json.token }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "application/json",
+        "body": "={{ JSON.stringify({ message: { text: '🎓 Записаться и посмотреть все программы: studiyache.ru\\n\\nДоступ навсегда после оплаты, без подписок 💪' }, type: 'text' }) }}"
+      }
+    },
+    {
+      "id": "av13",
+      "name": "Mark Replied",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2840,
+        300
+      ],
+      "parameters": {
+        "jsCode": "const ctx = $('Extract Reply').first().json;\nconst store = $getWorkflowStaticData('global');\nif (!store.replied) store.replied = {};\nstore.replied[ctx.chatId] = ctx.msgId;\nconst keys = Object.keys(store.replied);\nif (keys.length > 500) {\n  keys.slice(0, keys.length - 500).forEach(k => delete store.replied[k]);\n}\nreturn [{ json: { ok: true } }];"
+      }
+    }
+  ],
+  "connections": {
+    "Avito Webhook": {
+      "main": [
+        [
+          {
+            "node": "Parse Incoming",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Incoming": {
+      "main": [
+        [
+          {
+            "node": "Get Token",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Token": {
+      "main": [
+        [
+          {
+            "node": "Get Self",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Self": {
+      "main": [
+        [
+          {
+            "node": "Merge Context",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge Context": {
+      "main": [
+        [
+          {
+            "node": "Get Chat History",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Chat History": {
+      "main": [
+        [
+          {
+            "node": "Get Item Info",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Item Info": {
+      "main": [
+        [
+          {
+            "node": "Get Site Config",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Site Config": {
+      "main": [
+        [
+          {
+            "node": "Prepare GPT Body",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare GPT Body": {
+      "main": [
+        [
+          {
+            "node": "GPT Reply",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "GPT Reply": {
+      "main": [
+        [
+          {
+            "node": "Extract Reply",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract Reply": {
+      "main": [
+        [
+          {
+            "node": "Send Avito Reply",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Avito Reply": {
+      "main": [
+        [
+          {
+            "node": "Should Send Link?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Should Send Link?": {
+      "main": [
+        [
+          {
+            "node": "Send Site Link",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Mark Replied",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Site Link": {
+      "main": [
+        [
+          {
+            "node": "Mark Replied",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Mark Replied": {
+      "main": [
+        []
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "callerPolicy": "workflowsFromSameOwner",
+    "availableInMCP": false
+  },
+  "versionId": "ed0ef2d8-aa52-44b2-bd3b-edbe9eb45445"
+}

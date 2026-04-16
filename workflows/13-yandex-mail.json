@@ -18,7 +18,7 @@
         "format": "simple",
         "options": {
           "allowUnauthorizedCerts": true,
-          "customEmailConfig": "{ \"fetchSize\": 50000 }"
+          "forceReconnectAfterMinutes": 5
         }
       },
       "credentials": {
@@ -35,7 +35,7 @@
       "typeVersion": 2,
       "position": [420, 300],
       "parameters": {
-        "jsCode": "const email = $input.first().json;\n\nconst from = email.from?.text || email.from?.value?.[0]?.address || email.from || 'Unknown';\nconst subject = email.subject || '(без темы)';\nconst body = (email.text || email.html || '').replace(/<[^>]+>/g, ' ').replace(/\\s+/g, ' ').trim().slice(0, 2000);\nconst date = email.date || new Date().toISOString();\nconst emailId = 'em_' + Date.now();\n\n// Detect priority\nconst haystack = (subject + ' ' + body).toLowerCase();\nconst urgentWords = ['оплата', 'оплачен', 'чек', 'код', 'подтвержд', 'invoice', 'payment', 'receipt', 'verify', 'verification', 'код подтверждения', 'пароль', 'password', 'активац', 'заказ', 'order'];\nconst isUrgent = urgentWords.some(w => haystack.includes(w));\n\nreturn [{ json: { emailId, from, subject, body, date, isUrgent } }];"
+        "jsCode": "const email = $input.first().json;\n\nconst from = email.from?.text || email.from?.value?.[0]?.address || email.from || 'Unknown';\nconst subject = email.subject || '(без темы)';\nconst body = (email.text || email.textAsHtml || email.html || '').replace(/<[^>]+>/g, ' ').replace(/\\s+/g, ' ').trim().slice(0, 2000);\nconst date = email.date || new Date().toISOString();\nconst emailId = 'em_' + Date.now();\n\nconst haystack = (subject + ' ' + body).toLowerCase();\nconst urgentWords = ['оплата', 'оплачен', 'чек', 'код', 'подтвержд', 'invoice', 'payment', 'receipt', 'verify', 'код подтверждения', 'пароль', 'password', 'заказ', 'order'];\nconst isUrgent = urgentWords.some(w => haystack.includes(w));\n\nreturn [{ json: { emailId, from, subject, body, date, isUrgent } }];"
       }
     },
     {
@@ -50,14 +50,8 @@
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
-            {
-              "name": "Authorization",
-              "value": "={{ 'Bearer ' + $env.OPENAI_API_KEY }}"
-            },
-            {
-              "name": "Content-Type",
-              "value": "application/json"
-            }
+            { "name": "Authorization", "value": "={{ 'Bearer ' + $env.OPENAI_API_KEY }}" },
+            { "name": "Content-Type", "value": "application/json" }
           ]
         },
         "sendBody": true,
@@ -74,7 +68,7 @@
       "typeVersion": 2,
       "position": [860, 300],
       "parameters": {
-        "jsCode": "const parsed = $('Parse Email').first().json;\nconst gptRes = $input.first().json;\nconst summary = gptRes.choices?.[0]?.message?.content || 'Не удалось обработать письмо';\n\nconst msg = '📧 Новое письмо:\\nОт: ' + parsed.from + '\\n\\n' + summary + '\\n\\n💬 Спроси подробнее — я помню контекст';\n\nreturn [{ json: { emailId: parsed.emailId, from: parsed.from, subject: parsed.subject, body: parsed.body, date: parsed.date, summary, message: msg } }];"
+        "jsCode": "const parsed = $('Parse Email').first().json;\nconst gptRes = $input.first().json;\nconst summary = gptRes.choices?.[0]?.message?.content || 'Не удалось обработать письмо';\nconst msg = '📧 Новое письмо:\\nОт: ' + parsed.from + '\\n\\n' + summary + '\\n\\n💬 Спроси подробнее — я помню контекст';\nreturn [{ json: { emailId: parsed.emailId, from: parsed.from, subject: parsed.subject, body: parsed.body, date: parsed.date, summary, message: msg } }];"
       }
     },
     {
@@ -89,10 +83,7 @@
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
-            {
-              "name": "Content-Type",
-              "value": "application/json"
-            }
+            { "name": "Content-Type", "value": "application/json" }
           ]
         },
         "sendBody": true,
@@ -114,81 +105,32 @@
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
-            {
-              "name": "Content-Type",
-              "value": "application/json"
-            }
+            { "name": "Content-Type", "value": "application/json" }
           ]
         },
         "sendBody": true,
         "contentType": "raw",
         "rawContentType": "application/json",
         "body": "={{ JSON.stringify({ action: 'addEmailContext', emailId: $json.emailId, from: $json.from, subject: $json.subject, body: $json.body, date: $json.date, summary: $json.summary }) }}",
-        "options": {
-          "response": {
-            "response": {
-              "neverError": true
-            }
-          }
-        }
+        "options": { "response": { "response": { "neverError": true } } }
       }
     }
   ],
   "connections": {
     "Email Trigger": {
-      "main": [
-        [
-          {
-            "node": "Parse Email",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
+      "main": [[{ "node": "Parse Email", "type": "main", "index": 0 }]]
     },
     "Parse Email": {
-      "main": [
-        [
-          {
-            "node": "GPT Summary",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
+      "main": [[{ "node": "GPT Summary", "type": "main", "index": 0 }]]
     },
     "GPT Summary": {
-      "main": [
-        [
-          {
-            "node": "Build Notification",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
+      "main": [[{ "node": "Build Notification", "type": "main", "index": 0 }]]
     },
     "Build Notification": {
-      "main": [
-        [
-          {
-            "node": "Send to Denis",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
+      "main": [[{ "node": "Send to Denis", "type": "main", "index": 0 }]]
     },
     "Send to Denis": {
-      "main": [
-        [
-          {
-            "node": "Save Context",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
+      "main": [[{ "node": "Save Context", "type": "main", "index": 0 }]]
     }
   },
   "versionId": "d0000001-0000-0000-0000-000000000013"

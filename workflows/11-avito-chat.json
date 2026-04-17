@@ -51,7 +51,7 @@
               "id": "cparse",
               "leftValue": "={{ $json.skip }}",
               "rightValue": true,
-              "operator": { "type": "boolean", "operation": "notEqual" }
+              "operator": { "type": "boolean", "operation": "false" }
             }
           ],
           "combinator": "and"
@@ -73,7 +73,7 @@
               "id": "creply",
               "leftValue": "={{ $json.skip }}",
               "rightValue": true,
-              "operator": { "type": "boolean", "operation": "notEqual" }
+              "operator": { "type": "boolean", "operation": "false" }
             }
           ],
           "combinator": "and"

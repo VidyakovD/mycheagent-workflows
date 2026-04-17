@@ -27,6 +27,20 @@
       }
     },
     {
+      "id": "an1b",
+      "name": "Manual Trigger",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [200, 440],
+      "webhookId": "trigger-news",
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "trigger-news",
+        "responseMode": "onReceived",
+        "options": {}
+      }
+    },
+    {
       "id": "an2",
       "name": "Fetch RSS Feeds",
       "type": "n8n-nodes-base.code",
@@ -103,6 +117,17 @@
   ],
   "connections": {
     "Every Morning": {
+      "main": [
+        [
+          {
+            "node": "Fetch RSS Feeds",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Manual Trigger": {
       "main": [
         [
           {

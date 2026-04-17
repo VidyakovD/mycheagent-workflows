@@ -349,7 +349,7 @@
         540
       ],
       "parameters": {
-        "jsCode": "const d = $input.first().json;\nconst store = $getWorkflowStaticData('global');\nconst session = store.sessions?.[String(d.chatId)] || {};\nconst section = session.section || 'chat';\nconst prompts = {\n  chat:'Ты умный персональный ассистент по имени Зевс. Пользователя зовут Денис, обращайся к нему «Мой господин». Отвечай кратко, по-русски, дружелюбно. Без лишних вводных слов.\\n\\nФАЙЛЫ: Если пользователь просит найти, скинуть, отправить файл или документ — вставь в ответ тег [FILE_SEARCH: запрос]. Например: «скинь КП» → [FILE_SEARCH: КП].\\nПОЧТА: Если пользователь спрашивает про письмо, почту, email — вставь тег [EMAIL_CONTEXT: запрос]. Например: «что за письмо пришло?» → [EMAIL_CONTEXT: последнее]. «письмо от банка» → [EMAIL_CONTEXT: банк].',\n  tasks:'Ты ассистент Зевс по задачам. Пользователя зовут Денис, «Мой господин». Помогай с задачами и приоритетами. Кратко, по-русски.',\n  notes:'Ты ассистент Зевс по заметкам. Пользователя зовут Денис, «Мой господин». Структурируй идеи и мысли. Кратко, по-русски.',\n  sport:'Ты фитнес-ассистент Зевс. Пользователя зовут Денис, «Мой господин». Тренировки, калории, питание. Кратко, по-русски.',\n  work:'Ты бизнес-ассистент Зевс. Пользователя зовут Денис, «Мой господин». Рабочие задачи и проекты. Кратко, по-русски.\\n\\nФАЙЛЫ: Если пользователь просит найти, скинуть файл — вставь тег [FILE_SEARCH: запрос] в конце ответа.',\n  ideas:'Ты творческий ассистент Зевс. Пользователя зовут Денис, «Мой господин». Принимай идеи, структурируй. Кратко, по-русски.',\n  producer:'Ты ИИ-агент «Продюсер». Помогаешь Денису (обращайся «Мой господин») с продюсированием контента: стратегия, монетизация, аудитория, планирование. Конкретные советы, по-русски.',\n  writer:'Ты ИИ-агент «Сценарист». Помогаешь Денису (обращайся «Мой господин») писать сценарии, скрипты, тексты для видео. Структура: крючок — суть — CTA. По-русски.',\n  editor:'Ты ИИ-агент «Монтажёр». Помогаешь Денису (обращайся «Мой господин») с монтажом и постпродакшном: тайминг, переходы, цвет, структура ролика. По-русски.',\n  sales:'Ты ИИ-агент «Продажник». Помогаешь Денису (обращайся «Мой господин») с продажами: скрипты, офферы, работа с возражениями, воронки. По-русски.'\n};\nreturn [{ json: { chatId: d.chatId, userText: d.text, isVoice: false, systemPrompt: prompts[section] || prompts.chat } }];"
+        "jsCode": "const d = $input.first().json;\nconst store = $getWorkflowStaticData('global');\nconst session = store.sessions?.[String(d.chatId)] || {};\nconst section = session.section || 'chat';\nconst prompts = {\n  chat:'Ты умный персональный ассистент по имени Зевс. Пользователя зовут Денис, обращайся к нему «Мой господин». Отвечай кратко, по-русски, дружелюбно. Без лишних вводных слов.\\n\\nФАЙЛЫ: Если пользователь просит найти, скинуть, отправить файл — вставь тег [FILE_SEARCH: запрос]. Например: «скинь КП» → [FILE_SEARCH: КП].\\nБАЗА ЗНАНИЙ: Если пользователь спрашивает О СОДЕРЖИМОМ файлов (что в договоре, какая сумма у Иванова, какие условия в КП, перечисли файлы где...) — вставь тег [KB_SEARCH: запрос] вместо поиска файла. Например: «что в договоре?» → [KB_SEARCH: договор]. «какая сумма у Иванова» → [KB_SEARCH: Иванов сумма]. В отличие от FILE_SEARCH (отправляет файл) — KB_SEARCH даёт информацию ИЗ файла.\\nПОЧТА: Если пользователь спрашивает про письмо, почту, email — вставь тег [EMAIL_CONTEXT: запрос]. Например: «что за письмо пришло?» → [EMAIL_CONTEXT: последнее].',\n  tasks:'Ты ассистент Зевс по задачам. Пользователя зовут Денис, «Мой господин». Помогай с задачами и приоритетами. Кратко, по-русски.',\n  notes:'Ты ассистент Зевс по заметкам. Пользователя зовут Денис, «Мой господин». Структурируй идеи и мысли. Кратко, по-русски.',\n  sport:'Ты фитнес-ассистент Зевс. Пользователя зовут Денис, «Мой господин». Тренировки, калории, питание. Кратко, по-русски.',\n  work:'Ты бизнес-ассистент Зевс. Пользователя зовут Денис, «Мой господин». Рабочие задачи и проекты. Кратко, по-русски.\\n\\nФАЙЛЫ: Если пользователь просит найти, скинуть файл — вставь тег [FILE_SEARCH: запрос] в конце ответа.',\n  ideas:'Ты творческий ассистент Зевс. Пользователя зовут Денис, «Мой господин». Принимай идеи, структурируй. Кратко, по-русски.',\n  producer:'Ты ИИ-агент «Продюсер». Помогаешь Денису (обращайся «Мой господин») с продюсированием контента: стратегия, монетизация, аудитория, планирование. Конкретные советы, по-русски.',\n  writer:'Ты ИИ-агент «Сценарист». Помогаешь Денису (обращайся «Мой господин») писать сценарии, скрипты, тексты для видео. Структура: крючок — суть — CTA. По-русски.',\n  editor:'Ты ИИ-агент «Монтажёр». Помогаешь Денису (обращайся «Мой господин») с монтажом и постпродакшном: тайминг, переходы, цвет, структура ролика. По-русски.',\n  sales:'Ты ИИ-агент «Продажник». Помогаешь Денису (обращайся «Мой господин») с продажами: скрипты, офферы, работа с возражениями, воронки. По-русски.'\n};\nreturn [{ json: { chatId: d.chatId, userText: d.text, isVoice: false, systemPrompt: prompts[section] || prompts.chat } }];"
       }
     },
     {
@@ -822,34 +822,115 @@
       }
     },
     {
+      "id": "n33r",
+      "name": "Route File Type",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.2,
+      "position": [1620, 700],
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": { "caseSensitive": false, "leftValue": "", "typeValidation": "loose" },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $('Prep File Path').first().json.fileMime }}",
+                    "rightValue": "wordprocessing",
+                    "operator": { "type": "string", "operation": "contains" }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "outputKey": "docx"
+            },
+            {
+              "conditions": {
+                "options": { "caseSensitive": false, "leftValue": "", "typeValidation": "loose" },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $('Prep File Path').first().json.fileMime }}",
+                    "rightValue": "pdf",
+                    "operator": { "type": "string", "operation": "contains" }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "outputKey": "pdf"
+            }
+          ]
+        },
+        "options": {
+          "fallbackOutput": "extra"
+        }
+      }
+    },
+    {
+      "id": "n33d",
+      "name": "Extract DOCX",
+      "type": "n8n-nodes-base.extractFromFile",
+      "typeVersion": 1,
+      "position": [1740, 600],
+      "parameters": {
+        "operation": "docx",
+        "binaryPropertyName": "fileData",
+        "options": {}
+      },
+      "continueOnFail": true
+    },
+    {
+      "id": "n33p",
+      "name": "Extract PDF",
+      "type": "n8n-nodes-base.extractFromFile",
+      "typeVersion": 1,
+      "position": [1740, 700],
+      "parameters": {
+        "operation": "pdf",
+        "binaryPropertyName": "fileData",
+        "options": {}
+      },
+      "continueOnFail": true
+    },
+    {
+      "id": "n33n",
+      "name": "No Extract",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [1740, 800],
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "nx1",
+              "name": "text",
+              "value": "",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      }
+    },
+    {
       "id": "n33",
-      "name": "GPT Describe",
+      "name": "GPT Analyze",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [
-        1740,
-        700
-      ],
+      "position": [1960, 700],
       "parameters": {
         "method": "POST",
         "url": "https://api.openai.com/v1/chat/completions",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
-            {
-              "name": "Authorization",
-              "value": "={{ 'Bearer ' + $env.OPENAI_API_KEY }}"
-            },
-            {
-              "name": "Content-Type",
-              "value": "application/json"
-            }
+            { "name": "Authorization", "value": "={{ 'Bearer ' + $env.OPENAI_API_KEY }}" },
+            { "name": "Content-Type", "value": "application/json" }
           ]
         },
         "sendBody": true,
         "contentType": "raw",
         "rawContentType": "application/json",
-        "body": "={{ JSON.stringify({ model: 'gpt-4o-mini', messages: [{ role: 'system', content: 'Опиши файл одним предложением на русском (что это, для чего). Также выдели 3-5 ключевых тегов через запятую. Формат ответа строго:\\nОПИСАНИЕ: ...\\nТЕГИ: тег1, тег2, тег3' }, { role: 'user', content: 'Файл: ' + $json.fileName + '\\nТип: ' + $json.fileMime + '\\nРазмер: ' + Math.round(($json.fileSize||0)/1024) + ' КБ' + ($json.caption ? '\\nПодпись: ' + $json.caption : '') }], max_tokens: 150 }) }}",
+        "body": "={{ (function() { const saved = $('Prep File Path').first().json; const extracted = ($json.text || '').slice(0, 8000); const userMsg = 'Файл: ' + saved.fileName + '\\nТип: ' + saved.fileMime + '\\nРазмер: ' + Math.round((saved.fileSize||0)/1024) + ' КБ' + (saved.caption ? '\\nПодпись пользователя: ' + saved.caption : '') + (extracted ? '\\n\\nСОДЕРЖИМОЕ ФАЙЛА:\\n' + extracted : ''); return JSON.stringify({ model: 'gpt-4o-mini', messages: [{ role: 'system', content: 'Ты ассистент Зевс. Анализируешь файл пользователя для базы знаний. Верни СТРОГО в формате (каждое поле с новой строки):\\nОПИСАНИЕ: одним предложением что это и для чего\\nТЕГИ: 3-5 тегов через запятую\\nSUMMARY: 2-4 предложения о содержимом. Если есть суммы/даты/имена/условия — назови их. Если файла нет содержимого — напиши \"Содержимое не извлечено\".\\nFACTS: 5-15 ключевых фактов через «; » (пример: сумма договора 85000 ₽; дата подписания 17.04.2026; исполнитель Иванов; срок сдачи 30.05.2026). Если фактов нет — напиши «нет».' }, { role: 'user', content: userMsg }], max_tokens: 700 }); })() }}",
         "options": {}
       }
     },
@@ -877,7 +958,7 @@
         "sendBody": true,
         "contentType": "raw",
         "rawContentType": "application/json",
-        "body": "={{ (function() { const saved = $('Prep File Path').first().json; const gptRaw = $json.choices?.[0]?.message?.content || ''; const descMatch = gptRaw.match(/ОПИСАНИЕ:\\s*(.+)/i); const tagsMatch = gptRaw.match(/ТЕГИ:\\s*(.+)/i); const description = descMatch ? descMatch[1].trim() : saved.fileName; const tags = tagsMatch ? tagsMatch[1].split(',').map(t=>t.trim()) : []; return JSON.stringify({ action: 'addFile', id: saved.fileId, chatId: saved.chatId, name: saved.fileName, type: saved.fileType, mime: saved.fileMime, size: saved.fileSize, path: saved.filePath, description: description, tags: tags }); })() }}",
+        "body": "={{ (function() { const saved = $('Prep File Path').first().json; const gptRaw = $json.choices?.[0]?.message?.content || ''; const mm = (p) => { const m = gptRaw.match(new RegExp(p + ':\\\\s*(.+?)(?=\\\\n[A-ZА-Я_]+:|$)', 'si')); return m ? m[1].trim() : ''; }; const description = mm('ОПИСАНИЕ') || saved.fileName; const tagsRaw = mm('ТЕГИ'); const tags = tagsRaw ? tagsRaw.split(',').map(t=>t.trim()).filter(t=>t) : []; const summary = mm('SUMMARY'); const factsRaw = mm('FACTS'); const facts = factsRaw && factsRaw.toLowerCase() !== 'нет' ? factsRaw.split(/;\\s+/).map(f=>f.trim()).filter(f=>f) : []; return JSON.stringify({ action: 'addFile', id: saved.fileId, chatId: saved.chatId, name: saved.fileName, type: saved.fileType, mime: saved.fileMime, size: saved.fileSize, path: saved.filePath, description: description, tags: tags, summary: summary, facts: facts }); })() }}",
         "options": {}
       }
     },
@@ -905,7 +986,7 @@
         "sendBody": true,
         "contentType": "raw",
         "rawContentType": "application/json",
-        "body": "={{ (function() { const saved = $('Prep File Path').first().json; const gptRaw = $('GPT Describe').first().json.choices?.[0]?.message?.content || ''; const descMatch = gptRaw.match(/ОПИСАНИЕ:\\s*(.+)/i); const desc = descMatch ? descMatch[1].trim() : 'файл сохранён'; return JSON.stringify({ chat_id: saved.chatId, text: '✅ Сохранил: ' + saved.fileName + '\\n📝 ' + desc + '\\n\\nСпроси «скинь ' + saved.fileName.split('.')[0] + '» чтобы получить обратно.' }); })() }}",
+        "body": "={{ (function() { const saved = $('Prep File Path').first().json; const gptRaw = $('GPT Analyze').first().json.choices?.[0]?.message?.content || ''; const mm = (p) => { const m = gptRaw.match(new RegExp(p + ':\\\\s*(.+?)(?=\\\\n[A-ZА-Я_]+:|$)', 'si')); return m ? m[1].trim() : ''; }; const desc = mm('ОПИСАНИЕ') || 'файл сохранён'; const summary = mm('SUMMARY'); const factsRaw = mm('FACTS'); const facts = factsRaw && factsRaw.toLowerCase() !== 'нет' ? factsRaw.split(/;\\s+/).filter(f=>f.trim()) : []; let msg = '✅ Сохранил: ' + saved.fileName + '\\n📝 ' + desc; if (summary && summary !== 'Содержимое не извлечено') { msg += '\\n\\n📚 ' + summary; if (facts.length) msg += '\\n\\n🔑 Фактов в базе: ' + facts.length; } msg += '\\n\\nСпроси в любой момент — я помню содержимое.'; return JSON.stringify({ chat_id: saved.chatId, text: msg }); })() }}",
         "options": {}
       }
     },
@@ -1096,6 +1177,91 @@
         "contentType": "raw",
         "rawContentType": "application/json",
         "body": "={{ JSON.stringify({ chat_id: $('Router').first().json.chatId, text: $json.choices?.[0]?.message?.content || 'Не нашёл информации по этому письму' }) }}",
+        "options": {}
+      }
+    },
+    {
+      "id": "n48",
+      "name": "Has KB Query?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [2400, 500],
+      "parameters": {
+        "conditions": {
+          "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "strict" },
+          "conditions": [
+            {
+              "id": "ckb1",
+              "leftValue": "={{ $json.text }}",
+              "rightValue": "[KB_SEARCH:",
+              "operator": { "type": "string", "operation": "contains" }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "n49",
+      "name": "Get KB Context",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [2620, 430],
+      "parameters": {
+        "method": "POST",
+        "url": "https://mycheagent.ru/webhook/pwa-data",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [{ "name": "Content-Type", "value": "application/json" }]
+        },
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "application/json",
+        "body": "={{ (function() { const text = $('Build Reply').first().json.text; const m = text.match(/\\[KB_SEARCH:\\s*(.+?)\\]/); const query = m ? m[1].trim() : ''; return JSON.stringify({ action: 'searchKnowledge', query: query, chatId: $('Build Reply').first().json.chatId }); })() }}",
+        "options": {}
+      }
+    },
+    {
+      "id": "n50",
+      "name": "GPT KB Answer",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [2840, 430],
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.ANTHROPIC_BASE_URL + '/v1/chat/completions' }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "Authorization", "value": "={{ 'Bearer ' + $env.ANTHROPIC_API_KEY }}" },
+            { "name": "Content-Type", "value": "application/json" }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "application/json",
+        "body": "={{ (function() { const results = $json.results || []; const userQ = $('Router').first().json.text; if (!results.length) { return JSON.stringify({ model: 'claude-haiku-4.5', messages: [{ role: 'user', content: 'Скажи Денису («Мой господин»), что в его базе знаний ничего не нашлось по запросу: ' + userQ + '. Одно предложение.' }], max_tokens: 150 }); } const context = results.map(r => 'ФАЙЛ: ' + r.name + '\\nОписание: ' + (r.description||'') + '\\nСодержимое: ' + (r.summary||'') + '\\nФакты: ' + (r.facts||[]).join('; ')).join('\\n\\n---\\n\\n'); return JSON.stringify({ model: 'claude-haiku-4.5', messages: [{ role: 'user', content: 'Ты ассистент Зевс. Пользователь («Мой господин») спрашивает про свои файлы.\\n\\nБАЗА ЗНАНИЙ (найдено ' + results.length + ' файлов):\\n\\n' + context + '\\n\\nВОПРОС: ' + userQ + '\\n\\nОтветь по существу на основе базы знаний. Если нужной инфы в фактах нет — скажи что файл есть, но в нём этой информации не найдено. Кратко, по-русски.' }], max_tokens: 600 }); })() }}",
+        "options": {}
+      }
+    },
+    {
+      "id": "n51",
+      "name": "Send KB Answer",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [3060, 430],
+      "parameters": {
+        "method": "POST",
+        "url": "={{ 'https://api.telegram.org/bot' + $env.TELEGRAM_BOT_TOKEN + '/sendMessage' }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [{ "name": "Content-Type", "value": "application/json" }]
+        },
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "application/json",
+        "body": "={{ JSON.stringify({ chat_id: $('Router').first().json.chatId, text: $json.choices?.[0]?.message?.content || 'Не удалось ответить' }) }}",
         "options": {}
       }
     },
@@ -1431,10 +1597,51 @@
         ],
         [
           {
-            "node": "GPT Describe",
+            "node": "Route File Type",
             "type": "main",
             "index": 0
           }
+        ]
+      ]
+    },
+    "Route File Type": {
+      "main": [
+        [
+          { "node": "Extract DOCX", "type": "main", "index": 0 }
+        ],
+        [
+          { "node": "Extract PDF", "type": "main", "index": 0 }
+        ],
+        [
+          { "node": "No Extract", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "Extract DOCX": {
+      "main": [
+        [
+          { "node": "GPT Analyze", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "Extract PDF": {
+      "main": [
+        [
+          { "node": "GPT Analyze", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "No Extract": {
+      "main": [
+        [
+          { "node": "GPT Analyze", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "GPT Analyze": {
+      "main": [
+        [
+          { "node": "Save File Index", "type": "main", "index": 0 }
         ]
       ]
     },
@@ -1468,17 +1675,6 @@
         [
           {
             "node": "Confirm YD Upload",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "GPT Describe": {
-      "main": [
-        [
-          {
-            "node": "Save File Index",
             "type": "main",
             "index": 0
           }
@@ -1677,10 +1873,34 @@
         ],
         [
           {
-            "node": "Has File Request?",
+            "node": "Has KB Query?",
             "type": "main",
             "index": 0
           }
+        ]
+      ]
+    },
+    "Has KB Query?": {
+      "main": [
+        [
+          { "node": "Get KB Context", "type": "main", "index": 0 }
+        ],
+        [
+          { "node": "Has File Request?", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "Get KB Context": {
+      "main": [
+        [
+          { "node": "GPT KB Answer", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "GPT KB Answer": {
+      "main": [
+        [
+          { "node": "Send KB Answer", "type": "main", "index": 0 }
         ]
       ]
     },

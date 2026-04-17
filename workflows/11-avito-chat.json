@@ -169,7 +169,7 @@
       ],
       "parameters": {
         "method": "GET",
-        "url": "={{ 'https://api.avito.ru/messenger/v2/accounts/' + $json.userId + '/chats/' + $json.chatId + '/messages?limit=10' }}",
+        "url": "={{ 'https://api.avito.ru/messenger/v3/accounts/' + $json.userId + '/chats/' + $json.chatId + '/messages/?limit=10' }}",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
@@ -300,7 +300,7 @@
       ],
       "parameters": {
         "method": "POST",
-        "url": "={{ 'https://api.avito.ru/messenger/v2/accounts/' + $json.userId + '/chats/' + $json.chatId + '/messages' }}",
+        "url": "={{ 'https://api.avito.ru/messenger/v1/accounts/' + $json.userId + '/chats/' + $json.chatId + '/messages' }}",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
@@ -363,7 +363,7 @@
       ],
       "parameters": {
         "method": "POST",
-        "url": "={{ 'https://api.avito.ru/messenger/v2/accounts/' + $('Extract Reply').item.json.userId + '/chats/' + $('Extract Reply').item.json.chatId + '/messages' }}",
+        "url": "={{ 'https://api.avito.ru/messenger/v1/accounts/' + $('Extract Reply').item.json.userId + '/chats/' + $('Extract Reply').item.json.chatId + '/messages' }}",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [

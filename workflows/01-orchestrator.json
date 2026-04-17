@@ -797,16 +797,28 @@
       }
     },
     {
-      "id": "n32",
-      "name": "Save to Server",
+      "id": "n32a",
+      "name": "Prep File Path",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [
-        1520,
-        700
-      ],
+      "position": [1410, 700],
       "parameters": {
-        "jsCode": "const fs = require('fs');\nconst path = require('path');\nconst ctx = $('Is File?').first().json;\nconst chatId = String(ctx.chatId);\nconst ts = Date.now();\nconst safeName = (ctx.fileName || 'file').replace(/[^a-zA-Z0-9а-яА-ЯёЁ._-]/g, '_');\nconst dir = '/files/' + chatId;\n\n// Create directory if not exists\nif (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });\n\nconst filePath = dir + '/' + ts + '_' + safeName;\n\n// Get binary data and write\nconst binaryData = $input.first().binary.fileData;\nconst buffer = Buffer.from(binaryData.data, 'base64');\nfs.writeFileSync(filePath, buffer);\n\nreturn [{ json: {\n  chatId: ctx.chatId,\n  fileId: 'f_' + ts,\n  fileName: ctx.fileName,\n  fileType: ctx.fileType || 'document',\n  fileMime: ctx.fileMime || '',\n  fileSize: ctx.fileSize || buffer.length,\n  filePath: filePath,\n  caption: ctx.text || '',\n  ts: new Date().toISOString()\n}}];"
+        "jsCode": "const ctx = $('Is File?').first().json;\nconst chatId = String(ctx.chatId);\nconst ts = Date.now();\nconst safeName = (ctx.fileName || 'file').replace(/[^a-zA-Z0-9а-яА-ЯёЁ._-]/g, '_');\n// Flat structure: chatId prefix in filename (no subdirs)\nconst filePath = '/files/' + chatId + '_' + ts + '_' + safeName;\n\nreturn [{\n  json: {\n    chatId: ctx.chatId,\n    fileId: 'f_' + ts,\n    fileName: ctx.fileName,\n    fileType: ctx.fileType || 'document',\n    fileMime: ctx.fileMime || '',\n    fileSize: ctx.fileSize || 0,\n    filePath: filePath,\n    caption: ctx.text || '',\n    ts: new Date().toISOString()\n  },\n  binary: $input.first().binary\n}];"
+      }
+    },
+    {
+      "id": "n32",
+      "name": "Save to Server",
+      "type": "n8n-nodes-base.readWriteFile",
+      "typeVersion": 1,
+      "position": [1520, 700],
+      "parameters": {
+        "operation": "write",
+        "fileName": "={{ $json.filePath }}",
+        "dataPropertyName": "fileData",
+        "options": {
+          "append": false
+        }
       }
     },
     {
@@ -865,7 +877,7 @@
         "sendBody": true,
         "contentType": "raw",
         "rawContentType": "application/json",
-        "body": "={{ (function() { const saved = $('Save to Server').first().json; const gptRaw = $json.choices?.[0]?.message?.content || ''; const descMatch = gptRaw.match(/ОПИСАНИЕ:\\s*(.+)/i); const tagsMatch = gptRaw.match(/ТЕГИ:\\s*(.+)/i); const description = descMatch ? descMatch[1].trim() : saved.fileName; const tags = tagsMatch ? tagsMatch[1].split(',').map(t=>t.trim()) : []; return JSON.stringify({ action: 'addFile', id: saved.fileId, chatId: saved.chatId, name: saved.fileName, type: saved.fileType, mime: saved.fileMime, size: saved.fileSize, path: saved.filePath, description: description, tags: tags }); })() }}",
+        "body": "={{ (function() { const saved = $('Prep File Path').first().json; const gptRaw = $json.choices?.[0]?.message?.content || ''; const descMatch = gptRaw.match(/ОПИСАНИЕ:\\s*(.+)/i); const tagsMatch = gptRaw.match(/ТЕГИ:\\s*(.+)/i); const description = descMatch ? descMatch[1].trim() : saved.fileName; const tags = tagsMatch ? tagsMatch[1].split(',').map(t=>t.trim()) : []; return JSON.stringify({ action: 'addFile', id: saved.fileId, chatId: saved.chatId, name: saved.fileName, type: saved.fileType, mime: saved.fileMime, size: saved.fileSize, path: saved.filePath, description: description, tags: tags }); })() }}",
         "options": {}
       }
     },
@@ -893,7 +905,7 @@
         "sendBody": true,
         "contentType": "raw",
         "rawContentType": "application/json",
-        "body": "={{ (function() { const saved = $('Save to Server').first().json; const gptRaw = $('GPT Describe').first().json.choices?.[0]?.message?.content || ''; const descMatch = gptRaw.match(/ОПИСАНИЕ:\\s*(.+)/i); const desc = descMatch ? descMatch[1].trim() : 'файл сохранён'; return JSON.stringify({ chat_id: saved.chatId, text: '✅ Сохранил: ' + saved.fileName + '\\n📝 ' + desc + '\\n\\nСпроси «скинь ' + saved.fileName.split('.')[0] + '» чтобы получить обратно.' }); })() }}",
+        "body": "={{ (function() { const saved = $('Prep File Path').first().json; const gptRaw = $('GPT Describe').first().json.choices?.[0]?.message?.content || ''; const descMatch = gptRaw.match(/ОПИСАНИЕ:\\s*(.+)/i); const desc = descMatch ? descMatch[1].trim() : 'файл сохранён'; return JSON.stringify({ chat_id: saved.chatId, text: '✅ Сохранил: ' + saved.fileName + '\\n📝 ' + desc + '\\n\\nСпроси «скинь ' + saved.fileName.split('.')[0] + '» чтобы получить обратно.' }); })() }}",
         "options": {}
       }
     },
@@ -927,7 +939,7 @@
       "position": [1740, 800],
       "parameters": {
         "method": "GET",
-        "url": "={{ (function() { const cap = $('Save to Server').first().json.caption || ''; const m = cap.match(/(?:диск:|yd:|яд:)\\s*(.+)/i); const folder = m ? m[1].trim().replace(/\\/$/, '') : ''; const name = $('Save to Server').first().json.fileName; return 'https://cloud-api.yandex.net/v1/disk/resources/upload?path=' + encodeURIComponent(folder + '/' + name) + '&overwrite=true'; })() }}",
+        "url": "={{ (function() { const cap = $('Prep File Path').first().json.caption || ''; const m = cap.match(/(?:диск:|yd:|яд:)\\s*(.+)/i); const folder = m ? m[1].trim().replace(/\\/$/, '') : ''; const name = $('Prep File Path').first().json.fileName; return 'https://cloud-api.yandex.net/v1/disk/resources/upload?path=' + encodeURIComponent(folder + '/' + name) + '&overwrite=true'; })() }}",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
@@ -938,13 +950,42 @@
       }
     },
     {
-      "id": "n42",
-      "name": "Upload to YD",
+      "id": "n42a",
+      "name": "Prep YD Upload",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
+      "position": [1850, 800],
+      "parameters": {
+        "jsCode": "const uploadUrl = $json.href;\nif (!uploadUrl) {\n  throw new Error('No upload URL: ' + JSON.stringify($json));\n}\nconst saved = $('Prep File Path').first().json;\nreturn [{ json: { uploadUrl, filePath: saved.filePath, fileName: saved.fileName } }];"
+      }
+    },
+    {
+      "id": "n42b",
+      "name": "Read for YD",
+      "type": "n8n-nodes-base.readWriteFile",
+      "typeVersion": 1,
       "position": [1960, 800],
       "parameters": {
-        "jsCode": "const fs = require('fs');\nconst uploadUrl = $json.href;\nif (!uploadUrl) {\n  return [{ json: { ok: false, error: $json.error || 'No upload URL' } }];\n}\nconst filePath = $('Save to Server').first().json.filePath;\nconst buffer = fs.readFileSync(filePath);\n\nconst resp = await $helpers.request({\n  method: 'PUT',\n  url: uploadUrl,\n  body: buffer,\n  headers: { 'Content-Type': 'application/octet-stream' },\n  encoding: null\n});\n\nreturn [{ json: { ok: true, filePath: $('Save to Server').first().json.filePath, fileName: $('Save to Server').first().json.fileName } }];"
+        "operation": "read",
+        "fileSelector": "={{ $json.filePath }}",
+        "options": {
+          "dataPropertyName": "fileData"
+        }
+      }
+    },
+    {
+      "id": "n42",
+      "name": "Upload to YD",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [2070, 800],
+      "parameters": {
+        "method": "PUT",
+        "url": "={{ $('Prep YD Upload').first().json.uploadUrl }}",
+        "sendBody": true,
+        "contentType": "binaryData",
+        "inputDataFieldName": "fileData",
+        "options": { "response": { "response": { "neverError": true } } }
       }
     },
     {
@@ -965,7 +1006,7 @@
         "sendBody": true,
         "contentType": "raw",
         "rawContentType": "application/json",
-        "body": "={{ (function() { const cap = $('Save to Server').first().json.caption || ''; const m = cap.match(/(?:диск:|yd:|яд:)\\s*(.+)/i); const folder = m ? m[1].trim() : '/'; return JSON.stringify({ chat_id: $('Save to Server').first().json.chatId, text: '✅ Загружено на Яндекс.Диск:\\n📂 ' + folder + $('Save to Server').first().json.fileName }); })() }}",
+        "body": "={{ (function() { const cap = $('Prep File Path').first().json.caption || ''; const m = cap.match(/(?:диск:|yd:|яд:)\\s*(.+)/i); const folder = m ? m[1].trim() : '/'; return JSON.stringify({ chat_id: $('Prep File Path').first().json.chatId, text: '✅ Загружено на Яндекс.Диск:\\n📂 ' + folder + $('Prep File Path').first().json.fileName }); })() }}",
         "options": {}
       }
     },
@@ -1119,16 +1160,103 @@
       }
     },
     {
-      "id": "n38",
-      "name": "Send Found File",
+      "id": "n38a",
+      "name": "Check Found",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [2840, 630],
+      "parameters": {
+        "conditions": {
+          "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "loose" },
+          "conditions": [
+            {
+              "id": "cfound",
+              "leftValue": "={{ ($json.files || []).length }}",
+              "rightValue": 0,
+              "operator": { "type": "number", "operation": "gt" }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "n38b",
+      "name": "Prep Read",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [
-        2840,
-        630
-      ],
+      "position": [3060, 530],
       "parameters": {
-        "jsCode": "const fs = require('fs');\nconst files = $json.files || [];\nconst chatId = $('Build Reply').first().json.chatId;\nconst botToken = $env.TELEGRAM_BOT_TOKEN;\n\nif (!files.length) {\n  // No files found — send text message\n  const resp = await $helpers.request({\n    method: 'POST',\n    url: 'https://api.telegram.org/bot' + botToken + '/sendMessage',\n    headers: { 'Content-Type': 'application/json' },\n    body: JSON.stringify({ chat_id: chatId, text: '🔍 Файл не найден. Попробуй другой запрос.' })\n  });\n  return [{ json: { ok: true, sent: 'not_found' } }];\n}\n\nconst f = files[0];\n// Read file from disk and send as document\ntry {\n  const buffer = fs.readFileSync(f.path);\n  const base64 = buffer.toString('base64');\n  \n  // Use n8n binary helper to send\n  const FormData = require('form-data');\n  const form = new FormData();\n  form.append('chat_id', String(chatId));\n  form.append('caption', '📎 ' + f.name + (f.description ? '\\n' + f.description : ''));\n  form.append('document', buffer, { filename: f.name, contentType: f.mime || 'application/octet-stream' });\n  \n  const resp = await $helpers.request({\n    method: 'POST',\n    url: 'https://api.telegram.org/bot' + botToken + '/sendDocument',\n    headers: form.getHeaders(),\n    body: form\n  });\n  return [{ json: { ok: true, sent: f.name } }];\n} catch(e) {\n  const resp = await $helpers.request({\n    method: 'POST',\n    url: 'https://api.telegram.org/bot' + botToken + '/sendMessage',\n    headers: { 'Content-Type': 'application/json' },\n    body: JSON.stringify({ chat_id: chatId, text: '⚠️ Файл найден (' + f.name + '), но не могу отправить: ' + e.message })\n  });\n  return [{ json: { ok: false, error: e.message } }];\n}"
+        "jsCode": "const f = $json.files[0];\nconst chatId = $('Build Reply').first().json.chatId;\nreturn [{ json: { path: f.path, name: f.name, description: f.description || '', mime: f.mime || 'application/octet-stream', chatId } }];"
+      }
+    },
+    {
+      "id": "n38",
+      "name": "Read File",
+      "type": "n8n-nodes-base.readWriteFile",
+      "typeVersion": 1,
+      "position": [3280, 530],
+      "parameters": {
+        "operation": "read",
+        "fileSelector": "={{ $json.path }}",
+        "options": {
+          "dataPropertyName": "fileData"
+        }
+      }
+    },
+    {
+      "id": "n38c",
+      "name": "Send Document",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [3500, 530],
+      "parameters": {
+        "method": "POST",
+        "url": "={{ 'https://api.telegram.org/bot' + $env.TELEGRAM_BOT_TOKEN + '/sendDocument' }}",
+        "sendBody": true,
+        "contentType": "multipart-form-data",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "chat_id",
+              "value": "={{ $('Prep Read').first().json.chatId }}",
+              "parameterType": "formData"
+            },
+            {
+              "name": "caption",
+              "value": "={{ '📎 ' + $('Prep Read').first().json.name + ($('Prep Read').first().json.description ? '\\n' + $('Prep Read').first().json.description : '') }}",
+              "parameterType": "formData"
+            },
+            {
+              "name": "document",
+              "value": "fileData",
+              "parameterType": "formBinaryData",
+              "inputDataFieldName": "fileData"
+            }
+          ]
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "n38d",
+      "name": "Send Not Found",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [3060, 730],
+      "parameters": {
+        "method": "POST",
+        "url": "={{ 'https://api.telegram.org/bot' + $env.TELEGRAM_BOT_TOKEN + '/sendMessage' }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [{ "name": "Content-Type", "value": "application/json" }]
+        },
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "application/json",
+        "body": "={{ JSON.stringify({ chat_id: $('Build Reply').first().json.chatId, text: '🔍 Файл не найден. Попробуй другой запрос.' }) }}",
+        "options": {}
       }
     },
     {
@@ -1263,6 +1391,17 @@
       "main": [
         [
           {
+            "node": "Prep File Path",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prep File Path": {
+      "main": [
+        [
+          {
             "node": "Save to Server",
             "type": "main",
             "index": 0
@@ -1303,10 +1442,24 @@
       "main": [
         [
           {
-            "node": "Upload to YD",
+            "node": "Prep YD Upload",
             "type": "main",
             "index": 0
           }
+        ]
+      ]
+    },
+    "Prep YD Upload": {
+      "main": [
+        [
+          { "node": "Read for YD", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "Read for YD": {
+      "main": [
+        [
+          { "node": "Upload to YD", "type": "main", "index": 0 }
         ]
       ]
     },
@@ -1347,10 +1500,34 @@
       "main": [
         [
           {
-            "node": "Send Found File",
+            "node": "Check Found",
             "type": "main",
             "index": 0
           }
+        ]
+      ]
+    },
+    "Check Found": {
+      "main": [
+        [
+          { "node": "Prep Read", "type": "main", "index": 0 }
+        ],
+        [
+          { "node": "Send Not Found", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "Prep Read": {
+      "main": [
+        [
+          { "node": "Read File", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "Read File": {
+      "main": [
+        [
+          { "node": "Send Document", "type": "main", "index": 0 }
         ]
       ]
     },

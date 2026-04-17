@@ -34,7 +34,51 @@
         300
       ],
       "parameters": {
-        "jsCode": "const raw = $input.first().json;\nconst body = raw.body || raw;\n\n// Avito webhook payload\nconst value = body.value || body;\n\nconst chatId = value.chat_id || value.chatId || '';\nconst authorId = String(value.author_id || value.authorId || '');\nconst msgId = value.id || '';\nconst text = value.content?.text || value.text || '';\n\n// Item ID — the ad this chat is about\nconst itemId = String(value.item_id || value.itemId || body.item_id || '');\n\nif (!chatId || !text) {\n  throw new Error('SKIP: no chatId or text');\n}\n\nreturn [{ json: { chatId, authorId, msgId, text, itemId } }];"
+        "jsCode": "const raw = $input.first().json;\nconst body = raw.body || raw;\n\n// Avito v3.0.0 wraps in payload.value\nconst payload = body.payload || body;\nconst value = payload.value || body.value || body;\n\n// Skip non-text/non-message types\nif (payload.type && payload.type !== 'message') {\n  return [{ json: { skip: true, reason: 'not a message: ' + payload.type } }];\n}\nif (value.type && value.type !== 'text') {\n  return [{ json: { skip: true, reason: 'not text: ' + value.type } }];\n}\n\nconst chatId = value.chat_id || value.chatId || '';\nconst authorId = String(value.author_id || value.authorId || '');\nconst msgId = value.id || '';\nconst text = value.content?.text || value.text || '';\nconst itemId = String(value.item_id || value.itemId || body.item_id || '');\n\nif (!chatId || !text) {\n  return [{ json: { skip: true, reason: 'no chatId or text', debug: JSON.stringify(body).slice(0,500) } }];\n}\n\nreturn [{ json: { chatId, authorId, msgId, text, itemId, skip: false } }];"
+      }
+    },
+    {
+      "id": "av2b",
+      "name": "Should Parse?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [520, 300],
+      "parameters": {
+        "conditions": {
+          "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "strict" },
+          "conditions": [
+            {
+              "id": "cparse",
+              "leftValue": "={{ $json.skip }}",
+              "rightValue": true,
+              "operator": { "type": "boolean", "operation": "notEqual" }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "av5b",
+      "name": "Should Reply?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [1180, 300],
+      "parameters": {
+        "conditions": {
+          "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "strict" },
+          "conditions": [
+            {
+              "id": "creply",
+              "leftValue": "={{ $json.skip }}",
+              "rightValue": true,
+              "operator": { "type": "boolean", "operation": "notEqual" }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
       }
     },
     {
@@ -111,7 +155,7 @@
         300
       ],
       "parameters": {
-        "jsCode": "const token = $('Get Token').first().json.access_token;\nconst userId = String($input.first().json.id);\nconst parsed = $('Parse Incoming').first().json;\n\n// Don't reply to our own messages\nif (parsed.authorId === userId) {\n  throw new Error('SKIP: own message');\n}\n\n// Dedup: don't reply to same message twice\nconst store = $getWorkflowStaticData('global');\nif (!store.replied) store.replied = {};\nif (store.replied[parsed.chatId] === parsed.msgId) {\n  throw new Error('SKIP: already replied');\n}\n\nreturn [{ json: { token, userId, chatId: parsed.chatId, msgId: parsed.msgId, lastText: parsed.text, itemId: parsed.itemId || '' } }];"
+        "jsCode": "const token = $('Get Token').first().json.access_token;\nconst userId = String($input.first().json.id);\nconst parsed = $('Parse Incoming').first().json;\n\n// Don't reply to our own messages\nif (parsed.authorId === userId) {\n  return [{ json: { skip: true, reason: 'own message' } }];\n}\n\n// Dedup: don't reply to same message twice\nconst store = $getWorkflowStaticData('global');\nif (!store.replied) store.replied = {};\nif (store.replied[parsed.chatId] === parsed.msgId) {\n  return [{ json: { skip: true, reason: 'already replied' } }];\n}\n\nreturn [{ json: { skip: false, token, userId, chatId: parsed.chatId, msgId: parsed.msgId, lastText: parsed.text, itemId: parsed.itemId || '' } }];"
       }
     },
     {
@@ -369,11 +413,23 @@
       "main": [
         [
           {
-            "node": "Get Token",
+            "node": "Should Parse?",
             "type": "main",
             "index": 0
           }
         ]
+      ]
+    },
+    "Should Parse?": {
+      "main": [
+        [
+          {
+            "node": "Get Token",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        []
       ]
     },
     "Get Token": {
@@ -402,11 +458,23 @@
       "main": [
         [
           {
-            "node": "Get Chat History",
+            "node": "Should Reply?",
             "type": "main",
             "index": 0
           }
         ]
+      ]
+    },
+    "Should Reply?": {
+      "main": [
+        [
+          {
+            "node": "Get Chat History",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        []
       ]
     },
     "Get Chat History": {

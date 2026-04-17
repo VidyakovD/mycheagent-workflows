@@ -20,7 +20,7 @@
           "interval": [
             {
               "field": "cronExpression",
-              "expression": "38 12 17 4 *"
+              "expression": "0 6 * * *"
             }
           ]
         }
@@ -103,15 +103,66 @@
     },
     {
       "id": "an4",
-      "name": "Send to Denis",
+      "name": "Extract Post",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [
-        860,
-        300
-      ],
+      "position": [860, 300],
       "parameters": {
-        "jsCode": "const res = $input.first().json;\nconst textBlock = res.content ? res.content.find(c => c.type === 'text') : null;\nif (!textBlock) return [{ json: { ok: false } }];\n\nconst post = textBlock.text.trim();\nconst BOT_TOKEN = $env.TELEGRAM_BOT_TOKEN;\nconst DENIS_ID = 211279650;\nconst PWA_URL = 'https://mycheagent.ru/webhook/pwa-data';\nconst id = 'digest_' + Date.now();\n\nawait $helpers.httpRequest({ method: 'POST', url: PWA_URL, headers: { 'Content-Type': 'application/json' }, body: { action: 'savePending', id, text: post }, json: true });\n\nawait $helpers.httpRequest({ method: 'POST', url: PWA_URL, headers: { 'Content-Type': 'application/json' }, body: { action: 'addReport', text: '📰 ' + post }, json: true });\n\nawait $helpers.httpRequest({\n  method: 'POST',\n  url: 'https://api.telegram.org/bot' + BOT_TOKEN + '/sendMessage',\n  headers: { 'Content-Type': 'application/json' },\n  body: {\n    chat_id: DENIS_ID,\n    text: post,\n    reply_markup: {\n      inline_keyboard: [[\n        { text: '✅ Опубликовать в канал', callback_data: 'channel:' + id },\n        { text: '❌ Не публиковать', callback_data: 'channel_skip:' + id }\n      ]]\n    }\n  },\n  json: true\n});\n\nreturn [{ json: { ok: true } }];"
+        "jsCode": "const res = $input.first().json;\nconst textBlock = res.content ? res.content.find(c => c.type === 'text') : null;\nif (!textBlock) return [{ json: { ok: false, error: 'no text block' } }];\nconst post = textBlock.text.trim();\nconst id = 'digest_' + Date.now();\nreturn [{ json: { post, id } }];"
+      }
+    },
+    {
+      "id": "an5",
+      "name": "Save Pending",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1080, 300],
+      "parameters": {
+        "method": "POST",
+        "url": "https://mycheagent.ru/webhook/pwa-data",
+        "sendHeaders": true,
+        "headerParameters": { "parameters": [{ "name": "Content-Type", "value": "application/json" }] },
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "application/json",
+        "body": "={{ JSON.stringify({ action: 'savePending', id: $json.id, text: $json.post }) }}",
+        "options": { "response": { "response": { "neverError": true } } }
+      }
+    },
+    {
+      "id": "an6",
+      "name": "Save Report",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1300, 300],
+      "parameters": {
+        "method": "POST",
+        "url": "https://mycheagent.ru/webhook/pwa-data",
+        "sendHeaders": true,
+        "headerParameters": { "parameters": [{ "name": "Content-Type", "value": "application/json" }] },
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "application/json",
+        "body": "={{ JSON.stringify({ action: 'addReport', text: '📰 ' + $('Extract Post').first().json.post }) }}",
+        "options": { "response": { "response": { "neverError": true } } }
+      }
+    },
+    {
+      "id": "an7",
+      "name": "Send TG",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1520, 300],
+      "parameters": {
+        "method": "POST",
+        "url": "={{ 'https://api.telegram.org/bot' + $env.TELEGRAM_BOT_TOKEN + '/sendMessage' }}",
+        "sendHeaders": true,
+        "headerParameters": { "parameters": [{ "name": "Content-Type", "value": "application/json" }] },
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "application/json",
+        "body": "={{ JSON.stringify({ chat_id: 211279650, text: $('Extract Post').first().json.post, reply_markup: { inline_keyboard: [[ { text: '✅ Опубликовать в канал', callback_data: 'channel:' + $('Extract Post').first().json.id }, { text: '❌ Не публиковать', callback_data: 'channel_skip:' + $('Extract Post').first().json.id } ]] } }) }}",
+        "options": {}
       }
     }
   ],
@@ -164,7 +215,40 @@
       "main": [
         [
           {
-            "node": "Send to Denis",
+            "node": "Extract Post",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract Post": {
+      "main": [
+        [
+          {
+            "node": "Save Pending",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Save Pending": {
+      "main": [
+        [
+          {
+            "node": "Save Report",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Save Report": {
+      "main": [
+        [
+          {
+            "node": "Send TG",
             "type": "main",
             "index": 0
           }

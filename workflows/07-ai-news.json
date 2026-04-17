@@ -40,6 +40,16 @@
       }
     },
     {
+      "id": "an2b",
+      "name": "Build Claude Body",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [520, 300],
+      "parameters": {
+        "jsCode": "const data = $input.first().json;\nconst today = new Date().toLocaleDateString('ru-RU', {day:'numeric',month:'long',year:'numeric'});\nconst articles = data.articles || [];\nconst list = articles.map((a,i) => (i+1)+'. ['+a.src+'] '+a.title+(a.desc?' — '+a.desc:'')).join('\\n');\nconst userContent = 'Сегодня ' + today + '. Источников: ' + (data.fetched||'?') + '/' + (data.total||'?') + '. Свежих статей: ' + articles.length + '.\\n\\n' + list;\n\nconst systemPrompt = 'Ты Зевс — ИИ-ассистент Дениса Видякова. Пишешь ежедневный дайджест ИИ-новостей на русском для Telegram-канала Студия ЧЕ (видеомонтаж и нейросети). Строгий фильтр: только новости про ИИ — новые модели, релизы нейросетей, новые фичи, обновления ИИ-инструментов. Начни с заголовка: ДАЙДЖЕСТ ИИ-НОВОСТЕЙ — [дата из запроса]. Затем ровно 7 новостей с эмодзи, каждая 2-3 предложения с аналитикой что это значит для видеомейкеров и контент-мейкеров. В конце — 2-3 предложения общего вывода о трендах. Только обычный текст без Markdown.';\n\nconst body = JSON.stringify({\n  model: 'claude-opus-4-6',\n  max_tokens: 1500,\n  stream: false,\n  system: systemPrompt,\n  messages: [{ role: 'user', content: userContent }]\n});\n\nreturn [{ json: { body, articleCount: articles.length } }];"
+      }
+    },
+    {
       "id": "an3",
       "name": "Claude Posts",
       "type": "n8n-nodes-base.httpRequest",
@@ -69,9 +79,12 @@
           ]
         },
         "sendBody": true,
-        "specifyBody": "string",
-        "body": "={{ JSON.stringify({\n  model: 'claude-opus-4-6',\n  max_tokens: 1500,\n  stream: false,\n  system: 'Ты Зевс — ИИ-ассистент Дениса Видякова. Пишешь ежедневный дайджест ИИ-новостей на русском для Telegram-канала Студия ЧЕ (видеомонтаж и нейросети). Строгий фильтр: только новости про ИИ — новые модели, релизы нейросетей, новые фичи, обновления ИИ-инструментов. Начни с заголовка: ДАЙДЖЕСТ ИИ-НОВОСТЕЙ — [дата из запроса]. Затем ровно 7 новостей с эмодзи, каждая 2-3 предложения с аналитикой что это значит для видеомейкеров и контент-мейкеров. В конце — 2-3 предложения общего вывода о трендах. Только обычный текст без Markdown.',\n  messages: [{\n    role: 'user',\n    content: 'Сегодня ' + new Date().toLocaleDateString('ru-RU', {day:'numeric',month:'long',year:'numeric'}) + '. Источников: ' + $json.fetched + '/' + $json.total + '. Свежих статей: ' + $json.articles.length + '.\n\n' + $json.articles.map((a,i) => (i+1)+'. ['+a.src+'] '+a.title+(a.desc?' — '+a.desc:'')).join('\n')\n  }]\n}) }}",
-        "options": {}
+        "contentType": "raw",
+        "rawContentType": "application/json",
+        "body": "={{ $json.body }}",
+        "options": {
+          "timeout": 120000
+        }
       }
     },
     {
@@ -101,6 +114,17 @@
       ]
     },
     "Fetch RSS Feeds": {
+      "main": [
+        [
+          {
+            "node": "Build Claude Body",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Claude Body": {
       "main": [
         [
           {

@@ -31,7 +31,10 @@
       "name": "Manual Trigger",
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2,
-      "position": [200, 440],
+      "position": [
+        200,
+        440
+      ],
       "webhookId": "trigger-news",
       "parameters": {
         "httpMethod": "POST",
@@ -50,7 +53,7 @@
         300
       ],
       "parameters": {
-        "jsCode": "const S=[\n  {n:'Google AI',u:'https://blog.google/technology/ai/rss/'},\n  {n:'Meta AI',u:'https://engineering.fb.com/category/ml-applications/feed/'},\n  {n:'Microsoft AI',u:'https://blogs.microsoft.com/ai/feed/'},\n  {n:'HuggingFace',u:'https://huggingface.co/blog/feed.xml'},\n  {n:'NVIDIA',u:'https://blogs.nvidia.com/feed/'},\n  {n:'AWS ML',u:'https://aws.amazon.com/blogs/machine-learning/feed/'},\n  {n:'Wired AI',u:'https://www.wired.com/feed/tag/ai/latest/rss'},\n  {n:'Ars Technica',u:'https://feeds.arstechnica.com/arstechnica/technology-lab'},\n  {n:'MIT Tech Review',u:'https://www.technologyreview.com/feed/'},\n  {n:'ZDNet AI',u:'https://www.zdnet.com/topic/artificial-intelligence/rss.xml'},\n  {n:'Engadget',u:'https://www.engadget.com/rss.xml'},\n  {n:'TechCrunch AI',u:'https://techcrunch.com/category/artificial-intelligence/feed/'},\n  {n:'ArXiv AI',u:'http://arxiv.org/rss/cs.AI'},\n  {n:'ArXiv ML',u:'http://arxiv.org/rss/cs.LG'},\n  {n:'Habr ML',u:'https://habr.com/ru/rss/hub/machine_learning/articles/'},\n  {n:'Habr AI',u:'https://habr.com/ru/rss/hub/artificial_intelligence/articles/'},\n  {n:'Habr ChatGPT',u:'https://habr.com/ru/rss/hub/chatgpt/articles/'},\n  {n:'Hacker News',u:'https://news.ycombinator.com/rss'},\n  {n:'Reddit ML',u:'https://www.reddit.com/r/MachineLearning/.rss'},\n  {n:'Reddit AI',u:'https://www.reddit.com/r/artificial/.rss'},\n  {n:'BBC Tech',u:'http://feeds.bbci.co.uk/news/technology/rss.xml'},\n  {n:'Guardian Tech',u:'https://www.theguardian.com/technology/artificialintelligenceai/rss'},\n  {n:'Forbes Tech',u:'https://www.forbes.com/innovation/feed/'},\n  {n:'CNBC Tech',u:'https://www.cnbc.com/id/100727362/device/rss/rss.html'},\n  {n:'Gradient Flow',u:'https://gradientflow.com/feed/'},\n  {n:'ML Mastery',u:'https://machinelearningmastery.com/feed/'},\n  {n:'Analytics Vidhya',u:'https://www.analyticsvidhya.com/feed/'},\n  {n:'9to5Google',u:'https://9to5google.com/feed/'},\n  {n:'Google Cloud AI',u:'https://cloud.google.com/blog/topics/ai-machine-learning/rss/'},\n  {n:'VentureBeat',u:'https://venturebeat.com/feed/'},\n  {n:'The Verge',u:'https://www.theverge.com/rss/index.xml'},\n  {n:'OpenAI news',u:'https://openai.com/news/rss/'},\n  {n:'Anthropic',u:'https://www.anthropic.com/news/rss'},\n  {n:'DeepMind',u:'https://blog.google/products/deepmind/rss/'},\n  {n:'InfoQ AI',u:'https://www.infoq.com/ai-ml-data-eng/rss/'},\n  {n:'Fast Company',u:'https://www.fastcompany.com/technology/rss'},\n  {n:'Stability AI',u:'https://stability.ai/blog?format=rss'},\n  {n:'Cohere',u:'https://cohere.com/blog/rss'},\n  {n:'Scale AI',u:'https://scale.com/blog/rss'},\n  {n:'Mistral',u:'https://mistral.ai/fr/news/rss/'},\n  {n:'LinkedIn Eng',u:'https://engineering.linkedin.com/blog.rss.html'},\n  {n:'Interfax IT',u:'https://www.interfax.ru/rss/it/'},\n  {n:'TOPBOTS',u:'https://www.topbots.com/feed/'},\n  {n:'Synced Review',u:'https://syncedreview.com/feed/'},\n  {n:'MarkTechPost',u:'https://www.marktechpost.com/feed/'},\n  {n:'Apple ML',u:'https://machinelearning.apple.com/rss'},\n  {n:'Towards DS',u:'https://medium.com/feed/towards-data-science'},\n  {n:'Neptune AI',u:'https://neptune.ai/blog/feed'},\n  {n:'Weights Biases',u:'https://wandb.ai/fully-connected/feed'},\n  {n:'EleutherAI',u:'https://blog.eleuther.ai/rss/'},\n  {n:'Allen AI',u:'https://blog.allenai.org/feed'}\n];\n\nfunction t(s){return s?s.replace(/<\\!\\[CDATA\\[/g,'').replace(/\\]\\]>/g,'').replace(/<[^>]+>/g,'').replace(/&amp;/g,'&').replace(/&lt;/g,'<').replace(/&gt;/g,'>').replace(/&#\\d+;/g,'').trim():'';}\nfunction pd(s){if(!s)return null;try{const d=new Date(s);return isNaN(d)?null:d;}catch(e){return null;}}\nfunction parse(xml,src){\n  const items=[];\n  const rss=[...xml.matchAll(/<item>([\\s\\S]*?)<\\/item>/g)];\n  for(const[,raw] of rss){\n    const title=t((/<title[^>]*>([\\s\\S]*?)<\\/title>/.exec(raw)||['',''])[1]);\n    const link=t((/<link>([\\s\\S]*?)<\\/link>/.exec(raw)||['',''])[1])||t((/<guid[^>]*>([\\s\\S]*?)<\\/guid>/.exec(raw)||['',''])[1]);\n    const date=pd(t((/<pubDate>([\\s\\S]*?)<\\/pubDate>/.exec(raw)||['',''])[1]));\n    const desc=t((/<description>([\\s\\S]*?)<\\/description>/.exec(raw)||['',''])[1]).slice(0,150);\n    if(title&&title.length>5)items.push({src,title,link,date,desc});\n  }\n  if(!items.length){\n    const atom=[...xml.matchAll(/<entry>([\\s\\S]*?)<\\/entry>/g)];\n    for(const[,raw] of atom){\n      const title=t((/<title[^>]*>([\\s\\S]*?)<\\/title>/.exec(raw)||['',''])[1]);\n      const link=(/<link[^>]+href=\"([^\"]+)\"/.exec(raw)||['',''])[1];\n      const date=pd(t((/<published>([\\s\\S]*?)<\\/published>/.exec(raw)||/<updated>([\\s\\S]*?)<\\/updated>/.exec(raw)||['',''])[1]));\n      const desc=t((/<summary[^>]*>([\\s\\S]*?)<\\/summary>/.exec(raw)||['',''])[1]).slice(0,150);\n      if(title&&title.length>5)items.push({src,title,link,date,desc});\n    }\n  }\n  return items;\n}\n\nconst res=await Promise.allSettled(S.map(async s=>{\n  const c=new AbortController();\n  const timer=setTimeout(()=>c.abort(),7000);\n  try{\n    const r=await fetch(s.u,{signal:c.signal,headers:{'User-Agent':'Mozilla/5.0 (compatible; NewsBot/1.0)'}});\n    return parse(await r.text(),s.n);\n  }catch(e){return [];}finally{clearTimeout(timer);}\n}));\n\nconst now=new Date();\nconst cutoff=new Date(now-48*3600*1000);\nconst seen=new Set();\nconst articles=[];\nfor(const r of res){\n  if(r.status!=='fulfilled')continue;\n  for(const a of r.value){\n    const k=a.title.toLowerCase().slice(0,40);\n    if(seen.has(k))continue;\n    seen.add(k);\n    if(a.date&&a.date>=cutoff)articles.push(a);\n  }\n}\narticles.sort((a,b)=>(b.date||new Date(0))-(a.date||new Date(0)));\nconst fetched=res.filter(r=>r.status==='fulfilled'&&r.value.length>0).length;\nreturn [{json:{articles:articles.slice(0,40),fetched,total:S.length}}];"
+        "jsCode": "const S = [\n  {n:'Google AI',u:'https://blog.google/technology/ai/rss/'},\n  {n:'Microsoft AI',u:'https://blogs.microsoft.com/ai/feed/'},\n  {n:'HuggingFace',u:'https://huggingface.co/blog/feed.xml'},\n  {n:'NVIDIA',u:'https://blogs.nvidia.com/feed/'},\n  {n:'AWS ML',u:'https://aws.amazon.com/blogs/machine-learning/feed/'},\n  {n:'Wired AI',u:'https://www.wired.com/feed/tag/ai/latest/rss'},\n  {n:'Ars Technica',u:'https://feeds.arstechnica.com/arstechnica/technology-lab'},\n  {n:'MIT Tech Review',u:'https://www.technologyreview.com/feed/'},\n  {n:'Engadget',u:'https://www.engadget.com/rss.xml'},\n  {n:'TechCrunch AI',u:'https://techcrunch.com/category/artificial-intelligence/feed/'},\n  {n:'ArXiv AI',u:'http://arxiv.org/rss/cs.AI'},\n  {n:'ArXiv ML',u:'http://arxiv.org/rss/cs.LG'},\n  {n:'Habr ML',u:'https://habr.com/ru/rss/hub/machine_learning/articles/'},\n  {n:'Habr AI',u:'https://habr.com/ru/rss/hub/artificial_intelligence/articles/'},\n  {n:'Habr ChatGPT',u:'https://habr.com/ru/rss/hub/chatgpt/articles/'},\n  {n:'Hacker News',u:'https://news.ycombinator.com/rss'},\n  {n:'Reddit ML',u:'https://www.reddit.com/r/MachineLearning/.rss'},\n  {n:'Reddit AI',u:'https://www.reddit.com/r/artificial/.rss'},\n  {n:'BBC Tech',u:'http://feeds.bbci.co.uk/news/technology/rss.xml'},\n  {n:'Guardian AI',u:'https://www.theguardian.com/technology/artificialintelligenceai/rss'},\n  {n:'VentureBeat',u:'https://venturebeat.com/feed/'},\n  {n:'The Verge',u:'https://www.theverge.com/rss/index.xml'},\n  {n:'InfoQ AI',u:'https://www.infoq.com/ai-ml-data-eng/rss/'},\n  {n:'MarkTechPost',u:'https://www.marktechpost.com/feed/'},\n  {n:'Apple ML',u:'https://machinelearning.apple.com/rss'},\n  {n:'Towards DS',u:'https://medium.com/feed/towards-data-science'},\n  {n:'9to5Google',u:'https://9to5google.com/feed/'},\n  {n:'Google Cloud AI',u:'https://cloud.google.com/blog/topics/ai-machine-learning/rss/'},\n  {n:'Synced',u:'https://syncedreview.com/feed/'},\n  {n:'Fast Company',u:'https://www.fastcompany.com/technology/rss'}\n];\n\nfunction t(s){return s?s.replace(/<\\!\\[CDATA\\[/g,'').replace(/\\]\\]>/g,'').replace(/<[^>]+>/g,'').replace(/&amp;/g,'&').replace(/&lt;/g,'<').replace(/&gt;/g,'>').replace(/&#\\d+;/g,'').trim():'';}\nfunction pd(s){if(!s)return null;try{const d=new Date(s);return isNaN(d)?null:d;}catch(e){return null;}}\n\nfunction parse(xml, src) {\n  const items = [];\n  const rss = [...xml.matchAll(/<item>([\\s\\S]*?)<\\/item>/g)];\n  for (const [,raw] of rss) {\n    const title = t((/<title[^>]*>([\\s\\S]*?)<\\/title>/.exec(raw) || ['',''])[1]);\n    const link = t((/<link>([\\s\\S]*?)<\\/link>/.exec(raw) || ['',''])[1]) || t((/<guid[^>]*>([\\s\\S]*?)<\\/guid>/.exec(raw) || ['',''])[1]);\n    const date = pd(t((/<pubDate>([\\s\\S]*?)<\\/pubDate>/.exec(raw) || ['',''])[1]));\n    const desc = t((/<description>([\\s\\S]*?)<\\/description>/.exec(raw) || ['',''])[1]).slice(0, 150);\n    if (title && title.length > 5) items.push({ src, title, link, date, desc });\n  }\n  if (!items.length) {\n    const atom = [...xml.matchAll(/<entry>([\\s\\S]*?)<\\/entry>/g)];\n    for (const [,raw] of atom) {\n      const title = t((/<title[^>]*>([\\s\\S]*?)<\\/title>/.exec(raw) || ['',''])[1]);\n      const link = (/<link[^>]+href=\"([^\"]+)\"/.exec(raw) || ['',''])[1];\n      const date = pd(t((/<published>([\\s\\S]*?)<\\/published>/.exec(raw) || /<updated>([\\s\\S]*?)<\\/updated>/.exec(raw) || ['',''])[1]));\n      const desc = t((/<summary[^>]*>([\\s\\S]*?)<\\/summary>/.exec(raw) || ['',''])[1]).slice(0, 150);\n      if (title && title.length > 5) items.push({ src, title, link, date, desc });\n    }\n  }\n  return items;\n}\n\nconst errors = [];\nconst perSource = [];\n\nconst res = await Promise.allSettled(S.map(async s => {\n  try {\n    const xml = await this.helpers.httpRequest({\n      method: 'GET',\n      url: s.u,\n      timeout: 15000,\n      headers: { 'User-Agent': 'Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)' },\n      returnFullResponse: false\n    });\n    const text = typeof xml === 'string' ? xml : JSON.stringify(xml);\n    const items = parse(text, s.n);\n    perSource.push({ src: s.n, count: items.length });\n    return items;\n  } catch (e) {\n    errors.push({ src: s.n, err: String(e.message || e).slice(0, 120) });\n    perSource.push({ src: s.n, count: 0 });\n    return [];\n  }\n}));\n\nconst now = new Date();\nconst cutoff = new Date(now - 48 * 3600 * 1000);\nconst seen = new Set();\nconst articles = [];\nconst dated = [];\nconst undated = [];\n\nfor (const r of res) {\n  if (r.status !== 'fulfilled') continue;\n  for (const a of r.value) {\n    const k = a.title.toLowerCase().slice(0, 40);\n    if (seen.has(k)) continue;\n    seen.add(k);\n    if (a.date) {\n      if (a.date >= cutoff) dated.push(a);\n    } else {\n      undated.push(a);\n    }\n  }\n}\n\ndated.sort((a, b) => (b.date || new Date(0)) - (a.date || new Date(0)));\n\n// Fallback: if too few dated articles, allow undated too (limit 10)\nconst final = dated.length >= 10 ? dated : [...dated, ...undated.slice(0, 10 - dated.length)];\nconst fetched = res.filter(r => r.status === 'fulfilled' && r.value.length > 0).length;\n\nreturn [{ json: { articles: final.slice(0, 40), fetched, total: S.length, errors: errors.slice(0, 10), perSource } }];\n"
       }
     },
     {
@@ -58,7 +61,10 @@
       "name": "Build Claude Body",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [520, 300],
+      "position": [
+        520,
+        300
+      ],
       "parameters": {
         "jsCode": "const data = $input.first().json;\nconst today = new Date().toLocaleDateString('ru-RU', {day:'numeric',month:'long',year:'numeric'});\nconst articles = data.articles || [];\nconst list = articles.map((a,i) => (i+1)+'. ['+a.src+'] '+a.title+(a.desc?' — '+a.desc:'')).join('\\n');\nconst userContent = 'Сегодня ' + today + '. Источников: ' + (data.fetched||'?') + '/' + (data.total||'?') + '. Свежих статей: ' + articles.length + '.\\n\\n' + list;\n\nconst systemPrompt = 'Ты Зевс — ИИ-ассистент Дениса Видякова. Пишешь ежедневный дайджест ИИ-новостей на русском для Telegram-канала Студия ЧЕ (видеомонтаж и нейросети). Строгий фильтр: только новости про ИИ — новые модели, релизы нейросетей, новые фичи, обновления ИИ-инструментов. Начни с заголовка: ДАЙДЖЕСТ ИИ-НОВОСТЕЙ — [дата из запроса]. Затем ровно 7 новостей с эмодзи, каждая 2-3 предложения с аналитикой что это значит для видеомейкеров и контент-мейкеров. В конце — 2-3 предложения общего вывода о трендах. Только обычный текст без Markdown.';\n\nconst body = JSON.stringify({\n  model: 'claude-opus-4-6',\n  max_tokens: 1500,\n  stream: false,\n  system: systemPrompt,\n  messages: [{ role: 'user', content: userContent }]\n});\n\nreturn [{ json: { body, articleCount: articles.length } }];"
       }
@@ -106,7 +112,10 @@
       "name": "Extract Post",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [860, 300],
+      "position": [
+        860,
+        300
+      ],
       "parameters": {
         "jsCode": "const res = $input.first().json;\nconst textBlock = res.content ? res.content.find(c => c.type === 'text') : null;\nif (!textBlock) return [{ json: { ok: false, error: 'no text block' } }];\nconst post = textBlock.text.trim();\nconst id = 'digest_' + Date.now();\nreturn [{ json: { post, id } }];"
       }
@@ -116,17 +125,33 @@
       "name": "Save Pending",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [1080, 300],
+      "position": [
+        1080,
+        300
+      ],
       "parameters": {
         "method": "POST",
         "url": "https://mycheagent.ru/webhook/pwa-data",
         "sendHeaders": true,
-        "headerParameters": { "parameters": [{ "name": "Content-Type", "value": "application/json" }] },
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
         "sendBody": true,
         "contentType": "raw",
         "rawContentType": "application/json",
         "body": "={{ JSON.stringify({ action: 'savePending', id: $json.id, text: $json.post }) }}",
-        "options": { "response": { "response": { "neverError": true } } }
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          }
+        }
       }
     },
     {
@@ -134,17 +159,33 @@
       "name": "Save Report",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [1300, 300],
+      "position": [
+        1300,
+        300
+      ],
       "parameters": {
         "method": "POST",
         "url": "https://mycheagent.ru/webhook/pwa-data",
         "sendHeaders": true,
-        "headerParameters": { "parameters": [{ "name": "Content-Type", "value": "application/json" }] },
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
         "sendBody": true,
         "contentType": "raw",
         "rawContentType": "application/json",
         "body": "={{ JSON.stringify({ action: 'addReport', text: '📰 ' + $('Extract Post').first().json.post }) }}",
-        "options": { "response": { "response": { "neverError": true } } }
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          }
+        }
       }
     },
     {
@@ -152,12 +193,22 @@
       "name": "Send TG",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [1520, 300],
+      "position": [
+        1520,
+        300
+      ],
       "parameters": {
         "method": "POST",
         "url": "={{ 'https://api.telegram.org/bot' + $env.TELEGRAM_BOT_TOKEN + '/sendMessage' }}",
         "sendHeaders": true,
-        "headerParameters": { "parameters": [{ "name": "Content-Type", "value": "application/json" }] },
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
         "sendBody": true,
         "contentType": "raw",
         "rawContentType": "application/json",

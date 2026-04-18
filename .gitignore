@@ -3,3 +3,12 @@
 node_modules/
 .n8n/
 *.log
+scripts/exec*.txt
+scripts/test_anthropic.py
+scripts/test_tg.py
+scripts/list_models.py
+scripts/deployed_ainews.txt
+scripts/fix_volume.py
+scripts/check_mounts.py
+scripts/add_file_access.py
+scripts/exec_ainews.txt

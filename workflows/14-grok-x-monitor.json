@@ -110,7 +110,7 @@
       "typeVersion": 2,
       "position": [1300, 370],
       "parameters": {
-        "jsCode": "const gpt = $input.first().json;\nconst post = gpt.choices?.[0]?.message?.content?.trim() || '';\nconst id = 'grok_' + Date.now() + '_' + Math.random().toString(36).slice(2,7);\nreturn [{ json: { post, id } }];"
+        "jsCode": "const gpt = $input.first().json;\nlet post = gpt.choices?.[0]?.message?.content?.trim() || '';\n// Ensure @studiyaCHE signature at the end\npost = post.replace(/@studiyaCHE\\s*$/i, '').trim();\npost += '\\n\\n@studiyaCHE';\nconst id = 'grok_' + Date.now() + '_' + Math.random().toString(36).slice(2,7);\nreturn [{ json: { post, id } }];"
       }
     },
     {

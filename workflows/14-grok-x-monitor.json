@@ -1,0 +1,184 @@
+{
+  "name": "14-grok-x-monitor",
+  "id": "grok-monitor-001",
+  "active": true,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "nodes": [
+    {
+      "id": "gx1",
+      "name": "2x Daily",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [200, 300],
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 11,18 * * *"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "gx1b",
+      "name": "Manual Trigger",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [200, 440],
+      "webhookId": "trigger-grok",
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "trigger-grok",
+        "responseMode": "onReceived",
+        "options": {}
+      }
+    },
+    {
+      "id": "gx2",
+      "name": "Prep Grok Body",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [420, 370],
+      "parameters": {
+        "jsCode": "const HANDLES = [\n  // AI labs\n  'OpenAI','AnthropicAI','GoogleDeepMind','MistralAI','xai','Meta','nvidia',\n  // Founders/researchers\n  'sama','ylecun','DarioAmodei','karpathy','demishassabis','drjimfan','sundarpichai',\n  // Video AI\n  'runwayml','LumaLabsAI','Kling_ai','KLING_AI','midjourney','HeyGen_Official','pika_labs','HailuoAI_MiniMax','GenmoAI',\n  // Audio AI\n  'suno_ai_','ElevenLabsIO',\n  // Image / dev\n  'StabilityAI','blackforestlabs','ideogram_ai',\n  // News/analysts\n  'rowancheung','DrJimFan'\n];\n\nconst handlesList = HANDLES.join(', @');\nconst store = $getWorkflowStaticData('global');\nconst lastCheck = store.grokLastCheck || new Date(Date.now() - 12*3600*1000).toISOString();\nconst now = new Date().toISOString();\nstore.grokLastCheck = now;\n\nconst instruction = `Найди ЗНАЧИМЫЕ AI-новости за последние 12 часов (с ${lastCheck.slice(0,16)}) от X-аккаунтов: @${handlesList}. Интересуют ТОЛЬКО:\\n- новые релизы моделей (видео, аудио, изображения, LLM)\\n- новые фичи и обновления ИИ-инструментов\\n- анонсы продуктов\\n- значимые технические демо\\n\\nИгнорируй:\\n- личные мнения без релиза\\n- мемы, шутки\\n- рекламу событий без продукта\\n- общие размышления\\n\\nДля каждой найденной новости сделай web-поиск чтобы добрать контекст (что это за продукт, ссылки, цена, дата).\\n\\nВерни СТРОГО JSON: {\\n  \"posts\": [\\n    {\\n      \"headline\": \"короткий заголовок до 80 символов\",\\n      \"source\": \"@handle\",\\n      \"source_url\": \"ссылка на X-пост\",\\n      \"summary\": \"2-3 предложения: что произошло, какие возможности\",\\n      \"why_relevant\": \"1 предложение почему это важно для видеомейкера / контент-мейкера\",\\n      \"extra_links\": [\"опциональные доп.ссылки на блог/сайт\"]\\n    }\\n  ]\\n}\\n\\nМаксимум 4 поста. Если ничего значимого — {\"posts\": []}.`;\n\nconst body = JSON.stringify({\n  model: 'grok-4-fast-reasoning',\n  input: instruction,\n  tools: [\n    { type: 'web_search' },\n    { type: 'x_search' }\n  ]\n});\n\nreturn [{ json: { body } }];"
+      }
+    },
+    {
+      "id": "gx3",
+      "name": "Call Grok",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [640, 370],
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.x.ai/v1/responses",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "Authorization", "value": "={{ 'Bearer ' + $env.XAI_API_KEY }}" },
+            { "name": "Content-Type", "value": "application/json" }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "application/json",
+        "body": "={{ $json.body }}",
+        "options": { "timeout": 180000 }
+      }
+    },
+    {
+      "id": "gx4",
+      "name": "Parse Posts",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [860, 370],
+      "parameters": {
+        "jsCode": "const data = $input.first().json;\nconst output = data.output || [];\n\n// Find the message output (not tool calls)\nlet jsonText = '';\nfor (const o of output) {\n  if (o.type === 'message' && Array.isArray(o.content)) {\n    for (const c of o.content) {\n      if (c.type === 'output_text' && c.text) {\n        jsonText = c.text;\n        break;\n      }\n    }\n  }\n  if (jsonText) break;\n}\n\nif (!jsonText) return [];\n\n// Strip markdown fences if any\njsonText = jsonText.replace(/```json\\s*/g, '').replace(/```\\s*$/g, '').trim();\n\nlet parsed;\ntry { parsed = JSON.parse(jsonText); } catch(e) { return []; }\n\nconst posts = parsed.posts || [];\nif (!posts.length) return [];\n\n// Dedupe against previously sent posts (by headline)\nconst store = $getWorkflowStaticData('global');\nif (!store.sentGrokPosts) store.sentGrokPosts = [];\nconst sentSet = new Set(store.sentGrokPosts);\nconst fresh = posts.filter(p => p.headline && !sentSet.has(p.headline.toLowerCase().slice(0, 60)));\n\nfor (const p of fresh) {\n  store.sentGrokPosts.push(p.headline.toLowerCase().slice(0, 60));\n}\nif (store.sentGrokPosts.length > 200) store.sentGrokPosts = store.sentGrokPosts.slice(-200);\n\nreturn fresh.map(p => ({ json: p }));"
+      }
+    },
+    {
+      "id": "gx5",
+      "name": "Format via GPT",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1080, 370],
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.openai.com/v1/chat/completions",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "Authorization", "value": "={{ 'Bearer ' + $env.OPENAI_API_KEY }}" },
+            { "name": "Content-Type", "value": "application/json" }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "application/json",
+        "body": "={{ JSON.stringify({ model: 'gpt-4o-mini', messages: [{ role: 'system', content: 'Ты пишешь за Дениса Видякова пост для Telegram-канала Студия ЧЕ (видеомонтаж и нейросети). От первого лица, живой экспертный тон, короткие предложения, без канцелярита. Пост = одна новость. Формат:\\n- Первая строка: эмодзи + заголовок\\n- Пустая строка\\n- 2-3 предложения сути от первого лица («увидел», «попробую», «беру в работу»)\\n- Пустая строка\\n- Одна строка: почему это интересно для видеомейкера/создателя контента\\n- Пустая строка\\n- Ссылка (если есть)\\nОбщая длина — до 500 символов. Только обычный текст без Markdown.' }, { role: 'user', content: 'Новость: ' + ($json.headline||'') + '\\nИсточник: ' + ($json.source||'') + '\\nСсылка: ' + ($json.source_url||'') + '\\nСуть: ' + ($json.summary||'') + '\\nЗначимость: ' + ($json.why_relevant||'') }], max_tokens: 400 }) }}",
+        "options": { "timeout": 60000 }
+      }
+    },
+    {
+      "id": "gx6",
+      "name": "Build Final",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1300, 370],
+      "parameters": {
+        "jsCode": "const gpt = $input.first().json;\nconst post = gpt.choices?.[0]?.message?.content?.trim() || '';\nconst id = 'grok_' + Date.now() + '_' + Math.random().toString(36).slice(2,7);\nreturn [{ json: { post, id } }];"
+      }
+    },
+    {
+      "id": "gx7",
+      "name": "Save Pending",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1520, 370],
+      "parameters": {
+        "method": "POST",
+        "url": "https://mycheagent.ru/webhook/pwa-data",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [{ "name": "Content-Type", "value": "application/json" }]
+        },
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "application/json",
+        "body": "={{ JSON.stringify({ action: 'savePending', id: $json.id, text: $json.post }) }}",
+        "options": { "response": { "response": { "neverError": true } } }
+      }
+    },
+    {
+      "id": "gx8",
+      "name": "Send TG",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1740, 370],
+      "parameters": {
+        "method": "POST",
+        "url": "={{ 'https://api.telegram.org/bot' + $env.TELEGRAM_BOT_TOKEN + '/sendMessage' }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [{ "name": "Content-Type", "value": "application/json" }]
+        },
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "application/json",
+        "body": "={{ JSON.stringify({ chat_id: 211279650, text: $('Build Final').first().json.post, reply_markup: { inline_keyboard: [[ { text: '✅ Опубликовать в канал', callback_data: 'channel:' + $('Build Final').first().json.id }, { text: '❌ Пропустить', callback_data: 'channel_skip:' + $('Build Final').first().json.id } ]] } }) }}",
+        "options": {}
+      }
+    }
+  ],
+  "connections": {
+    "2x Daily": {
+      "main": [[{ "node": "Prep Grok Body", "type": "main", "index": 0 }]]
+    },
+    "Manual Trigger": {
+      "main": [[{ "node": "Prep Grok Body", "type": "main", "index": 0 }]]
+    },
+    "Prep Grok Body": {
+      "main": [[{ "node": "Call Grok", "type": "main", "index": 0 }]]
+    },
+    "Call Grok": {
+      "main": [[{ "node": "Parse Posts", "type": "main", "index": 0 }]]
+    },
+    "Parse Posts": {
+      "main": [[{ "node": "Format via GPT", "type": "main", "index": 0 }]]
+    },
+    "Format via GPT": {
+      "main": [[{ "node": "Build Final", "type": "main", "index": 0 }]]
+    },
+    "Build Final": {
+      "main": [[{ "node": "Save Pending", "type": "main", "index": 0 }]]
+    },
+    "Save Pending": {
+      "main": [[{ "node": "Send TG", "type": "main", "index": 0 }]]
+    }
+  },
+  "versionId": "d0000001-0000-0000-0000-000000000014"
+}

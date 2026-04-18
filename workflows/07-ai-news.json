@@ -117,7 +117,7 @@
         300
       ],
       "parameters": {
-        "jsCode": "const res = $input.first().json;\nconst textBlock = res.content ? res.content.find(c => c.type === 'text') : null;\nif (!textBlock) return [{ json: { ok: false, error: 'no text block' } }];\nconst post = textBlock.text.trim();\nconst id = 'digest_' + Date.now();\nreturn [{ json: { post, id } }];"
+        "jsCode": "const res = $input.first().json;\nconst textBlock = res.content ? res.content.find(c => c.type === 'text') : null;\nif (!textBlock) return [{ json: { ok: false, error: 'no text block' } }];\nlet post = textBlock.text.trim();\npost = post.replace(/@studiyaCHE\\s*$/i, '').trim();\npost += '\\n\\n@studiyaCHE';\nconst id = 'digest_' + Date.now();\nreturn [{ json: { post, id } }];"
       }
     },
     {

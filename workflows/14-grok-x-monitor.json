@@ -88,18 +88,19 @@
       "position": [1080, 370],
       "parameters": {
         "method": "POST",
-        "url": "https://api.openai.com/v1/chat/completions",
+        "url": "https://api.anthropic.com/v1/messages",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
-            { "name": "Authorization", "value": "={{ 'Bearer ' + $env.OPENAI_API_KEY }}" },
+            { "name": "x-api-key", "value": "={{ $env.ANTHROPIC_DIRECT_KEY }}" },
+            { "name": "anthropic-version", "value": "2023-06-01" },
             { "name": "Content-Type", "value": "application/json" }
           ]
         },
         "sendBody": true,
         "contentType": "raw",
         "rawContentType": "application/json",
-        "body": "={{ JSON.stringify({ model: 'gpt-4o-mini', messages: [{ role: 'system', content: 'Ты пишешь краткий новостной пост для Telegram-канала Студия ЧЕ (видеомонтаж и нейросети). НИКАКОГО первого лица — это НЕ от имени автора, это чистая новость. Пиши в третьем лице, фактологично, без «я», «мы», «увидел», «попробую», «беру в работу». Без воды, без личных комментариев. Тон — как короткая новостная сводка в СМИ.\\n\\nФормат:\\n- Первая строка: эмодзи + заголовок (до 80 символов)\\n- Пустая строка\\n- 2-3 предложения сути: ЧТО произошло, КТО сделал, КАКИЕ возможности даёт. Цифры, факты, имена продуктов.\\n- Пустая строка\\n- Одна короткая строка: «Что это даёт видеомейкерам:» или «Чем интересно для контента:» + 1 предложение\\n- Пустая строка\\n- Ссылка (если есть)\\n\\nДлина 400-600 символов. Обычный текст без Markdown. Без эмодзи кроме первой строки.' }, { role: 'user', content: 'Новость: ' + ($json.headline||'') + '\\nИсточник: ' + ($json.source||'') + '\\nСсылка: ' + ($json.source_url||'') + '\\nСуть: ' + ($json.summary||'') + '\\nЗначимость: ' + ($json.why_relevant||'') }], max_tokens: 400 }) }}",
+        "body": "={{ JSON.stringify({ model: 'claude-haiku-4-5-20251001', max_tokens: 500, system: 'Ты пишешь краткий новостной пост для Telegram-канала Студия ЧЕ (видеомонтаж и нейросети). НИКАКОГО первого лица — это НЕ от имени автора, это чистая новость. Пиши в третьем лице, фактологично, без «я», «мы», «увидел», «попробую», «беру в работу». Без воды, без личных комментариев. Тон — как короткая новостная сводка в СМИ.\\n\\nФормат:\\n- Первая строка: эмодзи + заголовок (до 80 символов)\\n- Пустая строка\\n- 2-3 предложения сути: ЧТО произошло, КТО сделал, КАКИЕ возможности даёт. Цифры, факты, имена продуктов.\\n- Пустая строка\\n- Одна короткая строка: «Что это даёт видеомейкерам:» или «Чем интересно для контента:» + 1 предложение\\n- Пустая строка\\n- Ссылка (если есть)\\n\\nДлина 400-600 символов. Обычный текст без Markdown. Без эмодзи кроме первой строки.', messages: [{ role: 'user', content: 'Новость: ' + ($json.headline||'') + '\\nИсточник: ' + ($json.source||'') + '\\nСсылка: ' + ($json.source_url||'') + '\\nСуть: ' + ($json.summary||'') + '\\nЗначимость: ' + ($json.why_relevant||'') }] }) }}",
         "options": { "timeout": 60000 }
       }
     },
@@ -110,7 +111,7 @@
       "typeVersion": 2,
       "position": [1300, 370],
       "parameters": {
-        "jsCode": "const gpt = $input.first().json;\nlet post = gpt.choices?.[0]?.message?.content?.trim() || '';\n// Ensure @studiyaCHE signature at the end\npost = post.replace(/@studiyaCHE\\s*$/i, '').trim();\npost += '\\n\\n@studiyaCHE';\nconst id = 'grok_' + Date.now() + '_' + Math.random().toString(36).slice(2,7);\nreturn [{ json: { post, id } }];"
+        "jsCode": "const res = $input.first().json;\n// Claude API returns content array\nlet post = '';\nif (res.content && Array.isArray(res.content)) {\n  const textBlock = res.content.find(c => c.type === 'text');\n  post = textBlock?.text?.trim() || '';\n} else if (res.choices) {\n  post = res.choices?.[0]?.message?.content?.trim() || '';\n}\npost = post.replace(/@studiyaCHE\\s*$/i, '').trim();\npost += '\\n\\n@studiyaCHE';\nconst id = 'grok_' + Date.now() + '_' + Math.random().toString(36).slice(2,7);\nreturn [{ json: { post, id } }];"
       }
     },
     {

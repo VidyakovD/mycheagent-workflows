@@ -39,50 +39,45 @@
     },
     {
       "id": "ch2",
-      "name": "Prep Grok Body",
-      "type": "n8n-nodes-base.code",
-      "typeVersion": 2,
+      "name": "Fetch Channel Style",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
       "position": [420, 370],
       "parameters": {
-        "jsCode": "const SOURCES = [\n  // Главные новостные порталы Челябинска\n  '74.ru','chelyabinsk.ru','1obl.ru','cheltv.ru','uralpress.ru','vecherka.su','mediazavod.ru','obzor174.ru','up74.ru','argumenti74.ru','kursdela.biz','chelindustry.ru','first.74.ru','livecheb.ru','chel-portal.ru','pg74.ru','sd74.ru',\n  // Региональные и федеральные с Челябинском\n  'znak.com','ura.news','nakanune.ru','rbc.ru/urals','chelyabinsk.rbc.ru','chel.aif.ru','chel.kp.ru','chel.sm-news.ru','mkchel.ru','m.mkchel.ru','tass.ru','ria.ru','interfax-russia.ru/ural','kommersant.ru','vedomosti.ru','gazeta.ru',\n  // Официальные\n  'pravmin.gov74.ru','gov74.ru','chgorduma.ru','cheladmin.ru','minprom.gov74.ru','minkult.gov74.ru','minstroy.gov74.ru','minobr74.ru','minselhoz.gov74.ru','minsoc74.ru','minzdrav.gov74.ru','minsport.gov74.ru','minpromtorg.gov74.ru','minprir.gov74.ru','minfin74.ru',\n  // Университеты\n  'susu.ru','csu.ru','chel-gu.ru','uusu.ru','cspa.ru','chgik.ru','chelgma.ru','agroacadem.ru','chipskurort.ru',\n  // Спортклубы Челябинска\n  'traktor.ru','metallurg-mg.ru','fc-chelyabinsk.ru','vc-torpedo.ru','hc-traktor.ru','bc-chelyabinsk.ru',\n  // Бизнес / промышленность\n  'mmk.ru','cmk.ru','chtpz.ru','chtpz.com','chmz.ru','chtz-uraltrac.ru','chelpipe.ru','chelpro.ru','chelpipe.com',\n  // Культура / события\n  'teatrpushkin-chel.ru','chelopera.ru','teatrcheludi.ru','chelmuseum.ru','chelfilarm.ru','bibl.chel.ru','chelpublib.ru',\n  // Транспорт / инфраструктура\n  'chelaero.ru','chelavto.ru','rzd.ru/chel','gtp.su','chmpz.ru',\n  // Туризм / экология\n  'visitchelyabinsk.ru','park-zuratkul.ru','taganay.org','ilmeny.ac.ru','chelpriroda.ru',\n  // Молодёжь / сообщество\n  'chelyabinskmolodezh.ru','volunteer.chel.ru','molodezh74.ru','mol.gov74.ru',\n  // Telegram / VK публичные паблики (искать через web_search по названиям)\n  'vk.com/chelyabinsk','vk.com/che74_public','t.me/uralweek','t.me/znak_cheb','t.me/chelyabinsk_today','t.me/che_main','t.me/chelyabinsk_news','t.me/cheltv_online','t.me/pg74ru','t.me/pravitelstvo_74'\n];\n\nconst today = new Date().toLocaleDateString('ru-RU', {day:'numeric',month:'long',year:'numeric'});\nconst since = new Date(Date.now() - 24*3600*1000).toISOString().slice(0,16);\nconst sourcesList = SOURCES.slice(0, 120).join(', ');\n\nconst instruction = `Найди ХОРОШИЕ, ПОЗИТИВНЫЕ новости про Челябинск и Челябинскую область за последние 24 часа (с ${since}). Сегодня ${today}.\\n\\nСДЕЛАЙ ЧЕРЕЗ web_search МИНИМУМ 5 РАЗЛИЧНЫХ ПОИСКОВЫХ ЗАПРОСОВ, чтобы покрыть не менее 100 источников. Примеры запросов:\\n- \"Челябинск новости сегодня\"\\n- \"Челябинская область достижения\"\\n- \"site:74.ru Челябинск\"\\n- \"Челябинск открытие\"\\n- \"Челябинск культура\"\\n- \"Челябинск наука\"\\n- \"Челябинск спорт победа\"\\n- \"Челябинск благоустройство\"\\n- \"Челябинск бизнес открытие\"\\n- \"Челябинск экология\"\\n- \"ЮУрГУ\", \"ЧелГУ\", \"Трактор\"\\n\\nПРИОРИТЕТНЫЕ ИСТОЧНИКИ (ищи прежде всего там): ${sourcesList}\\n\\nТЕМАТИКА — что собираем:\\n- Открытия объектов (парки, школы, больницы, магазины, производства)\\n- Достижения жителей (спорт, наука, культура, творчество, благотворительность)\\n- Культурные события (концерты, выставки, фестивали, премьеры)\\n- Научные успехи (университеты, разработки, гранты)\\n- Городские улучшения (благоустройство, дороги, транспорт, парки, ремонт)\\n- Бизнес-рост (новые производства, стартапы, инвестиции, экспорт)\\n- Экология (улучшения воздуха, высадка деревьев, очистка рек)\\n- Образование (открытие школ/садов, победы учеников)\\n- Социальные инициативы (волонтёры, помощь, семьи, здоровье)\\n- Спортивные победы (Трактор, Металлург, ФК Челябинск, индивидуальные спортсмены)\\n- Инфраструктура (аэропорт, метро-трамвай, дороги, мосты)\\n- Туризм и внутренние поездки по Южному Уралу\\n\\nКАТЕГОРИЧЕСКИ ИСКЛЮЧАЙ:\\n- Криминал, убийства, грабежи, аварии ДТП, пожары, катастрофы\\n- ЧП, травмы, смерти, происшествия\\n- Коррупция, скандалы, аресты, уголовные дела\\n- Жалобы жителей, протесты, конфликты\\n- Политические споры, санкции, мобилизация\\n- Плохая погода как проблема (смог, снегопад-коллапс)\\n- Рост цен, экономические проблемы, увольнения\\n\\nДля каждой значимой позитивной новости сделай дополнительный web_search чтобы собрать детали (что именно, когда, кто участвовал, цифры).\\n\\nВерни СТРОГО JSON:\\n{\\n  \"posts\": [\\n    {\\n      \"headline\": \"короткий заголовок до 80 символов\",\\n      \"category\": \"одна из: открытие / спорт / культура / наука / благоустройство / бизнес / экология / образование / соц.инициатива / туризм\",\\n      \"source_url\": \"ссылка на первоисточник\",\\n      \"source_name\": \"название издания\",\\n      \"summary\": \"2-3 предложения о том что произошло: факты, даты, имена, цифры\",\\n      \"why_good\": \"1 предложение почему это важная хорошая новость для жителей Челябинска\"\\n    }\\n  ]\\n}\\n\\nКоличество постов: сколько нашлось хороших, 3-8 штук. Главное КАЧЕСТВО — только действительно значимые и позитивные. Если за сутки ничего достойного — {\"posts\": []}.`;\n\nconst body = JSON.stringify({\n  model: 'grok-4-fast-reasoning',\n  input: instruction,\n  tools: [\n    { type: 'web_search' },\n    { type: 'x_search' }\n  ]\n});\n\nreturn [{ json: { body } }];"
+        "method": "GET",
+        "url": "https://t.me/s/che_v_che",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "User-Agent", "value": "Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)" }
+          ]
+        },
+        "options": { "response": { "response": { "neverError": true } }, "timeout": 30000 }
       }
     },
     {
       "id": "ch3",
-      "name": "Call Grok",
-      "type": "n8n-nodes-base.httpRequest",
-      "typeVersion": 4.2,
+      "name": "Extract Style",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
       "position": [640, 370],
       "parameters": {
-        "method": "POST",
-        "url": "https://api.x.ai/v1/responses",
-        "sendHeaders": true,
-        "headerParameters": {
-          "parameters": [
-            { "name": "Authorization", "value": "={{ 'Bearer ' + $env.XAI_API_KEY }}" },
-            { "name": "Content-Type", "value": "application/json" }
-          ]
-        },
-        "sendBody": true,
-        "contentType": "raw",
-        "rawContentType": "application/json",
-        "body": "={{ $json.body }}",
-        "options": { "timeout": 240000 }
+        "jsCode": "const raw = $input.first().json;\nconst html = typeof raw === 'string' ? raw : (raw.data || raw.body || JSON.stringify(raw));\n\n// Extract posts from Telegram public preview HTML\n// Each post is in <div class=\"tgme_widget_message_text js-message_text\" ... >TEXT</div>\nconst postRegex = /<div[^>]*class=\"[^\"]*tgme_widget_message_text[^\"]*\"[^>]*>([\\s\\S]*?)<\\/div>/g;\nconst posts = [];\nlet m;\nwhile ((m = postRegex.exec(html)) !== null && posts.length < 15) {\n  let txt = m[1]\n    .replace(/<br\\s*\\/?>/gi, '\\n')\n    .replace(/<a[^>]*>([\\s\\S]*?)<\\/a>/g, '$1')\n    .replace(/<[^>]+>/g, '')\n    .replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '\\\"').replace(/&#39;/g, \"'\").replace(/&nbsp;/g, ' ')\n    .trim();\n  if (txt.length > 40) posts.push(txt.slice(0, 600));\n}\n\n// Fallback if no posts found\nlet styleRef = '';\nif (posts.length) {\n  styleRef = posts.slice(0, 10).map((p,i) => '--- Пример ' + (i+1) + ' ---\\n' + p).join('\\n\\n');\n} else {\n  styleRef = '(Канал пока без постов. Пиши тёплым городским тоном, как будто рассказываешь соседу хорошую новость о родном городе. Без пафоса, без казённого языка. Короткие предложения, конкретика, уважение к читателю.)';\n}\n\nreturn [{ json: { styleRef, sampleCount: posts.length } }];"
       }
     },
     {
       "id": "ch4",
-      "name": "Parse Posts",
+      "name": "Prep Research Body",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [860, 370],
       "parameters": {
-        "jsCode": "const data = $input.first().json;\nconst output = data.output || [];\n\nlet jsonText = '';\nfor (const o of output) {\n  if (o.type === 'message' && Array.isArray(o.content)) {\n    for (const c of o.content) {\n      if (c.type === 'output_text' && c.text) {\n        jsonText = c.text;\n        break;\n      }\n    }\n  }\n  if (jsonText) break;\n}\n\nif (!jsonText) return [];\n\njsonText = jsonText.replace(/```json\\s*/g, '').replace(/```\\s*$/g, '').trim();\n\nlet parsed;\ntry { parsed = JSON.parse(jsonText); } catch(e) { return []; }\n\nconst posts = parsed.posts || [];\nif (!posts.length) return [];\n\nfunction normalize(s) {\n  return (s || '').toLowerCase()\n    .replace(/[^a-zа-я0-9\\s]/gi, ' ')\n    .replace(/\\s+/g, ' ')\n    .trim()\n    .slice(0, 50);\n}\n\nconst store = $getWorkflowStaticData('global');\nif (!store.sentChelPosts) store.sentChelPosts = [];\nconst sentSet = new Set(store.sentChelPosts);\n\nconst seenInRun = new Set();\nconst fresh = [];\nfor (const p of posts) {\n  if (!p.headline) continue;\n  const key = normalize(p.headline);\n  if (!key || key.length < 5) continue;\n  if (sentSet.has(key) || seenInRun.has(key)) continue;\n  seenInRun.add(key);\n  fresh.push(p);\n  store.sentChelPosts.push(key);\n}\n\nif (store.sentChelPosts.length > 500) store.sentChelPosts = store.sentChelPosts.slice(-500);\n\nreturn fresh.map(p => ({ json: p }));"
+        "jsCode": "const styleRef = $input.first().json.styleRef;\nconst today = new Date().toLocaleDateString('ru-RU', {day:'numeric',month:'long',year:'numeric'});\nconst since = new Date(Date.now() - 24*3600*1000).toLocaleString('ru-RU');\n\nconst SOURCES_HINT = [\n  '74.ru','chelyabinsk.ru','1obl.ru','cheltv.ru','uralpress.ru','vecherka.su','mediazavod.ru','obzor174.ru','up74.ru','argumenti74.ru','kursdela.biz','chelindustry.ru','first.74.ru','livecheb.ru','chel-portal.ru','pg74.ru',\n  'znak.com','ura.news','nakanune.ru','chelyabinsk.rbc.ru','rbc.ru/urals','chel.aif.ru','chel.kp.ru','mkchel.ru','m.mkchel.ru','tass.ru/ural','ria.ru','interfax-russia.ru/ural','kommersant.ru','vedomosti.ru','gazeta.ru','pravmin.gov74.ru','gov74.ru','chgorduma.ru','cheladmin.ru','minkult.gov74.ru','minobr74.ru','minsport.gov74.ru','minpromtorg.gov74.ru','minstroy.gov74.ru','minsoc74.ru','minsel.gov74.ru','minzdrav.gov74.ru','susu.ru','csu.ru','chelgma.ru','uusu.ru','cspa.ru','chgik.ru','traktor.ru','metallurg-mg.ru','fc-chelyabinsk.ru','bc-chelyabinsk.ru','hc-traktor.ru','mmk.ru','chtpz.ru','chtz-uraltrac.ru','chmk.ru','chmz.ru','teatrpushkin-chel.ru','chelopera.ru','teatrcheludi.ru','chelmuseum.ru','chelfilarm.ru','bibl.chel.ru','chelaero.ru','visitchelyabinsk.ru','park-zuratkul.ru','taganay.org','ilmeny.ac.ru','molodezh74.ru','volunteer.chel.ru','vk.com/chelyabinsk','vk.com/che74_public','t.me/s/uralweek','t.me/s/znak_cheb','t.me/s/chelyabinsk_today','t.me/s/che_main','t.me/s/chelyabinsk_news','t.me/s/cheltv_online','t.me/s/pg74ru','t.me/s/pravitelstvo_74','t.me/s/Mahonin74','chelovek-online.ru','insider74.ru','chelyabinsk-news.net','74online.ru','news.rambler.ru/chelyabinsk','lenta.ru/tags/geo/chelyabinsk','russian.rt.com/chelyabinsk','smi2.ru/chelyabinsk','rosbalt.ru/ural','e1.ru/chelyabinsk','regnum.ru/rubric/chelyabinsk','newdaynews.ru/urfo/chelyabinsk','kchetverg.ru','gorodskieizvestia.ru','vkchel.ru','360tv.ru/chelyabinsk','5-tv.ru/news/tag/chelyabinsk','zvezdacheltv.ru','otr-online.ru','mir24.tv/tag/chelyabinsk'\n];\n\nconst instruction = 'Твоя задача — собрать свежие позитивные новости про Челябинск и Челябинскую область за последние 24 часа (с ' + since + '). Сегодня ' + today + '.\\n\\nКРИТИЧЕСКИ ВАЖНО: сделай НЕ МЕНЕЕ 10 РАЗЛИЧНЫХ веб-поисковых запросов, чтобы суммарно обойти минимум 100 источников. Варьируй запросы: по тематикам, по конкретным изданиям, по именам и событиям.\\n\\nПримеры запросов (делай похожие и свои):\\n- \"Челябинск новости сегодня\"\\n- \"Челябинская область открытие\"\\n- \"Челябинск достижения site:74.ru\"\\n- \"ЮУрГУ новости\"\\n- \"ХК Трактор победа\"\\n- \"Челябинск благоустройство\"\\n- \"Челябинск культура премьера\"\\n- \"Челябинск стартап\"\\n- \"Челябинск парк открытие\"\\n- \"Министерство культуры Челябинск\"\\n- Запросы по конкретным районам: Тракторозаводский, Центральный, Курчатовский, Ленинский, Металлургический, Советский, Калининский\\n- Запросы по городам области: Магнитогорск, Златоуст, Миасс, Копейск, Троицк, Озёрск, Снежинск\\n\\nПРИОРИТЕТНЫЕ САЙТЫ (охвати как можно больше): ' + SOURCES_HINT.join(', ') + '\\n\\nЧТО СОБИРАЕМ (только ХОРОШЕЕ):\\n- Открытия: парки, школы, сады, больницы, производства, магазины, дороги, объекты\\n- Спортивные победы команд и спортсменов\\n- Культура: премьеры, концерты, выставки, фестивали, киноленты\\n- Наука и образование: университеты, гранты, разработки, олимпиады, победы учеников\\n- Благоустройство: ремонт дорог/дворов, новые скверы, детские площадки, дорожная техника\\n- Бизнес: новые производства, инвестиции, экспорт, стартапы\\n- Экология: озеленение, очистка рек, улучшение воздуха, заповедники\\n- Социальные инициативы: волонтёры, помощь семьям, акции, благотворительность\\n- Инфраструктура: аэропорт, транспорт, метро-трамвай, мосты\\n- Туризм: Таганай, Зюраткуль, Ильмены, город-поездки\\n- Жители города: истории добрых дел, яркие персоны\\n\\nКАТЕГОРИЧЕСКИ ИСКЛЮЧАЙ (ни слова об этом):\\n- Криминал, аварии, пожары, ЧП, смерти, травмы\\n- Коррупцию, аресты, скандалы, уголовные дела\\n- Жалобы, протесты, конфликты\\n- Политические споры, мобилизацию, санкции\\n- Рост цен, экономические проблемы\\n- Погодные коллапсы, смог\\n\\nДля каждой найденной позитивной новости сделай дополнительный поиск чтобы собрать детали (цифры, даты, имена, конкретика).\\n\\nВерни СТРОГО JSON (без markdown fences, только чистый JSON):\\n{\\n  \"searched_count\": число (сколько веб-запросов сделал суммарно),\\n  \"posts\": [\\n    {\\n      \"category\": \"открытие|спорт|культура|наука|благоустройство|бизнес|экология|образование|соц.инициатива|туризм|люди\",\\n      \"headline\": \"короткий заголовок до 80 символов\",\\n      \"summary\": \"2-3 предложения фактов: ЧТО, КОГДА, ГДЕ, КТО. Цифры и имена.\",\\n      \"why_good\": \"1 предложение — что это даёт городу и жителям\",\\n      \"source_name\": \"название издания\",\\n      \"source_url\": \"ссылка на первоисточник\"\\n    }\\n  ]\\n}\\n\\nКачество важнее количества. Ищи по-настоящему заметные позитивные новости: 3-8 штук. Если реально хороших меньше — меньше. Если сутки пустые — {\"posts\": []}.';\n\nconst body = JSON.stringify({\n  model: 'claude-opus-4-6',\n  max_tokens: 8000,\n  tools: [\n    { type: 'web_search_20250305', name: 'web_search', max_uses: 25 }\n  ],\n  messages: [\n    { role: 'user', content: instruction }\n  ]\n});\n\nreturn [{ json: { body, styleRef: styleRef } }];"
       }
     },
     {
       "id": "ch5",
-      "name": "Format via Claude",
+      "name": "Call Claude Research",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [1080, 370],
@@ -100,26 +95,60 @@
         "sendBody": true,
         "contentType": "raw",
         "rawContentType": "application/json",
-        "body": "={{ JSON.stringify({ model: 'claude-haiku-4-5-20251001', max_tokens: 500, system: 'Ты пишешь короткий новостной пост про Челябинск для Telegram-канала @che_v_che — канал позитивных городских новостей.\\n\\nСТИЛЬ:\\n- Тёплый, живой, по-городскому — как будто рассказываешь соседу новость за чашкой чая. Без пафоса, без канцелярита, без «дорогие земляки».\\n- Третье лицо, фактологично. НЕ от имени автора.\\n- Без эмодзи кроме первой строки заголовка.\\n- Никакого негатива в тексте, даже контекстно. Только хорошее.\\n\\nФормат:\\n- Первая строка: эмодзи по категории (🏗️ открытие, 🏒 спорт, 🎭 культура, 🔬 наука, 🌳 благоустройство, 💼 бизнес, 🍃 экология, 🎓 образование, 🤝 соц.инициатива, 🗻 туризм) + короткий заголовок до 80 символов\\n- Пустая строка\\n- 2-3 предложения сути: что произошло, когда, кто/где, конкретные детали, цифры\\n- Пустая строка\\n- Одна короткая строка «Почему это хорошо для города:» + 1 предложение\\n- Пустая строка\\n- Ссылка на источник (если есть)\\n\\nДлина 400-600 символов. Только обычный текст, никакого Markdown.', messages: [{ role: 'user', content: 'Новость: ' + ($json.headline||'') + '\\nКатегория: ' + ($json.category||'') + '\\nИсточник: ' + ($json.source_name||'') + '\\nСсылка: ' + ($json.source_url||'') + '\\nСуть: ' + ($json.summary||'') + '\\nПочему хорошо: ' + ($json.why_good||'') }] }) }}",
-        "options": { "timeout": 60000 }
+        "body": "={{ $json.body }}",
+        "options": { "timeout": 300000 }
       }
     },
     {
       "id": "ch6",
-      "name": "Build Final",
+      "name": "Parse Posts",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [1300, 370],
+      "parameters": {
+        "jsCode": "const res = $input.first().json;\nconst content = res.content || [];\n\n// Last text block contains final answer\nlet jsonText = '';\nfor (const c of content.slice().reverse()) {\n  if (c.type === 'text' && c.text) {\n    jsonText = c.text;\n    break;\n  }\n}\n\nif (!jsonText) return [];\n\njsonText = jsonText.replace(/```json\\s*/g, '').replace(/```\\s*$/g, '').trim();\n// Extract first JSON object if there's surrounding text\nconst jm = jsonText.match(/\\{[\\s\\S]*\\}/);\nif (jm) jsonText = jm[0];\n\nlet parsed;\ntry { parsed = JSON.parse(jsonText); } catch(e) { return []; }\n\nconst posts = parsed.posts || [];\nconst searchedCount = parsed.searched_count || 0;\nif (!posts.length) return [];\n\nfunction normalize(s) {\n  return (s || '').toLowerCase()\n    .replace(/[^a-zа-я0-9\\s]/gi, ' ')\n    .replace(/\\s+/g, ' ')\n    .trim()\n    .slice(0, 50);\n}\n\nconst store = $getWorkflowStaticData('global');\nif (!store.sentChelPosts) store.sentChelPosts = [];\nconst sentSet = new Set(store.sentChelPosts);\n\nconst styleRef = $('Prep Research Body').first().json.styleRef || '';\nconst seenInRun = new Set();\nconst fresh = [];\nfor (const p of posts) {\n  if (!p.headline) continue;\n  const key = normalize(p.headline);\n  if (!key || key.length < 5) continue;\n  if (sentSet.has(key) || seenInRun.has(key)) continue;\n  seenInRun.add(key);\n  fresh.push({ ...p, styleRef, searchedCount });\n  store.sentChelPosts.push(key);\n}\n\nif (store.sentChelPosts.length > 500) store.sentChelPosts = store.sentChelPosts.slice(-500);\n\nreturn fresh.map(p => ({ json: p }));"
+      }
+    },
+    {
+      "id": "ch7",
+      "name": "Format in Author Tone",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1520, 370],
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.anthropic.com/v1/messages",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "x-api-key", "value": "={{ $env.ANTHROPIC_DIRECT_KEY }}" },
+            { "name": "anthropic-version", "value": "2023-06-01" },
+            { "name": "Content-Type", "value": "application/json" }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "application/json",
+        "body": "={{ JSON.stringify({ model: 'claude-haiku-4-5-20251001', max_tokens: 700, system: 'Ты пишешь короткий пост для Telegram-канала @che_v_che про Челябинск (только позитив). ГЛАВНОЕ — точно воспроизвести АВТОРСКИЙ ТОН канала. Внимательно изучи примеры его постов ниже и пиши ТАК ЖЕ: тот же лексикон, тот же ритм, та же длина, тот же характер заголовков и подписей, типичные обороты автора.\\n\\nЕсли авторский стиль однозначно узнаётся (фирменные фразы, обращения, эмодзи) — используй их. Не выдумывай, не подражай общему «новостному» стилю — воспроизводи конкретный стиль автора.\\n\\nПост — одна новость. Без Markdown. Без упоминания тебя, без «я ассистент». Длина примерно как у примеров (обычно 400-800 символов). В конце НЕ ставь @che_v_che — это добавит система.\\n\\n=== ПРИМЕРЫ ПОСТОВ АВТОРА ===\\n' + ($json.styleRef || '') + '\\n=== КОНЕЦ ПРИМЕРОВ ===', messages: [{ role: 'user', content: 'Напиши пост по этой новости в авторском тоне:\\n\\nКатегория: ' + ($json.category || '') + '\\nЗаголовок: ' + ($json.headline || '') + '\\nФакты: ' + ($json.summary || '') + '\\nЧем хорошо: ' + ($json.why_good || '') + '\\nИсточник: ' + ($json.source_name || '') + '\\nСсылка: ' + ($json.source_url || '') }] }) }}",
+        "options": { "timeout": 60000 }
+      }
+    },
+    {
+      "id": "ch8",
+      "name": "Build Final",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1740, 370],
       "parameters": {
         "jsCode": "const res = $input.first().json;\nlet post = '';\nif (res.content && Array.isArray(res.content)) {\n  const textBlock = res.content.find(c => c.type === 'text');\n  post = textBlock?.text?.trim() || '';\n}\npost = post.replace(/@che_v_che\\s*$/i, '').trim();\npost += '\\n\\n@che_v_che';\nconst id = 'chel_' + Date.now() + '_' + Math.random().toString(36).slice(2,7);\nreturn [{ json: { post, id } }];"
       }
     },
     {
-      "id": "ch7",
+      "id": "ch9",
       "name": "Send to Channel",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [1520, 370],
+      "position": [1960, 370],
       "parameters": {
         "method": "POST",
         "url": "={{ 'https://api.telegram.org/bot' + $env.TELEGRAM_BOT_TOKEN + '/sendMessage' }}",
@@ -135,11 +164,11 @@
       }
     },
     {
-      "id": "ch8",
+      "id": "ch10",
       "name": "Notify Denis",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [1740, 370],
+      "position": [2180, 370],
       "parameters": {
         "method": "POST",
         "url": "={{ 'https://api.telegram.org/bot' + $env.TELEGRAM_BOT_TOKEN + '/sendMessage' }}",
@@ -157,21 +186,27 @@
   ],
   "connections": {
     "Every Morning": {
-      "main": [[{ "node": "Prep Grok Body", "type": "main", "index": 0 }]]
+      "main": [[{ "node": "Fetch Channel Style", "type": "main", "index": 0 }]]
     },
     "Manual Trigger": {
-      "main": [[{ "node": "Prep Grok Body", "type": "main", "index": 0 }]]
+      "main": [[{ "node": "Fetch Channel Style", "type": "main", "index": 0 }]]
     },
-    "Prep Grok Body": {
-      "main": [[{ "node": "Call Grok", "type": "main", "index": 0 }]]
+    "Fetch Channel Style": {
+      "main": [[{ "node": "Extract Style", "type": "main", "index": 0 }]]
     },
-    "Call Grok": {
+    "Extract Style": {
+      "main": [[{ "node": "Prep Research Body", "type": "main", "index": 0 }]]
+    },
+    "Prep Research Body": {
+      "main": [[{ "node": "Call Claude Research", "type": "main", "index": 0 }]]
+    },
+    "Call Claude Research": {
       "main": [[{ "node": "Parse Posts", "type": "main", "index": 0 }]]
     },
     "Parse Posts": {
-      "main": [[{ "node": "Format via Claude", "type": "main", "index": 0 }]]
+      "main": [[{ "node": "Format in Author Tone", "type": "main", "index": 0 }]]
     },
-    "Format via Claude": {
+    "Format in Author Tone": {
       "main": [[{ "node": "Build Final", "type": "main", "index": 0 }]]
     },
     "Build Final": {
@@ -181,5 +216,5 @@
       "main": [[{ "node": "Notify Denis", "type": "main", "index": 0 }]]
     }
   },
-  "versionId": "d0000001-0000-0000-0000-000000000015"
+  "versionId": "d0000002-0000-0000-0000-000000000015"
 }

@@ -27,7 +27,7 @@
       "typeVersion": 2,
       "position": [420, 300],
       "parameters": {
-        "jsCode": "const raw = $input.first().json;\nconst body = (raw.body && typeof raw.body === 'object') ? raw.body : raw;\nconst text = body.text || body.message || '';\nconst chatId = body.chat_id || body.chatId || 211279650;\nconst parseMode = body.parse_mode || null;\nconst disablePreview = body.disable_web_page_preview !== false;\n\nif (!text || text.length < 2) {\n  return [{ json: { ok: false, error: 'no text', received: JSON.stringify(body).slice(0,200) } }];\n}\n\nreturn [{ json: { chatId, text, parseMode, disablePreview, textLength: text.length } }];"
+        "jsCode": "const raw = $input.first().json;\n// n8n webhook may put data in various places depending on content-type\nlet body = raw;\nif (raw.body && typeof raw.body === 'object') body = raw.body;\nelse if (typeof raw.body === 'string') {\n  try { body = JSON.parse(raw.body); } catch(e) { body = { text: raw.body }; }\n}\n\nconst text = body.text || body.message || raw.text || '';\nconst chatId = body.chat_id || body.chatId || raw.chat_id || 211279650;\nconst parseMode = body.parse_mode || null;\nconst disablePreview = body.disable_web_page_preview !== false;\n\nif (!text || String(text).length < 2) {\n  return [{ json: { chatId: 211279650, text: '⚠️ send-to-zeus: empty text (raw keys: ' + Object.keys(raw).join(',') + ')', parseMode: null, disablePreview: true } }];\n}\n\nreturn [{ json: { chatId, text: String(text), parseMode, disablePreview, textLength: String(text).length } }];"
       }
     },
     {

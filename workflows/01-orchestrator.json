@@ -621,10 +621,10 @@
             {
               "id": "c30",
               "leftValue": "={{ $json.data }}",
-              "rightValue": "channel:",
+              "rightValue": "^(channel|che):",
               "operator": {
                 "type": "string",
-                "operation": "startsWith"
+                "operation": "regex"
               }
             }
           ],
@@ -657,7 +657,7 @@
         "sendBody": true,
         "contentType": "raw",
         "rawContentType": "application/json",
-        "body": "={{ JSON.stringify({ action: 'getPending', id: $json.data.replace('channel:', '') }) }}",
+        "body": "={{ JSON.stringify({ action: 'getPending', id: $json.data.replace(/^(channel|che):/, '') }) }}",
         "options": {
           "response": {
             "response": {
@@ -691,7 +691,7 @@
         "sendBody": true,
         "contentType": "raw",
         "rawContentType": "application/json",
-        "body": "={{ JSON.stringify({ chat_id: '-1002046512562', text: $json.text }) }}",
+        "body": "={{ JSON.stringify({ chat_id: $('Is Channel CB?').item.json.data.startsWith('che:') ? '@che_v_che' : '-1002046512562', text: $json.text }) }}",
         "options": {
           "response": {
             "response": {

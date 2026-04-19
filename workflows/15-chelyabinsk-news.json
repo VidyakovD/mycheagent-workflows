@@ -145,13 +145,13 @@
     },
     {
       "id": "ch9",
-      "name": "Send to Channel",
+      "name": "Save Pending",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [1960, 370],
       "parameters": {
         "method": "POST",
-        "url": "={{ 'https://api.telegram.org/bot' + $env.TELEGRAM_BOT_TOKEN + '/sendMessage' }}",
+        "url": "https://mycheagent.ru/webhook/pwa-data",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [{ "name": "Content-Type", "value": "application/json" }]
@@ -159,13 +159,13 @@
         "sendBody": true,
         "contentType": "raw",
         "rawContentType": "application/json",
-        "body": "={{ JSON.stringify({ chat_id: '@che_v_che', text: $json.post, disable_web_page_preview: false }) }}",
+        "body": "={{ JSON.stringify({ action: 'savePending', id: $json.id, text: $json.post }) }}",
         "options": { "response": { "response": { "neverError": true } } }
       }
     },
     {
       "id": "ch10",
-      "name": "Notify Denis",
+      "name": "Send to Denis",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [2180, 370],
@@ -179,7 +179,7 @@
         "sendBody": true,
         "contentType": "raw",
         "rawContentType": "application/json",
-        "body": "={{ JSON.stringify({ chat_id: 211279650, text: '📮 Опубликовал в @che_v_che:\\n\\n' + $('Build Final').first().json.post }) }}",
+        "body": "={{ JSON.stringify({ chat_id: 211279650, text: $('Build Final').first().json.post, reply_markup: { inline_keyboard: [[ { text: '✅ Опубликовать в @che_v_che', callback_data: 'che:' + $('Build Final').first().json.id }, { text: '❌ Пропустить', callback_data: 'che_skip:' + $('Build Final').first().json.id } ]] } }) }}",
         "options": { "response": { "response": { "neverError": true } } }
       }
     }
@@ -210,10 +210,10 @@
       "main": [[{ "node": "Build Final", "type": "main", "index": 0 }]]
     },
     "Build Final": {
-      "main": [[{ "node": "Send to Channel", "type": "main", "index": 0 }]]
+      "main": [[{ "node": "Save Pending", "type": "main", "index": 0 }]]
     },
-    "Send to Channel": {
-      "main": [[{ "node": "Notify Denis", "type": "main", "index": 0 }]]
+    "Save Pending": {
+      "main": [[{ "node": "Send to Denis", "type": "main", "index": 0 }]]
     }
   },
   "versionId": "d0000002-0000-0000-0000-000000000015"

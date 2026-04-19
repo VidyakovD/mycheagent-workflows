@@ -66,7 +66,7 @@
         300
       ],
       "parameters": {
-        "jsCode": "const data = $input.first().json;\nconst today = new Date().toLocaleDateString('ru-RU', {day:'numeric',month:'long',year:'numeric'});\nconst articles = data.articles || [];\nconst list = articles.map((a,i) => (i+1)+'. ['+a.src+'] '+a.title+(a.desc?' — '+a.desc:'')).join('\\n');\nconst userContent = 'Сегодня ' + today + '. Источников: ' + (data.fetched||'?') + '/' + (data.total||'?') + '. Свежих статей: ' + articles.length + '.\\n\\n' + list;\n\nconst systemPrompt = 'Ты пишешь ЗА Дениса Видякова (автор Telegram-канала Студия ЧЕ про развитие искусственного интеллекта) его ежедневный дайджест ИИ-новостей. Пиши ОТ ПЕРВОГО ЛИЦА — как будто сам Денис делится с подписчиками: «собрал для вас…», «сегодня приметил…», «на неделе вышло…», «советую присмотреться», «мне это интересно потому что…». Никаких упоминаний ИИ-ассистента, никаких «я Зевс», никаких «я помогаю». Ты = Денис.\\n\\nТЕМАТИКА КАНАЛА: целостно про развитие ИИ — в первую очередь ИИ в бизнесе (автоматизация, агенты, LLM для компаний, GPT/Claude/Gemini в работе, продуктивность, маркетинг, финансы, HR, продажи), плюс ИИ для видео/картинок/фильмов/аудио/музыки/изображений. Не сужаем аудиторию — пишем для тех, кто следит за ИИ в принципе.\\n\\nСТИЛЬ: живой, дружеский, экспертный. Как равный с равными. Без канцелярита, без «дорогие друзья».\\n\\nФОРМАТ:\\n- Заголовок: ИИ-ДАЙДЖЕСТ — [дата]\\n- 1-2 предложения вступления от Дениса («Собрал для вас свежее» / «За последние сутки вышло много годноты» и т.п.)\\n- Ровно 7 новостей с эмодзи. Каждая 2-3 предложения: что произошло + КАК это применить в работе или повседневной жизни (с акцентом на бизнес/продуктивность, если это LLM/агенты; на продакшн/креатив, если это видео/картинки/аудио). От первого лица с личной оценкой («я бы попробовал», «работает, проверил»).\\n- В конце 2-3 предложения вывода о тренде дня/недели.\\n- Обычный текст без Markdown.\\n\\nФИЛЬТР: только про ИИ — новые модели, релизы нейросетей, фичи, обновления ИИ-инструментов, крупные продуктовые анонсы ИИ-стартапов, агенты, автоматизация. Не берём общий tech без ИИ.';\n\nconst body = JSON.stringify({\n  model: 'claude-opus-4-6',\n  max_tokens: 1500,\n  stream: false,\n  system: systemPrompt,\n  messages: [{ role: 'user', content: userContent }]\n});\n\nreturn [{ json: { body, articleCount: articles.length } }];"
+        "jsCode": "const data = $input.first().json;\nconst today = new Date().toLocaleDateString('ru-RU', {day:'numeric',month:'long',year:'numeric'});\nconst articles = data.articles || [];\nconst list = articles.map((a,i) => (i+1)+'. ['+a.src+'] '+a.title+(a.desc?' — '+a.desc:'')).join('\\n');\nconst userContent = 'Сегодня ' + today + '. Источников: ' + (data.fetched||'?') + '/' + (data.total||'?') + '. Свежих статей: ' + articles.length + '.\\n\\n' + list;\n\nconst systemPrompt = 'Ты пишешь ЗА Дениса Видякова (автор Telegram-канала Студия ЧЕ про развитие искусственного интеллекта) его ежедневный дайджест ИИ-новостей. Пиши ОТ ПЕРВОГО ЛИЦА — как будто сам Денис делится с подписчиками: «собрал для вас…», «сегодня приметил…», «на неделе вышло…», «советую присмотреться», «мне это интересно потому что…». Никаких упоминаний ИИ-ассистента, никаких «я Зевс», никаких «я помогаю». Ты = Денис.\\n\\nТЕМАТИКА КАНАЛА: целостно про развитие ИИ — в первую очередь ИИ в бизнесе (автоматизация, агенты, LLM для компаний, GPT/Claude/Gemini в работе, продуктивность, маркетинг, финансы, HR, продажи), плюс ИИ для видео/картинок/фильмов/аудио/музыки/изображений. Не сужаем аудиторию — пишем для тех, кто следит за ИИ в принципе.\\n\\nСТИЛЬ: живой, дружеский, экспертный. Как равный с равными. Без канцелярита, без «дорогие друзья».\\n\\nФОРМАТ:\\n- Заголовок: ИИ-ДАЙДЖЕСТ — [дата]\\n- 1-2 предложения вступления от Дениса («Собрал для вас свежее» / «За последние сутки вышло много годноты» и т.п.)\\n- Ровно 7 новостей с эмодзи. Каждая 2-3 предложения: что произошло + КАК это применить в работе или повседневной жизни (с акцентом на бизнес/продуктивность, если это LLM/агенты; на продакшн/креатив, если это видео/картинки/аудио). От первого лица с личной оценкой («я бы попробовал», «работает, проверил»).\\n- В конце 2-3 предложения вывода о тренде дня/недели.\\n- Обычный текст без Markdown.\\n\\nФИЛЬТР: только про ИИ — новые модели, релизы нейросетей, фичи, обновления ИИ-инструментов, крупные продуктовые анонсы ИИ-стартапов, агенты, автоматизация. Не берём общий tech без ИИ.';\n\nconst body = JSON.stringify({\n  model: 'claude-sonnet-4-6',\n  max_tokens: 1500,\n  messages: [\n    { role: 'system', content: systemPrompt },\n    { role: 'user', content: userContent }\n  ]\n});\n\nreturn [{ json: { body, articleCount: articles.length } }];"
       }
     },
     {
@@ -80,17 +80,13 @@
       ],
       "parameters": {
         "method": "POST",
-        "url": "https://api.anthropic.com/v1/messages",
+        "url": "={{ $env.ANTHROPIC_BASE_URL + '/v1/chat/completions' }}",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
             {
-              "name": "x-api-key",
-              "value": "={{ $env.ANTHROPIC_DIRECT_KEY }}"
-            },
-            {
-              "name": "anthropic-version",
-              "value": "2023-06-01"
+              "name": "Authorization",
+              "value": "={{ 'Bearer ' + $env.ANTHROPIC_API_KEY }}"
             },
             {
               "name": "Content-Type",
@@ -117,7 +113,7 @@
         300
       ],
       "parameters": {
-        "jsCode": "const res = $input.first().json;\nconst textBlock = res.content ? res.content.find(c => c.type === 'text') : null;\nif (!textBlock) return [{ json: { ok: false, error: 'no text block' } }];\nlet post = textBlock.text.trim();\npost = post.replace(/@studiyaCHE\\s*$/i, '').trim();\npost += '\\n\\n@studiyaCHE';\nconst id = 'digest_' + Date.now();\nreturn [{ json: { post, id } }];"
+        "jsCode": "const res = $input.first().json;\nlet post = '';\n// AWstore (OpenAI-compat) returns choices[0].message.content; direct Anthropic returns content[].text\nif (res.choices && res.choices[0]?.message?.content) {\n  post = res.choices[0].message.content.trim();\n} else if (res.content && Array.isArray(res.content)) {\n  const textBlock = res.content.find(c => c.type === 'text');\n  post = textBlock?.text?.trim() || '';\n}\nif (!post) return [{ json: { ok: false, error: 'no text' } }];\npost = post.replace(/@studiyaCHE\\s*$/i, '').trim();\npost += '\\n\\n@studiyaCHE';\nconst id = 'digest_' + Date.now();\nreturn [{ json: { post, id } }];"
       }
     },
     {

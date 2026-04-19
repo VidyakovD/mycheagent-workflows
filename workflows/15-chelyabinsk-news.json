@@ -240,9 +240,9 @@
       "main": [[{ "node": "Prep Research Body", "type": "main", "index": 0 }]]
     },
     "Prep Research Body": {
-      "main": [[{ "node": "Call Grok Research", "type": "main", "index": 0 }]]
+      "main": [[{ "node": "Call Claude Research", "type": "main", "index": 0 }]]
     },
-    "Call Grok Research": {
+    "Call Claude Research": {
       "main": [[{ "node": "Parse Posts", "type": "main", "index": 0 }]]
     },
     "Parse Posts": {

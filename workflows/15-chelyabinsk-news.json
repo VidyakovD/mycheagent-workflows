@@ -1,0 +1,185 @@
+{
+  "name": "15-chelyabinsk-news",
+  "id": "chel-news-001",
+  "active": true,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "nodes": [
+    {
+      "id": "ch1",
+      "name": "Every Morning",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [200, 300],
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 8 * * *"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "ch1b",
+      "name": "Manual Trigger",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [200, 440],
+      "webhookId": "trigger-chel",
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "trigger-chel",
+        "responseMode": "onReceived",
+        "options": {}
+      }
+    },
+    {
+      "id": "ch2",
+      "name": "Prep Grok Body",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [420, 370],
+      "parameters": {
+        "jsCode": "const SOURCES = [\n  // Главные новостные порталы Челябинска\n  '74.ru','chelyabinsk.ru','1obl.ru','cheltv.ru','uralpress.ru','vecherka.su','mediazavod.ru','obzor174.ru','up74.ru','argumenti74.ru','kursdela.biz','chelindustry.ru','first.74.ru','livecheb.ru','chel-portal.ru','pg74.ru','sd74.ru',\n  // Региональные и федеральные с Челябинском\n  'znak.com','ura.news','nakanune.ru','rbc.ru/urals','chelyabinsk.rbc.ru','chel.aif.ru','chel.kp.ru','chel.sm-news.ru','mkchel.ru','m.mkchel.ru','tass.ru','ria.ru','interfax-russia.ru/ural','kommersant.ru','vedomosti.ru','gazeta.ru',\n  // Официальные\n  'pravmin.gov74.ru','gov74.ru','chgorduma.ru','cheladmin.ru','minprom.gov74.ru','minkult.gov74.ru','minstroy.gov74.ru','minobr74.ru','minselhoz.gov74.ru','minsoc74.ru','minzdrav.gov74.ru','minsport.gov74.ru','minpromtorg.gov74.ru','minprir.gov74.ru','minfin74.ru',\n  // Университеты\n  'susu.ru','csu.ru','chel-gu.ru','uusu.ru','cspa.ru','chgik.ru','chelgma.ru','agroacadem.ru','chipskurort.ru',\n  // Спортклубы Челябинска\n  'traktor.ru','metallurg-mg.ru','fc-chelyabinsk.ru','vc-torpedo.ru','hc-traktor.ru','bc-chelyabinsk.ru',\n  // Бизнес / промышленность\n  'mmk.ru','cmk.ru','chtpz.ru','chtpz.com','chmz.ru','chtz-uraltrac.ru','chelpipe.ru','chelpro.ru','chelpipe.com',\n  // Культура / события\n  'teatrpushkin-chel.ru','chelopera.ru','teatrcheludi.ru','chelmuseum.ru','chelfilarm.ru','bibl.chel.ru','chelpublib.ru',\n  // Транспорт / инфраструктура\n  'chelaero.ru','chelavto.ru','rzd.ru/chel','gtp.su','chmpz.ru',\n  // Туризм / экология\n  'visitchelyabinsk.ru','park-zuratkul.ru','taganay.org','ilmeny.ac.ru','chelpriroda.ru',\n  // Молодёжь / сообщество\n  'chelyabinskmolodezh.ru','volunteer.chel.ru','molodezh74.ru','mol.gov74.ru',\n  // Telegram / VK публичные паблики (искать через web_search по названиям)\n  'vk.com/chelyabinsk','vk.com/che74_public','t.me/uralweek','t.me/znak_cheb','t.me/chelyabinsk_today','t.me/che_main','t.me/chelyabinsk_news','t.me/cheltv_online','t.me/pg74ru','t.me/pravitelstvo_74'\n];\n\nconst today = new Date().toLocaleDateString('ru-RU', {day:'numeric',month:'long',year:'numeric'});\nconst since = new Date(Date.now() - 24*3600*1000).toISOString().slice(0,16);\nconst sourcesList = SOURCES.slice(0, 120).join(', ');\n\nconst instruction = `Найди ХОРОШИЕ, ПОЗИТИВНЫЕ новости про Челябинск и Челябинскую область за последние 24 часа (с ${since}). Сегодня ${today}.\\n\\nСДЕЛАЙ ЧЕРЕЗ web_search МИНИМУМ 5 РАЗЛИЧНЫХ ПОИСКОВЫХ ЗАПРОСОВ, чтобы покрыть не менее 100 источников. Примеры запросов:\\n- \"Челябинск новости сегодня\"\\n- \"Челябинская область достижения\"\\n- \"site:74.ru Челябинск\"\\n- \"Челябинск открытие\"\\n- \"Челябинск культура\"\\n- \"Челябинск наука\"\\n- \"Челябинск спорт победа\"\\n- \"Челябинск благоустройство\"\\n- \"Челябинск бизнес открытие\"\\n- \"Челябинск экология\"\\n- \"ЮУрГУ\", \"ЧелГУ\", \"Трактор\"\\n\\nПРИОРИТЕТНЫЕ ИСТОЧНИКИ (ищи прежде всего там): ${sourcesList}\\n\\nТЕМАТИКА — что собираем:\\n- Открытия объектов (парки, школы, больницы, магазины, производства)\\n- Достижения жителей (спорт, наука, культура, творчество, благотворительность)\\n- Культурные события (концерты, выставки, фестивали, премьеры)\\n- Научные успехи (университеты, разработки, гранты)\\n- Городские улучшения (благоустройство, дороги, транспорт, парки, ремонт)\\n- Бизнес-рост (новые производства, стартапы, инвестиции, экспорт)\\n- Экология (улучшения воздуха, высадка деревьев, очистка рек)\\n- Образование (открытие школ/садов, победы учеников)\\n- Социальные инициативы (волонтёры, помощь, семьи, здоровье)\\n- Спортивные победы (Трактор, Металлург, ФК Челябинск, индивидуальные спортсмены)\\n- Инфраструктура (аэропорт, метро-трамвай, дороги, мосты)\\n- Туризм и внутренние поездки по Южному Уралу\\n\\nКАТЕГОРИЧЕСКИ ИСКЛЮЧАЙ:\\n- Криминал, убийства, грабежи, аварии ДТП, пожары, катастрофы\\n- ЧП, травмы, смерти, происшествия\\n- Коррупция, скандалы, аресты, уголовные дела\\n- Жалобы жителей, протесты, конфликты\\n- Политические споры, санкции, мобилизация\\n- Плохая погода как проблема (смог, снегопад-коллапс)\\n- Рост цен, экономические проблемы, увольнения\\n\\nДля каждой значимой позитивной новости сделай дополнительный web_search чтобы собрать детали (что именно, когда, кто участвовал, цифры).\\n\\nВерни СТРОГО JSON:\\n{\\n  \"posts\": [\\n    {\\n      \"headline\": \"короткий заголовок до 80 символов\",\\n      \"category\": \"одна из: открытие / спорт / культура / наука / благоустройство / бизнес / экология / образование / соц.инициатива / туризм\",\\n      \"source_url\": \"ссылка на первоисточник\",\\n      \"source_name\": \"название издания\",\\n      \"summary\": \"2-3 предложения о том что произошло: факты, даты, имена, цифры\",\\n      \"why_good\": \"1 предложение почему это важная хорошая новость для жителей Челябинска\"\\n    }\\n  ]\\n}\\n\\nКоличество постов: сколько нашлось хороших, 3-8 штук. Главное КАЧЕСТВО — только действительно значимые и позитивные. Если за сутки ничего достойного — {\"posts\": []}.`;\n\nconst body = JSON.stringify({\n  model: 'grok-4-fast-reasoning',\n  input: instruction,\n  tools: [\n    { type: 'web_search' },\n    { type: 'x_search' }\n  ]\n});\n\nreturn [{ json: { body } }];"
+      }
+    },
+    {
+      "id": "ch3",
+      "name": "Call Grok",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [640, 370],
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.x.ai/v1/responses",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "Authorization", "value": "={{ 'Bearer ' + $env.XAI_API_KEY }}" },
+            { "name": "Content-Type", "value": "application/json" }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "application/json",
+        "body": "={{ $json.body }}",
+        "options": { "timeout": 240000 }
+      }
+    },
+    {
+      "id": "ch4",
+      "name": "Parse Posts",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [860, 370],
+      "parameters": {
+        "jsCode": "const data = $input.first().json;\nconst output = data.output || [];\n\nlet jsonText = '';\nfor (const o of output) {\n  if (o.type === 'message' && Array.isArray(o.content)) {\n    for (const c of o.content) {\n      if (c.type === 'output_text' && c.text) {\n        jsonText = c.text;\n        break;\n      }\n    }\n  }\n  if (jsonText) break;\n}\n\nif (!jsonText) return [];\n\njsonText = jsonText.replace(/```json\\s*/g, '').replace(/```\\s*$/g, '').trim();\n\nlet parsed;\ntry { parsed = JSON.parse(jsonText); } catch(e) { return []; }\n\nconst posts = parsed.posts || [];\nif (!posts.length) return [];\n\nfunction normalize(s) {\n  return (s || '').toLowerCase()\n    .replace(/[^a-zа-я0-9\\s]/gi, ' ')\n    .replace(/\\s+/g, ' ')\n    .trim()\n    .slice(0, 50);\n}\n\nconst store = $getWorkflowStaticData('global');\nif (!store.sentChelPosts) store.sentChelPosts = [];\nconst sentSet = new Set(store.sentChelPosts);\n\nconst seenInRun = new Set();\nconst fresh = [];\nfor (const p of posts) {\n  if (!p.headline) continue;\n  const key = normalize(p.headline);\n  if (!key || key.length < 5) continue;\n  if (sentSet.has(key) || seenInRun.has(key)) continue;\n  seenInRun.add(key);\n  fresh.push(p);\n  store.sentChelPosts.push(key);\n}\n\nif (store.sentChelPosts.length > 500) store.sentChelPosts = store.sentChelPosts.slice(-500);\n\nreturn fresh.map(p => ({ json: p }));"
+      }
+    },
+    {
+      "id": "ch5",
+      "name": "Format via Claude",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1080, 370],
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.anthropic.com/v1/messages",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "x-api-key", "value": "={{ $env.ANTHROPIC_DIRECT_KEY }}" },
+            { "name": "anthropic-version", "value": "2023-06-01" },
+            { "name": "Content-Type", "value": "application/json" }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "application/json",
+        "body": "={{ JSON.stringify({ model: 'claude-haiku-4-5-20251001', max_tokens: 500, system: 'Ты пишешь короткий новостной пост про Челябинск для Telegram-канала @che_v_che — канал позитивных городских новостей.\\n\\nСТИЛЬ:\\n- Тёплый, живой, по-городскому — как будто рассказываешь соседу новость за чашкой чая. Без пафоса, без канцелярита, без «дорогие земляки».\\n- Третье лицо, фактологично. НЕ от имени автора.\\n- Без эмодзи кроме первой строки заголовка.\\n- Никакого негатива в тексте, даже контекстно. Только хорошее.\\n\\nФормат:\\n- Первая строка: эмодзи по категории (🏗️ открытие, 🏒 спорт, 🎭 культура, 🔬 наука, 🌳 благоустройство, 💼 бизнес, 🍃 экология, 🎓 образование, 🤝 соц.инициатива, 🗻 туризм) + короткий заголовок до 80 символов\\n- Пустая строка\\n- 2-3 предложения сути: что произошло, когда, кто/где, конкретные детали, цифры\\n- Пустая строка\\n- Одна короткая строка «Почему это хорошо для города:» + 1 предложение\\n- Пустая строка\\n- Ссылка на источник (если есть)\\n\\nДлина 400-600 символов. Только обычный текст, никакого Markdown.', messages: [{ role: 'user', content: 'Новость: ' + ($json.headline||'') + '\\nКатегория: ' + ($json.category||'') + '\\nИсточник: ' + ($json.source_name||'') + '\\nСсылка: ' + ($json.source_url||'') + '\\nСуть: ' + ($json.summary||'') + '\\nПочему хорошо: ' + ($json.why_good||'') }] }) }}",
+        "options": { "timeout": 60000 }
+      }
+    },
+    {
+      "id": "ch6",
+      "name": "Build Final",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1300, 370],
+      "parameters": {
+        "jsCode": "const res = $input.first().json;\nlet post = '';\nif (res.content && Array.isArray(res.content)) {\n  const textBlock = res.content.find(c => c.type === 'text');\n  post = textBlock?.text?.trim() || '';\n}\npost = post.replace(/@che_v_che\\s*$/i, '').trim();\npost += '\\n\\n@che_v_che';\nconst id = 'chel_' + Date.now() + '_' + Math.random().toString(36).slice(2,7);\nreturn [{ json: { post, id } }];"
+      }
+    },
+    {
+      "id": "ch7",
+      "name": "Send to Channel",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1520, 370],
+      "parameters": {
+        "method": "POST",
+        "url": "={{ 'https://api.telegram.org/bot' + $env.TELEGRAM_BOT_TOKEN + '/sendMessage' }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [{ "name": "Content-Type", "value": "application/json" }]
+        },
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "application/json",
+        "body": "={{ JSON.stringify({ chat_id: '@che_v_che', text: $json.post, disable_web_page_preview: false }) }}",
+        "options": { "response": { "response": { "neverError": true } } }
+      }
+    },
+    {
+      "id": "ch8",
+      "name": "Notify Denis",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1740, 370],
+      "parameters": {
+        "method": "POST",
+        "url": "={{ 'https://api.telegram.org/bot' + $env.TELEGRAM_BOT_TOKEN + '/sendMessage' }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [{ "name": "Content-Type", "value": "application/json" }]
+        },
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "application/json",
+        "body": "={{ JSON.stringify({ chat_id: 211279650, text: '📮 Опубликовал в @che_v_che:\\n\\n' + $('Build Final').first().json.post }) }}",
+        "options": { "response": { "response": { "neverError": true } } }
+      }
+    }
+  ],
+  "connections": {
+    "Every Morning": {
+      "main": [[{ "node": "Prep Grok Body", "type": "main", "index": 0 }]]
+    },
+    "Manual Trigger": {
+      "main": [[{ "node": "Prep Grok Body", "type": "main", "index": 0 }]]
+    },
+    "Prep Grok Body": {
+      "main": [[{ "node": "Call Grok", "type": "main", "index": 0 }]]
+    },
+    "Call Grok": {
+      "main": [[{ "node": "Parse Posts", "type": "main", "index": 0 }]]
+    },
+    "Parse Posts": {
+      "main": [[{ "node": "Format via Claude", "type": "main", "index": 0 }]]
+    },
+    "Format via Claude": {
+      "main": [[{ "node": "Build Final", "type": "main", "index": 0 }]]
+    },
+    "Build Final": {
+      "main": [[{ "node": "Send to Channel", "type": "main", "index": 0 }]]
+    },
+    "Send to Channel": {
+      "main": [[{ "node": "Notify Denis", "type": "main", "index": 0 }]]
+    }
+  },
+  "versionId": "d0000001-0000-0000-0000-000000000015"
+}

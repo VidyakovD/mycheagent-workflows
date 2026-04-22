@@ -3,7 +3,8 @@
   "id": "grok-monitor-001",
   "active": true,
   "settings": {
-    "executionOrder": "v1"
+    "executionOrder": "v1",
+    "timezone": "Asia/Yekaterinburg"
   },
   "nodes": [
     {
@@ -17,7 +18,7 @@
           "interval": [
             {
               "field": "cronExpression",
-              "expression": "0 11,18 * * *"
+              "expression": "0 14,19 * * *"
             }
           ]
         }

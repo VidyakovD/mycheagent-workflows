@@ -3,7 +3,8 @@
   "id": "ya-mail-001",
   "active": true,
   "settings": {
-    "executionOrder": "v1"
+    "executionOrder": "v1",
+    "timezone": "Asia/Yekaterinburg"
   },
   "nodes": [
     {
@@ -49,7 +50,7 @@
           "interval": [
             {
               "field": "cronExpression",
-              "expression": "0 4,11,18 * * *"
+              "expression": "0 7,20 * * *"
             }
           ]
         }
@@ -62,7 +63,7 @@
       "typeVersion": 2,
       "position": [420, 500],
       "parameters": {
-        "jsCode": "const store = $getWorkflowStaticData('global');\nconst emails = store.emailBuffer || [];\n\nif (!emails.length) {\n  return [{ json: { skip: true, count: 0 } }];\n}\n\n// Slot detection by current hour (Yekaterinburg UTC+5)\nconst now = new Date();\nconst hourUtc = now.getUTCHours();\nlet slot = '🌅 Утренняя'; // 04:00 UTC = 09:00 Ekb\nif (hourUtc === 11) slot = '☀️ Дневная'; // 11:00 UTC = 16:00 Ekb\nelse if (hourUtc === 18) slot = '🌙 Вечерняя'; // 18:00 UTC = 23:00 Ekb\n\n// Save emails snapshot for context\nif (!store.emails) store.emails = [];\nfor (const e of emails) {\n  store.emails.unshift({ id: e.id, from: e.from, subject: e.subject, body: e.body, date: e.date, summary: '' });\n}\nif (store.emails.length > 100) store.emails = store.emails.slice(0, 100);\n\n// Build list for GPT (compact)\nconst list = emails.map((e,i) => (i+1) + '. От: ' + e.from + '\\n   Тема: ' + e.subject + '\\n   Текст: ' + (e.body || '').slice(0, 400)).join('\\n\\n');\n\n// Clear buffer\nstore.emailBuffer = [];\n\nreturn [{ json: { skip: false, count: emails.length, slot, list } }];"
+        "jsCode": "const store = $getWorkflowStaticData('global');\nconst emails = store.emailBuffer || [];\n\nif (!emails.length) {\n  return [{ json: { skip: true, count: 0 } }];\n}\n\n// Slot detection by Yekaterinburg local hour (UTC+5)\nconst hourEkb = (new Date().getUTCHours() + 5) % 24;\nconst slot = hourEkb < 14 ? '🌅 Утренняя' : '🌇 Вечерняя';\n\n// Save emails snapshot for context\nif (!store.emails) store.emails = [];\nfor (const e of emails) {\n  store.emails.unshift({ id: e.id, from: e.from, subject: e.subject, body: e.body, date: e.date, summary: '' });\n}\nif (store.emails.length > 100) store.emails = store.emails.slice(0, 100);\n\n// Build list for GPT (compact)\nconst list = emails.map((e,i) => (i+1) + '. От: ' + e.from + '\\n   Тема: ' + e.subject + '\\n   Текст: ' + (e.body || '').slice(0, 400)).join('\\n\\n');\n\n// Clear buffer\nstore.emailBuffer = [];\n\nreturn [{ json: { skip: false, count: emails.length, slot, list } }];"
       }
     },
     {

@@ -2,7 +2,7 @@
   "name": "06-morning-report",
   "id": "morning-report-001",
   "active": true,
-  "settings": { "executionOrder": "v1" },
+  "settings": { "executionOrder": "v1", "timezone": "Asia/Yekaterinburg" },
   "nodes": [
     {
       "id": "mr1",

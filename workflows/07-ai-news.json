@@ -3,7 +3,8 @@
   "id": "ai-news-001",
   "active": true,
   "settings": {
-    "executionOrder": "v1"
+    "executionOrder": "v1",
+    "timezone": "Asia/Yekaterinburg"
   },
   "nodes": [
     {
@@ -20,7 +21,7 @@
           "interval": [
             {
               "field": "cronExpression",
-              "expression": "0 6 * * *"
+              "expression": "0 8 * * *"
             }
           ]
         }

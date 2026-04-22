@@ -45,7 +45,7 @@
         "sendBody": true,
         "contentType": "raw",
         "rawContentType": "application/json",
-        "body": "={{ JSON.stringify({ model: 'gpt-4o-mini', messages: [{ role: 'system', content: 'Ты Зевс — личный ассистент Дениса. Составь краткое утреннее сводное сообщение в Telegram (Markdown). Используй эмодзи. Обращайся «Мой господин». Будь краток и по делу.' }, { role: 'user', content: 'Дата: ' + $json.todayRu + '\\n\\nЗадачи в очереди: ' + $json.pending.length + ($json.pending.length ? '\\n' + $json.pending.slice(0,5).map((t,i)=>(i+1)+'. '+t.text).join('\\n') : '') + '\\n\\nСобытия (7 дней): ' + ($json.events.length ? $json.events.map(e=>e.date+' — '+e.text).join(', ') : 'нет') + '\\n\\nФинансы месяц: +' + $json.finIn + ' / −' + $json.finOut + ' ₽' + '\\n\\nКонтент в работе: ' + $json.ctActive + '\\nИдей на проработку: ' + $json.ideasCount }], max_tokens: 400 }) }}"
+        "body": "={{ JSON.stringify({ model: 'gpt-4o-mini', messages: [{ role: 'system', content: 'Ты Зевс — личный ассистент Дениса. Составь краткое утреннее сводное сообщение в Telegram (Markdown). Используй эмодзи. Обращайся по имени «Денис» или на «ты». Будь краток и по делу.' }, { role: 'user', content: 'Дата: ' + $json.todayRu + '\\n\\nЗадачи в очереди: ' + $json.pending.length + ($json.pending.length ? '\\n' + $json.pending.slice(0,5).map((t,i)=>(i+1)+'. '+t.text).join('\\n') : '') + '\\n\\nСобытия (7 дней): ' + ($json.events.length ? $json.events.map(e=>e.date+' — '+e.text).join(', ') : 'нет') + '\\n\\nФинансы месяц: +' + $json.finIn + ' / −' + $json.finOut + ' ₽' + '\\n\\nКонтент в работе: ' + $json.ctActive + '\\nИдей на проработку: ' + $json.ideasCount }], max_tokens: 400 }) }}"
       }
     },
     {
@@ -55,7 +55,7 @@
       "typeVersion": 2,
       "position": [860, 300],
       "parameters": {
-        "jsCode": "const res = $input.first().json;\nif (!res.choices) return [{ json: { text: 'Доброе утро, мой господин! Зевс на связи 🌅' } }];\nreturn [{ json: { text: res.choices[0].message.content.trim() } }];"
+        "jsCode": "const res = $input.first().json;\nif (!res.choices) return [{ json: { text: 'Доброе утро, Денис! Зевс на связи 🌅' } }];\nreturn [{ json: { text: res.choices[0].message.content.trim() } }];"
       }
     },
     {

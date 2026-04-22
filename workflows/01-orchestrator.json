@@ -140,7 +140,7 @@
         "sendBody": true,
         "contentType": "raw",
         "rawContentType": "application/json",
-        "body": "={{ JSON.stringify({ chat_id: $json.chatId, text: '🔱 *Зевс* готов, Мой господин. Спроси что угодно или открой Меню.', parse_mode: 'Markdown' }) }}",
+        "body": "={{ JSON.stringify({ chat_id: $json.chatId, text: '🔱 *Зевс* готов, Денис. Спроси что угодно или открой Меню.', parse_mode: 'Markdown' }) }}",
         "options": {}
       }
     },
@@ -209,7 +209,7 @@
         "sendBody": true,
         "contentType": "raw",
         "rawContentType": "application/json",
-        "body": "={{ JSON.stringify({ chat_id: $('Set Section').item.json.chatId, text: '*' + $('Set Section').item.json.sectionName + '*\nГотов, Мой господин. Что делаем?', parse_mode: 'Markdown' }) }}",
+        "body": "={{ JSON.stringify({ chat_id: $('Set Section').item.json.chatId, text: '*' + $('Set Section').item.json.sectionName + '*\nГотов, Денис. Что делаем?', parse_mode: 'Markdown' }) }}",
         "options": {}
       }
     },
@@ -340,7 +340,7 @@
         320
       ],
       "parameters": {
-        "jsCode": "const chatId = $('Router').item.json.chatId;\nconst text = $input.first().json?.text;\nconst hasText = typeof text === 'string' && text.trim().length > 0;\nif (!hasText) {\n  return [{ json: { chatId, userText: 'Ответь строго этой фразой: «🔱 Не разобрал голосовое, Мой господин. Перешли текстом, пожалуйста.» Больше ничего.', isVoice: true, systemPrompt: 'Ты только повторяешь заготовленную реплику. Никакого творчества.' } }];\n}\nconst store = $getWorkflowStaticData('global');\nconst section = store.sessions?.[String(chatId)]?.section || 'chat';\nconst prompts = {\n  chat:'Ты умный персональный ассистент по имени Зевс. Пользователя зовут Денис, обращайся к нему «Мой господин». Отвечай кратко, по-русски, дружелюбно. Без лишних вводных слов.',\n  tasks:'Ты ассистент Зевс по задачам. Пользователя зовут Денис, «Мой господин». Помогай с задачами и приоритетами. Кратко, по-русски.',\n  notes:'Ты ассистент Зевс по заметкам. Пользователя зовут Денис, «Мой господин». Структурируй идеи и мысли. Кратко, по-русски.',\n  sport:'Ты фитнес-ассистент Зевс. Пользователя зовут Денис, «Мой господин». Тренировки, калории, питание. Кратко, по-русски.',\n  work:'Ты бизнес-ассистент Зевс. Пользователя зовут Денис, «Мой господин». Рабочие задачи и проекты. Кратко, по-русски.',\n  ideas:'Ты творческий ассистент Зевс. Пользователя зовут Денис, «Мой господин». Принимай идеи, структурируй. Кратко, по-русски.',\n  producer:'Ты ИИ-агент «Продюсер». Помогаешь Денису (обращайся «Мой господин») с продюсированием контента: стратегия, монетизация, аудитория, планирование. Конкретные советы, по-русски.',\n  writer:'Ты ИИ-агент «Сценарист». Помогаешь Денису (обращайся «Мой господин») писать сценарии, скрипты, тексты для видео. По-русски.',\n  editor:'Ты ИИ-агент «Монтажёр». Помогаешь Денису (обращайся «Мой господин») с монтажом: тайминг, переходы, структура ролика. По-русски.',\n  sales:'Ты ИИ-агент «Продажник». Помогаешь Денису (обращайся «Мой господин») с продажами: скрипты, офферы, возражения, воронки. По-русски.'\n};\nreturn [{ json: { chatId, userText: text, isVoice: true, systemPrompt: prompts[section] || prompts.chat } }];"
+        "jsCode": "const chatId = $('Router').item.json.chatId;\nconst text = $input.first().json?.text;\nconst hasText = typeof text === 'string' && text.trim().length > 0;\nif (!hasText) {\n  return [{ json: { chatId, userText: 'Ответь строго этой фразой: «🔱 Не разобрал голосовое, Денис. Перешли текстом, пожалуйста.» Больше ничего.', isVoice: true, systemPrompt: 'Ты только повторяешь заготовленную реплику. Никакого творчества.', _skipPrompt: true } }];\n}\nconst store = $getWorkflowStaticData('global');\nconst section = store.sessions?.[String(chatId)]?.section || 'chat';\nreturn [{ json: { chatId, userText: text, isVoice: true, channel: 'tg-voice', section } }];"
       }
     },
     {
@@ -353,7 +353,18 @@
         540
       ],
       "parameters": {
-        "jsCode": "const d = $input.first().json;\nconst store = $getWorkflowStaticData('global');\nconst session = store.sessions?.[String(d.chatId)] || {};\nconst section = session.section || 'chat';\nconst prompts = {\n  chat:'Ты умный персональный ассистент по имени Зевс. Пользователя зовут Денис, обращайся к нему «Мой господин». Отвечай кратко, по-русски, дружелюбно. Без лишних вводных слов.\\n\\nФАЙЛЫ: Если пользователь просит найти, скинуть, отправить файл — вставь тег [FILE_SEARCH: запрос]. Например: «скинь КП» → [FILE_SEARCH: КП].\\nБАЗА ЗНАНИЙ: Если пользователь спрашивает О СОДЕРЖИМОМ файлов (что в договоре, какая сумма у Иванова, какие условия в КП, перечисли файлы где...) — вставь тег [KB_SEARCH: запрос] вместо поиска файла. Например: «что в договоре?» → [KB_SEARCH: договор]. «какая сумма у Иванова» → [KB_SEARCH: Иванов сумма]. В отличие от FILE_SEARCH (отправляет файл) — KB_SEARCH даёт информацию ИЗ файла.\\nПОЧТА: Если пользователь спрашивает про письмо, почту, email — вставь тег [EMAIL_CONTEXT: запрос]. Например: «что за письмо пришло?» → [EMAIL_CONTEXT: последнее].',\n  tasks:'Ты ассистент Зевс по задачам. Пользователя зовут Денис, «Мой господин». Помогай с задачами и приоритетами. Кратко, по-русски.',\n  notes:'Ты ассистент Зевс по заметкам. Пользователя зовут Денис, «Мой господин». Структурируй идеи и мысли. Кратко, по-русски.',\n  sport:'Ты фитнес-ассистент Зевс. Пользователя зовут Денис, «Мой господин». Тренировки, калории, питание. Кратко, по-русски.',\n  work:'Ты бизнес-ассистент Зевс. Пользователя зовут Денис, «Мой господин». Рабочие задачи и проекты. Кратко, по-русски.\\n\\nФАЙЛЫ: Если пользователь просит найти, скинуть файл — вставь тег [FILE_SEARCH: запрос] в конце ответа.',\n  ideas:'Ты творческий ассистент Зевс. Пользователя зовут Денис, «Мой господин». Принимай идеи, структурируй. Кратко, по-русски.',\n  producer:'Ты ИИ-агент «Продюсер». Помогаешь Денису (обращайся «Мой господин») с продюсированием контента: стратегия, монетизация, аудитория, планирование. Конкретные советы, по-русски.',\n  writer:'Ты ИИ-агент «Сценарист». Помогаешь Денису (обращайся «Мой господин») писать сценарии, скрипты, тексты для видео. Структура: крючок — суть — CTA. По-русски.',\n  editor:'Ты ИИ-агент «Монтажёр». Помогаешь Денису (обращайся «Мой господин») с монтажом и постпродакшном: тайминг, переходы, цвет, структура ролика. По-русски.',\n  sales:'Ты ИИ-агент «Продажник». Помогаешь Денису (обращайся «Мой господин») с продажами: скрипты, офферы, работа с возражениями, воронки. По-русски.'\n};\nreturn [{ json: { chatId: d.chatId, userText: d.text, isVoice: false, systemPrompt: prompts[section] || prompts.chat } }];"
+        "jsCode": "const d = $input.first().json;\nconst store = $getWorkflowStaticData('global');\nconst session = store.sessions?.[String(d.chatId)] || {};\nconst section = session.section || 'chat';\nreturn [{ json: { chatId: d.chatId, userText: d.text, isVoice: false, channel: 'tg-text', section } }];"
+      }
+    },
+    {
+      "id": "n8b",
+      "name": "Prepare Prompt",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.1,
+      "position": [1300, 430],
+      "parameters": {
+        "source": "database",
+        "workflowId": { "__rl": true, "value": "prepare-prompt-001", "mode": "id" }
       }
     },
     {
@@ -402,7 +413,7 @@
         430
       ],
       "parameters": {
-        "jsCode": "const res = $input.first().json;\nlet text;\nif (res?.choices?.[0]?.message?.content) {\n  text = res.choices[0].message.content;\n} else if (res?.error) {\n  text = '🔱 Зевс задумался… попробуй через минуту, Мой господин.';\n} else {\n  text = '🔱 Зевс задумался… попробуй ещё раз, Мой господин.';\n}\nconst chatId = $('Router').item.json.chatId;\nconst isVoice = $('Router').item.json.isVoice;\nreturn [{ json: { chatId, text, isVoice } }];"
+        "jsCode": "const res = $input.first().json;\nlet text;\nif (res?.choices?.[0]?.message?.content) {\n  text = res.choices[0].message.content;\n} else if (res?.error) {\n  text = '🔱 Зевс задумался… попробуй через минуту, Денис.';\n} else {\n  text = '🔱 Зевс задумался… попробуй ещё раз, Денис.';\n}\nconst chatId = $('Router').item.json.chatId;\nconst isVoice = $('Router').item.json.isVoice;\nreturn [{ json: { chatId, text, isVoice } }];"
       }
     },
     {
@@ -1177,7 +1188,7 @@
         "sendBody": true,
         "contentType": "raw",
         "rawContentType": "application/json",
-        "body": "={{ (function() { const emails = $json.emails || []; const userQ = $('Router').first().json.text; const context = emails.map(e => 'От: ' + e.from + '\\nТема: ' + e.subject + '\\nТекст: ' + (e.body || '').slice(0, 1000) + '\\n---').join('\\n'); return JSON.stringify({ model: 'claude-haiku-4.5', messages: [{ role: 'user', content: 'Ты ассистент Зевс. Пользователь спрашивает про почту. Вот контекст последних писем:\\n\\n' + context + '\\n\\nВопрос: ' + userQ + '\\n\\nОтветь кратко, по-русски, обращайся «Мой господин».' }], max_tokens: 500 }); })() }}",
+        "body": "={{ (function() { const emails = $json.emails || []; const userQ = $('Router').first().json.text; const context = emails.map(e => 'От: ' + e.from + '\\nТема: ' + e.subject + '\\nТекст: ' + (e.body || '').slice(0, 1000) + '\\n---').join('\\n'); return JSON.stringify({ model: 'claude-haiku-4.5', messages: [{ role: 'user', content: 'Ты ассистент Зевс. Пользователь спрашивает про почту. Вот контекст последних писем:\\n\\n' + context + '\\n\\nВопрос: ' + userQ + '\\n\\nОтветь кратко, по-русски, обращайся по имени «Денис» или на «ты».' }], max_tokens: 500 }); })() }}",
         "options": {}
       }
     },
@@ -1267,7 +1278,7 @@
         "sendBody": true,
         "contentType": "raw",
         "rawContentType": "application/json",
-        "body": "={{ (function() { const results = $json.results || []; const userQ = $('Router').first().json.text; if (!results.length) { return JSON.stringify({ model: 'claude-haiku-4.5', messages: [{ role: 'user', content: 'Скажи Денису («Мой господин»), что в его базе знаний ничего не нашлось по запросу: ' + userQ + '. Одно предложение.' }], max_tokens: 150 }); } const context = results.map(r => 'ФАЙЛ: ' + r.name + '\\nОписание: ' + (r.description||'') + '\\nСодержимое: ' + (r.summary||'') + '\\nФакты: ' + (r.facts||[]).join('; ')).join('\\n\\n---\\n\\n'); return JSON.stringify({ model: 'claude-haiku-4.5', messages: [{ role: 'user', content: 'Ты ассистент Зевс. Пользователь («Мой господин») спрашивает про свои файлы.\\n\\nБАЗА ЗНАНИЙ (найдено ' + results.length + ' файлов):\\n\\n' + context + '\\n\\nВОПРОС: ' + userQ + '\\n\\nОтветь по существу на основе базы знаний. Если нужной инфы в фактах нет — скажи что файл есть, но в нём этой информации не найдено. Кратко, по-русски.' }], max_tokens: 600 }); })() }}",
+        "body": "={{ (function() { const results = $json.results || []; const userQ = $('Router').first().json.text; if (!results.length) { return JSON.stringify({ model: 'claude-haiku-4.5', messages: [{ role: 'user', content: 'Скажи Денису, что в его базе знаний ничего не нашлось по запросу:' + userQ + '. Одно предложение.' }], max_tokens: 150 }); } const context = results.map(r => 'ФАЙЛ: ' + r.name + '\\nОписание: ' + (r.description||'') + '\\nСодержимое: ' + (r.summary||'') + '\\nФакты: ' + (r.facts||[]).join('; ')).join('\\n\\n---\\n\\n'); return JSON.stringify({ model: 'claude-haiku-4.5', messages: [{ role: 'user', content: 'Ты ассистент Зевс. Пользователь (Денис, на «ты») спрашивает про свои файлы.\\n\\nБАЗА ЗНАНИЙ (найдено ' + results.length + ' файлов):\\n\\n' + context + '\\n\\nВОПРОС: ' + userQ + '\\n\\nОтветь по существу на основе базы знаний. Если нужной инфы в фактах нет — скажи что файл есть, но в нём этой информации не найдено. Кратко, по-русски.' }], max_tokens: 600 }); })() }}",
         "options": {}
       }
     },
@@ -1848,7 +1859,7 @@
       "main": [
         [
           {
-            "node": "GPT",
+            "node": "Prepare Prompt",
             "type": "main",
             "index": 0
           }
@@ -1856,6 +1867,17 @@
       ]
     },
     "Prep Text": {
+      "main": [
+        [
+          {
+            "node": "Prepare Prompt",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Prompt": {
       "main": [
         [
           {

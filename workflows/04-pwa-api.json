@@ -2,14 +2,19 @@
   "name": "04-pwa-api",
   "id": "pwa-api-001",
   "active": true,
-  "settings": { "executionOrder": "v1" },
+  "settings": {
+    "executionOrder": "v1"
+  },
   "nodes": [
     {
       "id": "p1",
       "name": "PWA Webhook",
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2,
-      "position": [200, 300],
+      "position": [
+        200,
+        300
+      ],
       "webhookId": "pwa-chat-hook",
       "parameters": {
         "httpMethod": "POST",
@@ -23,7 +28,10 @@
       "name": "Build Prompt",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [420, 300],
+      "position": [
+        420,
+        300
+      ],
       "parameters": {
         "jsCode": "const raw = $input.first().json;\nconst body = (raw.body && raw.body.message) ? raw.body : raw;\nconst section = body.section || 'chat';\nconst message = body.message || '';\nconst sessionId = body.sessionId || 'anon';\nconst history = Array.isArray(body.history) ? body.history : [];\n\nconst prompts = {\n  chat: 'Ты умный личный ассистент по имени Зевс. Пользователя зовут Денис, обращайся по имени или на «ты». Отвечай кратко, по-русски, дружелюбно. Без лишних вводных слов. Помни контекст разговора.',\n  tasks: 'Ты помощник Зевс по задачам и продуктивности. Пользователя зовут Денис, на «ты». Помогай организовывать и приоритизировать задачи. Отвечай кратко по-русски.',\n  notes: 'Ты помощник Зевс по заметкам и идеям. Пользователя зовут Денис, на «ты». Помогай структурировать мысли, давать инсайты. Отвечай кратко по-русски.',\n  sport: 'Ты фитнес-ассистент Зевс. Пользователя зовут Денис, на «ты». Помогай с тренировками, калориями, питанием. Давай конкретные советы по-русски.',\n  more: 'Ты умный личный ассистент Зевс. Пользователя зовут Денис, на «ты». Отвечай кратко по-русски.'\n};\n\nreturn [{ json: { section, message, sessionId, systemPrompt: prompts[section] || prompts.chat, history } }];"
       }
@@ -33,15 +41,24 @@
       "name": "GPT",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [640, 300],
+      "position": [
+        640,
+        300
+      ],
       "parameters": {
         "method": "POST",
         "url": "https://api.openai.com/v1/chat/completions",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
-            { "name": "Authorization", "value": "={{ 'Bearer ' + $env.OPENAI_API_KEY }}" },
-            { "name": "Content-Type", "value": "application/json" }
+            {
+              "name": "Authorization",
+              "value": "={{ 'Bearer ' + $env.OPENAI_API_KEY }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
           ]
         },
         "sendBody": true,
@@ -49,16 +66,26 @@
         "rawContentType": "application/json",
         "body": "={{ JSON.stringify({ model: 'gpt-4o-mini', messages: [{ role: 'system', content: $json.systemPrompt }, ...$json.history, { role: 'user', content: $json.message }], max_tokens: 120 }) }}",
         "options": {
-          "response": { "response": { "neverError": true } }
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          }
         }
-      }
+      },
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 1500
     },
     {
       "id": "p4",
       "name": "Extract Reply",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [860, 300],
+      "position": [
+        860,
+        300
+      ],
       "parameters": {
         "jsCode": "const res = $input.first().json;\nif (!res.choices || res.error) {\n  const errMsg = res.error?.message || 'Claude unavailable';\n  return [{ json: { reply: 'Ошибка: ' + errMsg, ok: false } }];\n}\nconst reply = res.choices[0].message.content.trim();\nreturn [{ json: { reply, ok: true } }];"
       }
@@ -68,15 +95,24 @@
       "name": "TTS",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [1060, 300],
+      "position": [
+        1060,
+        300
+      ],
       "parameters": {
         "method": "POST",
         "url": "https://api.openai.com/v1/audio/speech",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
-            { "name": "Authorization", "value": "={{ 'Bearer ' + $env.OPENAI_API_KEY }}" },
-            { "name": "Content-Type", "value": "application/json" }
+            {
+              "name": "Authorization",
+              "value": "={{ 'Bearer ' + $env.OPENAI_API_KEY }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
           ]
         },
         "sendBody": true,
@@ -91,14 +127,20 @@
             }
           }
         }
-      }
+      },
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 1500
     },
     {
       "id": "p6",
       "name": "Build Response",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [1280, 300],
+      "position": [
+        1280,
+        300
+      ],
       "parameters": {
         "jsCode": "const extracted = $('Extract Reply').item;\nconst reply = extracted.json.reply;\nconst ok = extracted.json.ok;\n\nconst ttsItem = $input.first();\nconst audio_b64 = ttsItem.binary?.data?.data || '';\n\nreturn [{ json: { reply, ok, audio_b64 } }];"
       }
@@ -108,7 +150,10 @@
       "name": "Respond",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.1,
-      "position": [1480, 300],
+      "position": [
+        1480,
+        300
+      ],
       "parameters": {
         "respondWith": "json",
         "responseBody": "={{ JSON.stringify($json) }}",
@@ -116,8 +161,14 @@
           "responseCode": 200,
           "responseHeaders": {
             "entries": [
-              { "name": "Content-Type", "value": "application/json" },
-              { "name": "Access-Control-Allow-Origin", "value": "*" }
+              {
+                "name": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "name": "Access-Control-Allow-Origin",
+                "value": "*"
+              }
             ]
           }
         }
@@ -125,11 +176,71 @@
     }
   ],
   "connections": {
-    "PWA Webhook":    { "main": [[{ "node": "Build Prompt",   "type": "main", "index": 0 }]] },
-    "Build Prompt":   { "main": [[{ "node": "GPT",            "type": "main", "index": 0 }]] },
-    "GPT":            { "main": [[{ "node": "Extract Reply",  "type": "main", "index": 0 }]] },
-    "Extract Reply":  { "main": [[{ "node": "TTS",            "type": "main", "index": 0 }]] },
-    "TTS":            { "main": [[{ "node": "Build Response", "type": "main", "index": 0 }]] },
-    "Build Response": { "main": [[{ "node": "Respond",        "type": "main", "index": 0 }]] }
+    "PWA Webhook": {
+      "main": [
+        [
+          {
+            "node": "Build Prompt",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Prompt": {
+      "main": [
+        [
+          {
+            "node": "GPT",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "GPT": {
+      "main": [
+        [
+          {
+            "node": "Extract Reply",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract Reply": {
+      "main": [
+        [
+          {
+            "node": "TTS",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "TTS": {
+      "main": [
+        [
+          {
+            "node": "Build Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Response": {
+      "main": [
+        [
+          {
+            "node": "Respond",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
   }
 }

@@ -42,16 +42,27 @@
       "name": "Should Parse?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2,
-      "position": [520, 300],
+      "position": [
+        520,
+        300
+      ],
       "parameters": {
         "conditions": {
-          "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "loose" },
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose"
+          },
           "conditions": [
             {
               "id": "cparse",
               "leftValue": "={{ $json.chatId }}",
               "rightValue": "",
-              "operator": { "type": "string", "operation": "notEmpty", "singleValue": true }
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
             }
           ],
           "combinator": "and"
@@ -64,16 +75,27 @@
       "name": "Should Reply?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2,
-      "position": [1180, 300],
+      "position": [
+        1180,
+        300
+      ],
       "parameters": {
         "conditions": {
-          "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "loose" },
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose"
+          },
           "conditions": [
             {
               "id": "creply",
               "leftValue": "={{ $json.token }}",
               "rightValue": "",
-              "operator": { "type": "string", "operation": "notEmpty", "singleValue": true }
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
             }
           ],
           "combinator": "and"
@@ -216,7 +238,10 @@
       "name": "Check Item",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [1400, 300],
+      "position": [
+        1400,
+        300
+      ],
       "parameters": {
         "jsCode": "const itemData = $input.first().json;\nconst title = (itemData.title || itemData.name || '').toLowerCase();\nconst categoryName = (itemData.category?.name || '').toLowerCase();\nconst hay = title + ' ' + categoryName;\n\n// Keywords that indicate this is our training/courses listing\nconst trainingKeywords = [\n  'курс', 'курсы', 'обучен', 'школ', 'уроки', 'урок', 'занят',\n  'монтаж', 'видеомонт', 'видеомейк', 'видеоредактор',\n  'premiere', 'after effects', 'davinci', 'final cut',\n  'нейрос', 'нейросет', 'ии ', ' ии', 'искусствен', 'ai ', 'ai,', 'chatgpt',\n  'midjourney', 'kling', 'suno', 'sora',\n  'репетитор', 'преподават', 'наставн', 'ментор',\n  'студия че', 'studiya che', 'studia che'\n];\n\nconst isTraining = trainingKeywords.some(kw => hay.includes(kw));\n\n// Pass through all fields + flag\nreturn [{ json: { ...itemData, isTrainingItem: isTraining, itemTitle: itemData.title || itemData.name || '', itemCategoryName: itemData.category?.name || '' } }];"
       }
@@ -226,16 +251,27 @@
       "name": "Is Training?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2,
-      "position": [1420, 300],
+      "position": [
+        1420,
+        300
+      ],
       "parameters": {
         "conditions": {
-          "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "loose" },
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose"
+          },
           "conditions": [
             {
               "id": "ctrain",
               "leftValue": "={{ $json.isTrainingItem }}",
               "rightValue": true,
-              "operator": { "type": "boolean", "operation": "true", "singleValue": true }
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
             }
           ],
           "combinator": "and"
@@ -306,7 +342,10 @@
         "contentType": "raw",
         "rawContentType": "application/json",
         "body": "={{ $json.gptBody }}"
-      }
+      },
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 1500
     },
     {
       "id": "av9",

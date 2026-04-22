@@ -2,17 +2,28 @@
   "name": "06-morning-report",
   "id": "morning-report-001",
   "active": true,
-  "settings": { "executionOrder": "v1", "timezone": "Asia/Yekaterinburg" },
+  "settings": {
+    "executionOrder": "v1",
+    "timezone": "Asia/Yekaterinburg"
+  },
   "nodes": [
     {
       "id": "mr1",
       "name": "Every Morning",
       "type": "n8n-nodes-base.scheduleTrigger",
       "typeVersion": 1.1,
-      "position": [200, 300],
+      "position": [
+        200,
+        300
+      ],
       "parameters": {
         "rule": {
-          "interval": [{ "field": "cronExpression", "expression": "0 8 * * *" }]
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 8 * * *"
+            }
+          ]
         }
       }
     },
@@ -21,7 +32,10 @@
       "name": "Gather Data",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [420, 300],
+      "position": [
+        420,
+        300
+      ],
       "parameters": {
         "jsCode": "const store = $getWorkflowStaticData('global');\n// Find Denis's session — pick the session with most data\nconst sessions = store.u || {};\nlet best = null, bestScore = -1;\nfor (const [sid, u] of Object.entries(sessions)) {\n  const score = (u.tasks?.length||0) + (u.projects?.length||0) + (u.notes?.length||0);\n  if (score > bestScore) { bestScore = score; best = u; }\n}\nif (!best) best = {};\n\nconst today = new Date().toISOString().slice(0,10);\nconst todayRu = new Date().toLocaleDateString('ru',{weekday:'long',day:'numeric',month:'long'});\n\n// Pending tasks\nconst pending = (best.tasks||[]).filter(t=>!t.done);\n// Upcoming calendar events (next 7 days)\nconst in7 = new Date(Date.now()+7*86400000).toISOString().slice(0,10);\nconst events = (best.calendar||[]).filter(e=>e.date>=today&&e.date<=in7).sort((a,b)=>a.date>b.date?1:-1);\n// Finance this month\nconst thisMonth = today.slice(0,7);\nconst finIn  = (best.finance||[]).filter(e=>e.type==='in' &&e.date?.startsWith(thisMonth)).reduce((s,e)=>s+e.amount,0);\nconst finOut = (best.finance||[]).filter(e=>e.type==='out'&&e.date?.startsWith(thisMonth)).reduce((s,e)=>s+e.amount,0);\n// Content in progress\nconst ctActive = (best.content||[]).filter(e=>e.status!=='done').length;\n// Ideas count\nconst ideasCount = (best.ideas||[]).length;\n\nreturn [{ json: { todayRu, pending, events, finIn, finOut, ctActive, ideasCount } }];"
       }
@@ -31,29 +45,44 @@
       "name": "Build Report",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [640, 300],
+      "position": [
+        640,
+        300
+      ],
       "parameters": {
         "method": "POST",
         "url": "https://api.openai.com/v1/chat/completions",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
-            { "name": "Authorization", "value": "={{ 'Bearer ' + $env.OPENAI_API_KEY }}" },
-            { "name": "Content-Type", "value": "application/json" }
+            {
+              "name": "Authorization",
+              "value": "={{ 'Bearer ' + $env.OPENAI_API_KEY }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
           ]
         },
         "sendBody": true,
         "contentType": "raw",
         "rawContentType": "application/json",
         "body": "={{ JSON.stringify({ model: 'gpt-4o-mini', messages: [{ role: 'system', content: 'Ты Зевс — личный ассистент Дениса. Составь краткое утреннее сводное сообщение в Telegram (Markdown). Используй эмодзи. Обращайся по имени «Денис» или на «ты». Будь краток и по делу.' }, { role: 'user', content: 'Дата: ' + $json.todayRu + '\\n\\nЗадачи в очереди: ' + $json.pending.length + ($json.pending.length ? '\\n' + $json.pending.slice(0,5).map((t,i)=>(i+1)+'. '+t.text).join('\\n') : '') + '\\n\\nСобытия (7 дней): ' + ($json.events.length ? $json.events.map(e=>e.date+' — '+e.text).join(', ') : 'нет') + '\\n\\nФинансы месяц: +' + $json.finIn + ' / −' + $json.finOut + ' ₽' + '\\n\\nКонтент в работе: ' + $json.ctActive + '\\nИдей на проработку: ' + $json.ideasCount }], max_tokens: 400 }) }}"
-      }
+      },
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 1500
     },
     {
       "id": "mr4",
       "name": "Extract Text",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [860, 300],
+      "position": [
+        860,
+        300
+      ],
       "parameters": {
         "jsCode": "const res = $input.first().json;\nif (!res.choices) return [{ json: { text: 'Доброе утро, Денис! Зевс на связи 🌅' } }];\nreturn [{ json: { text: res.choices[0].message.content.trim() } }];"
       }
@@ -63,13 +92,21 @@
       "name": "Send to Telegram",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [1060, 300],
+      "position": [
+        1060,
+        300
+      ],
       "parameters": {
         "method": "POST",
         "url": "={{ 'https://api.telegram.org/bot' + $env.TELEGRAM_BOT_TOKEN + '/sendMessage' }}",
         "sendHeaders": true,
         "headerParameters": {
-          "parameters": [{ "name": "Content-Type", "value": "application/json" }]
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
         },
         "sendBody": true,
         "contentType": "raw",
@@ -79,10 +116,50 @@
     }
   ],
   "connections": {
-    "Every Morning": { "main": [[{ "node": "Gather Data",    "type": "main", "index": 0 }]] },
-    "Gather Data":   { "main": [[{ "node": "Build Report",   "type": "main", "index": 0 }]] },
-    "Build Report":  { "main": [[{ "node": "Extract Text",   "type": "main", "index": 0 }]] },
-    "Extract Text":  { "main": [[{ "node": "Send to Telegram","type": "main", "index": 0 }]] }
+    "Every Morning": {
+      "main": [
+        [
+          {
+            "node": "Gather Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Gather Data": {
+      "main": [
+        [
+          {
+            "node": "Build Report",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Report": {
+      "main": [
+        [
+          {
+            "node": "Extract Text",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract Text": {
+      "main": [
+        [
+          {
+            "node": "Send to Telegram",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
   },
   "versionId": "d0000001-0000-0000-0000-000000000006"
 }

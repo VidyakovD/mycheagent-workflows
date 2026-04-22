@@ -2,14 +2,19 @@
   "name": "09-site-chat",
   "id": "site-chat-001",
   "active": true,
-  "settings": { "executionOrder": "v1" },
+  "settings": {
+    "executionOrder": "v1"
+  },
   "nodes": [
     {
       "id": "sc1",
       "name": "Site Chat Webhook",
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2,
-      "position": [200, 300],
+      "position": [
+        200,
+        300
+      ],
       "webhookId": "site-chat-hook",
       "parameters": {
         "httpMethod": "POST",
@@ -23,7 +28,10 @@
       "name": "Site Chat Preflight",
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2,
-      "position": [200, 80],
+      "position": [
+        200,
+        80
+      ],
       "webhookId": "site-chat-preflight",
       "parameters": {
         "httpMethod": "OPTIONS",
@@ -37,7 +45,10 @@
       "name": "Respond Preflight",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1,
-      "position": [420, 80],
+      "position": [
+        420,
+        80
+      ],
       "parameters": {
         "respondWith": "text",
         "responseBody": "",
@@ -45,11 +56,26 @@
           "responseCode": 204,
           "responseHeaders": {
             "entries": [
-              { "name": "Access-Control-Allow-Origin",  "value": "={{ (function(){ const allowed = ($env.SITE_CHAT_ORIGINS || 'https://mycheagent.ru,https://studio-che.ru').split(',').map(s=>s.trim()); const origin = $json.headers?.origin || ''; return allowed.includes(origin) ? origin : allowed[0]; })() }}" },
-              { "name": "Access-Control-Allow-Methods", "value": "POST, OPTIONS" },
-              { "name": "Access-Control-Allow-Headers", "value": "Content-Type" },
-              { "name": "Access-Control-Max-Age",      "value": "86400" },
-              { "name": "Vary",                         "value": "Origin" }
+              {
+                "name": "Access-Control-Allow-Origin",
+                "value": "={{ (function(){ const allowed = ($env.SITE_CHAT_ORIGINS || 'https://mycheagent.ru,https://studio-che.ru').split(',').map(s=>s.trim()); const origin = $json.headers?.origin || ''; return allowed.includes(origin) ? origin : allowed[0]; })() }}"
+              },
+              {
+                "name": "Access-Control-Allow-Methods",
+                "value": "POST, OPTIONS"
+              },
+              {
+                "name": "Access-Control-Allow-Headers",
+                "value": "Content-Type"
+              },
+              {
+                "name": "Access-Control-Max-Age",
+                "value": "86400"
+              },
+              {
+                "name": "Vary",
+                "value": "Origin"
+              }
             ]
           }
         }
@@ -60,7 +86,10 @@
       "name": "Parse Event",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [420, 300],
+      "position": [
+        420,
+        300
+      ],
       "parameters": {
         "jsCode": "const raw = $input.first().json;\nconst body = (raw.body && raw.body.sessionId) ? raw.body : raw;\nconst headers = raw.headers || {};\nconst origin = String(headers.origin || headers.Origin || '').trim();\nconst ip = String(headers['x-forwarded-for'] || headers['x-real-ip'] || '').split(',')[0].trim() || 'unknown';\nconst { sessionId, event, messages, lastMessage, platform, timestamp } = body;\n\n// ---- GUARDS ----\nconst allowedOrigins = ($env.SITE_CHAT_ORIGINS || 'https://mycheagent.ru,https://studio-che.ru').split(',').map(s=>s.trim()).filter(Boolean);\nif (!origin || !allowedOrigins.includes(origin)) {\n  return [{ json: { _blocked: true, statusCode: 403, reason: 'origin_not_allowed', origin } }];\n}\nif (!sessionId || typeof sessionId !== 'string' || sessionId.length < 6 || sessionId.length > 128) {\n  return [{ json: { _blocked: true, statusCode: 400, reason: 'bad_session_id' } }];\n}\n// Payload size cap (messages.length & text length)\nconst msgs = Array.isArray(messages) ? messages : [];\nif (msgs.length > 50) {\n  return [{ json: { _blocked: true, statusCode: 413, reason: 'too_many_messages' } }];\n}\nconst totalChars = msgs.reduce((s,m)=>s+String(m?.content||'').length,0) + String(lastMessage||'').length;\nif (totalChars > 20000) {\n  return [{ json: { _blocked: true, statusCode: 413, reason: 'payload_too_large' } }];\n}\n\n// Rate-limit: sessionId OR ip, sliding 60s window, 20 requests\nconst store = $getWorkflowStaticData('global');\nif (!store.rate) store.rate = {};\nconst now = Date.now();\nconst WINDOW = 60 * 1000;\nconst LIMIT = 20;\nconst keys = ['s:'+sessionId, 'i:'+ip];\nfor (const k of keys) {\n  const bucket = store.rate[k] || { count: 0, resetAt: now + WINDOW };\n  if (now > bucket.resetAt) { bucket.count = 0; bucket.resetAt = now + WINDOW; }\n  bucket.count += 1;\n  store.rate[k] = bucket;\n  if (bucket.count > LIMIT) {\n    return [{ json: { _blocked: true, statusCode: 429, reason: 'rate_limited', key: k, count: bucket.count } }];\n  }\n}\n// GC old buckets\nif (Object.keys(store.rate).length > 2000) {\n  for (const k of Object.keys(store.rate)) {\n    if (store.rate[k].resetAt < now) delete store.rate[k];\n  }\n}\n\n// ---- PROMPT ----\nif (!store.siteConfig) store.siteConfig = {};\nconst DEFAULT_BASE = `Ты — ИИ-ассистент обучающей платформы \"Студия ЧЕ\". Тебя зовут \"Зевс, ассистент Видякова Дениса\".\n\nТВОЯ РОЛЬ: Ты эксперт-консультант по видеопроизводству и ИИ-инструментам. Помогаешь пользователям выбрать курс, отвечаешь на вопросы по теме, мотивируешь учиться.\n\nНАПРАВЛЕНИЯ ПЛАТФОРМЫ:\n1. ВИДЕОМОНТАЖ — Adobe Premiere Pro, After Effects. Таймлайн, цветокоррекция, звук, переходы, эффекты, экспорт, кодеки (H.264, H.265, ProRes), разрешения, фреймрейт, многокамерный монтаж.\n2. ИИ ГЕНЕРАЦИИ — DALL-E, Kling, Nano Banano, VEO 3. Генерация видео из текста и изображений, промпт-инжиниринг, стили, параметры, upscale, img2vid, text2vid. Генерация музыки: Suno.\n3. ИИ ДЛЯ БИЗНЕСА — ChatGPT, Claude, автоматизация контента, сценарии, субтитры через Whisper, AI-озвучка (ElevenLabs, HeyGen), чат-боты, воронки продаж, автоматизация видеопродакшена, автопостинг, контент-планы.\n\nУСЛОВИЯ: Разовая оплата, доступ навсегда. Никаких подписок. Оплата через ЮKassa. Последовательное прохождение уроков. Есть домашние задания. Общий чат в каждом курсе.\n\nПРАВИЛА ОТВЕТОВ:\n- Отвечай на русском языке\n- Будь дружелюбным, лаконичным, по делу\n- Используй эмодзи умеренно (1-2 на сообщение)\n- Рекомендуй конкретные курсы, когда уместно\n- Если вопрос не по теме — вежливо верни к теме видеопроизводства и ИИ\n- Максимум 3-4 предложения на ответ\n- Не выдумывай курсы, которых нет в списке\n- Если спрашивают про цены — называй точные\n- Мотивируй людей начать обучение`;\nconst DEFAULT_COURSES = [\n  { name: 'Основы видеомонтажа и анимации в Premiere Pro и After Effects', price: '4 990 ₽', level: 'для новичков' }\n];\nif (!store.siteConfig.basePrompt) store.siteConfig.basePrompt = DEFAULT_BASE;\nif (!store.siteConfig.courses) store.siteConfig.courses = DEFAULT_COURSES;\nconst coursesList = store.siteConfig.courses.map((c,i) => `${i+1}. \"${c.name}\" — ${c.price}${c.level ? ' ('+c.level+')' : ''}`).join('\\n');\nconst systemPrompt = store.siteConfig.basePrompt + '\\n\\nКУРСЫ НА ПЛАТФОРМЕ:\\n' + coursesList;\n\nreturn [{ json: { _blocked: false, origin, sessionId, event: event || 'message', messages: msgs, lastMessage: lastMessage || '', platform: platform || 'Студия ЧЕ', timestamp, systemPrompt } }];"
       }
@@ -70,12 +99,27 @@
       "name": "Is Blocked?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2,
-      "position": [640, 460],
+      "position": [
+        640,
+        460
+      ],
       "parameters": {
         "conditions": {
-          "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "strict" },
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
           "conditions": [
-            { "id": "c0", "leftValue": "={{ $json._blocked }}", "rightValue": true, "operator": { "type": "boolean", "operation": "equals" } }
+            {
+              "id": "c0",
+              "leftValue": "={{ $json._blocked }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "equals"
+              }
+            }
           ],
           "combinator": "and"
         },
@@ -87,7 +131,10 @@
       "name": "Respond Blocked",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1,
-      "position": [860, 580],
+      "position": [
+        860,
+        580
+      ],
       "parameters": {
         "respondWith": "json",
         "responseBody": "={{ JSON.stringify({ error: $json.reason || 'blocked' }) }}",
@@ -95,9 +142,18 @@
           "responseCode": "={{ $json.statusCode || 403 }}",
           "responseHeaders": {
             "entries": [
-              { "name": "Content-Type",                 "value": "application/json" },
-              { "name": "Access-Control-Allow-Origin",  "value": "={{ (function(){ const allowed = ($env.SITE_CHAT_ORIGINS || 'https://mycheagent.ru,https://studio-che.ru').split(',').map(s=>s.trim()); return allowed.includes($json.origin) ? $json.origin : allowed[0]; })() }}" },
-              { "name": "Vary",                          "value": "Origin" }
+              {
+                "name": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "name": "Access-Control-Allow-Origin",
+                "value": "={{ (function(){ const allowed = ($env.SITE_CHAT_ORIGINS || 'https://mycheagent.ru,https://studio-che.ru').split(',').map(s=>s.trim()); return allowed.includes($json.origin) ? $json.origin : allowed[0]; })() }}"
+              },
+              {
+                "name": "Vary",
+                "value": "Origin"
+              }
             ]
           }
         }
@@ -108,47 +164,76 @@
       "name": "Is End?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2,
-      "position": [860, 300],
+      "position": [
+        860,
+        300
+      ],
       "parameters": {
         "conditions": {
-          "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "strict" },
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
           "conditions": [
-            { "id": "c1", "leftValue": "={{ $json.event }}", "rightValue": "end", "operator": { "type": "string", "operation": "equals" } }
+            {
+              "id": "c1",
+              "leftValue": "={{ $json.event }}",
+              "rightValue": "end",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
           ],
           "combinator": "and"
         },
         "options": {}
       }
     },
-
     {
       "id": "sc4",
       "name": "GPT Reply",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [1080, 160],
+      "position": [
+        1080,
+        160
+      ],
       "parameters": {
         "method": "POST",
         "url": "https://api.openai.com/v1/chat/completions",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
-            { "name": "Authorization", "value": "={{ 'Bearer ' + $env.OPENAI_API_KEY }}" },
-            { "name": "Content-Type",  "value": "application/json" }
+            {
+              "name": "Authorization",
+              "value": "={{ 'Bearer ' + $env.OPENAI_API_KEY }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
           ]
         },
         "sendBody": true,
         "contentType": "raw",
         "rawContentType": "application/json",
         "body": "={{ JSON.stringify({ model: 'gpt-4o-mini', messages: [{ role: 'system', content: $json.systemPrompt }, ...$json.messages], max_tokens: 300 }) }}"
-      }
+      },
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 1500
     },
     {
       "id": "sc5",
       "name": "Extract Reply",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [1300, 160],
+      "position": [
+        1300,
+        160
+      ],
       "parameters": {
         "jsCode": "const res = $input.first().json;\nconst parsed = $('Parse Event').first().json;\nif (!res.choices || res.error) {\n  const reply = 'Сейчас не могу ответить — попробуй через минуту 🙏';\n  return [{ json: { reply, origin: parsed.origin, _error: res.error?.message || 'gpt_failed' } }];\n}\nconst reply = res.choices[0].message.content.trim();\nreturn [{ json: { reply, origin: parsed.origin } }];"
       }
@@ -158,7 +243,10 @@
       "name": "Respond with Reply",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1,
-      "position": [1520, 160],
+      "position": [
+        1520,
+        160
+      ],
       "parameters": {
         "respondWith": "json",
         "responseBody": "={{ JSON.stringify({ reply: $json.reply }) }}",
@@ -166,43 +254,66 @@
           "responseCode": 200,
           "responseHeaders": {
             "entries": [
-              { "name": "Content-Type",                 "value": "application/json" },
-              { "name": "Access-Control-Allow-Origin",  "value": "={{ (function(){ const allowed = ($env.SITE_CHAT_ORIGINS || 'https://mycheagent.ru,https://studio-che.ru').split(',').map(s=>s.trim()); return allowed.includes($json.origin) ? $json.origin : allowed[0]; })() }}" },
-              { "name": "Vary",                          "value": "Origin" }
+              {
+                "name": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "name": "Access-Control-Allow-Origin",
+                "value": "={{ (function(){ const allowed = ($env.SITE_CHAT_ORIGINS || 'https://mycheagent.ru,https://studio-che.ru').split(',').map(s=>s.trim()); return allowed.includes($json.origin) ? $json.origin : allowed[0]; })() }}"
+              },
+              {
+                "name": "Vary",
+                "value": "Origin"
+              }
             ]
           }
         }
       }
     },
-
     {
       "id": "sc7",
       "name": "GPT Summary",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [1080, 440],
+      "position": [
+        1080,
+        440
+      ],
       "parameters": {
         "method": "POST",
         "url": "https://api.openai.com/v1/chat/completions",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
-            { "name": "Authorization", "value": "={{ 'Bearer ' + $env.OPENAI_API_KEY }}" },
-            { "name": "Content-Type",  "value": "application/json" }
+            {
+              "name": "Authorization",
+              "value": "={{ 'Bearer ' + $env.OPENAI_API_KEY }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
           ]
         },
         "sendBody": true,
         "contentType": "raw",
         "rawContentType": "application/json",
         "body": "={{ JSON.stringify({ model: 'gpt-4o-mini', messages: [{ role: 'system', content: 'Ты аналитик диалогов. Напиши краткое резюме диалога (3-5 строк) для владельца школы. Укажи: что интересовало пользователя, какие курсы спрашивал, насколько готов к покупке (горячий/тёплый/холодный), нужно ли перезвонить. Используй эмодзи. По-русски.' }, { role: 'user', content: 'Диалог:\\n' + $json.messages.map(m => m.role + ': ' + m.content).join('\\n') }], max_tokens: 250 }) }}"
-      }
+      },
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 1500
     },
     {
       "id": "sc8",
       "name": "Build Report",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [1300, 440],
+      "position": [
+        1300,
+        440
+      ],
       "parameters": {
         "jsCode": "const res = $input.first().json;\nconst summary = res.choices?.[0]?.message?.content?.trim() || 'Не удалось сгенерировать резюме';\nconst parsed = $('Parse Event').item.json;\nconst ts = parsed.timestamp ? new Date(parsed.timestamp).toLocaleString('ru', { day:'numeric', month:'long', hour:'2-digit', minute:'2-digit' }) : new Date().toLocaleString('ru');\nconst msgCount = parsed.messages.length;\nconst tgText = `📊 *Диалог завершён* | ${ts}\\n🏢 ${parsed.platform} | ${msgCount} сообщений\\n\\n${summary}`;\nconst pwaText = `📊 Диалог на сайте (${parsed.platform}, ${ts}, ${msgCount} сообщ.):\\n${summary}`;\nreturn [{ json: { tgText, pwaText, origin: parsed.origin } }];"
       }
@@ -212,13 +323,21 @@
       "name": "Send TG Report",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [1520, 380],
+      "position": [
+        1520,
+        380
+      ],
       "parameters": {
         "method": "POST",
         "url": "={{ 'https://api.telegram.org/bot' + $env.TELEGRAM_BOT_TOKEN + '/sendMessage' }}",
         "sendHeaders": true,
         "headerParameters": {
-          "parameters": [{ "name": "Content-Type", "value": "application/json" }]
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
         },
         "sendBody": true,
         "contentType": "raw",
@@ -231,19 +350,33 @@
       "name": "Save PWA Report",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [1520, 500],
+      "position": [
+        1520,
+        500
+      ],
       "parameters": {
         "method": "POST",
         "url": "https://mycheagent.ru/webhook/pwa-data",
         "sendHeaders": true,
         "headerParameters": {
-          "parameters": [{ "name": "Content-Type", "value": "application/json" }]
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
         },
         "sendBody": true,
         "contentType": "raw",
         "rawContentType": "application/json",
         "body": "={{ JSON.stringify({ action: 'addReport', text: $json.pwaText }) }}",
-        "options": { "response": { "response": { "neverError": true } } }
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          }
+        }
       }
     },
     {
@@ -251,7 +384,10 @@
       "name": "Respond OK",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1,
-      "position": [1740, 440],
+      "position": [
+        1740,
+        440
+      ],
       "parameters": {
         "respondWith": "json",
         "responseBody": "={{ JSON.stringify({ ok: true }) }}",
@@ -259,9 +395,18 @@
           "responseCode": 200,
           "responseHeaders": {
             "entries": [
-              { "name": "Content-Type",                 "value": "application/json" },
-              { "name": "Access-Control-Allow-Origin",  "value": "={{ (function(){ const allowed = ($env.SITE_CHAT_ORIGINS || 'https://mycheagent.ru,https://studio-che.ru').split(',').map(s=>s.trim()); return allowed.includes($('Build Report').first().json.origin) ? $('Build Report').first().json.origin : allowed[0]; })() }}" },
-              { "name": "Vary",                          "value": "Origin" }
+              {
+                "name": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "name": "Access-Control-Allow-Origin",
+                "value": "={{ (function(){ const allowed = ($env.SITE_CHAT_ORIGINS || 'https://mycheagent.ru,https://studio-che.ru').split(',').map(s=>s.trim()); return allowed.includes($('Build Report').first().json.origin) ? $('Build Report').first().json.origin : allowed[0]; })() }}"
+              },
+              {
+                "name": "Vary",
+                "value": "Origin"
+              }
             ]
           }
         }
@@ -269,27 +414,148 @@
     }
   ],
   "connections": {
-    "Site Chat Preflight": { "main": [[{ "node": "Respond Preflight", "type": "main", "index": 0 }]] },
-    "Site Chat Webhook":   { "main": [[{ "node": "Parse Event",       "type": "main", "index": 0 }]] },
-    "Parse Event":         { "main": [[{ "node": "Is Blocked?",       "type": "main", "index": 0 }]] },
+    "Site Chat Preflight": {
+      "main": [
+        [
+          {
+            "node": "Respond Preflight",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Site Chat Webhook": {
+      "main": [
+        [
+          {
+            "node": "Parse Event",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Event": {
+      "main": [
+        [
+          {
+            "node": "Is Blocked?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
     "Is Blocked?": {
       "main": [
-        [{ "node": "Respond Blocked", "type": "main", "index": 0 }],
-        [{ "node": "Is End?",         "type": "main", "index": 0 }]
+        [
+          {
+            "node": "Respond Blocked",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Is End?",
+            "type": "main",
+            "index": 0
+          }
+        ]
       ]
     },
     "Is End?": {
       "main": [
-        [{ "node": "GPT Summary",      "type": "main", "index": 0 }],
-        [{ "node": "GPT Reply",        "type": "main", "index": 0 }]
+        [
+          {
+            "node": "GPT Summary",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "GPT Reply",
+            "type": "main",
+            "index": 0
+          }
+        ]
       ]
     },
-    "GPT Reply":       { "main": [[{ "node": "Extract Reply",      "type": "main", "index": 0 }]] },
-    "Extract Reply":   { "main": [[{ "node": "Respond with Reply", "type": "main", "index": 0 }]] },
-    "GPT Summary":     { "main": [[{ "node": "Build Report",       "type": "main", "index": 0 }]] },
-    "Build Report":    { "main": [[{ "node": "Send TG Report",     "type": "main", "index": 0 }], [{ "node": "Save PWA Report", "type": "main", "index": 0 }]] },
-    "Send TG Report":  { "main": [[{ "node": "Respond OK",         "type": "main", "index": 0 }]] },
-    "Save PWA Report": { "main": [[{ "node": "Respond OK",         "type": "main", "index": 0 }]] }
+    "GPT Reply": {
+      "main": [
+        [
+          {
+            "node": "Extract Reply",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract Reply": {
+      "main": [
+        [
+          {
+            "node": "Respond with Reply",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "GPT Summary": {
+      "main": [
+        [
+          {
+            "node": "Build Report",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Report": {
+      "main": [
+        [
+          {
+            "node": "Send TG Report",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Save PWA Report",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send TG Report": {
+      "main": [
+        [
+          {
+            "node": "Respond OK",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Save PWA Report": {
+      "main": [
+        [
+          {
+            "node": "Respond OK",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
   },
   "versionId": "d0000002-0000-0000-0000-000000000009"
 }

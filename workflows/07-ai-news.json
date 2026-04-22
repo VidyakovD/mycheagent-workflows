@@ -106,7 +106,10 @@
         "options": {
           "timeout": 120000
         }
-      }
+      },
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 1500
     },
     {
       "id": "an4",

@@ -1,0 +1,146 @@
+{
+  "name": "18-bubbleplan-proxy",
+  "id": "bubbleplan-proxy-001",
+  "active": true,
+  "settings": { "executionOrder": "v1", "timezone": "Asia/Yekaterinburg" },
+  "nodes": [
+    {
+      "id": "bp1",
+      "name": "Bubbleplan Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [200, 300],
+      "webhookId": "bubbleplan-hook",
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "bubbleplan",
+        "responseMode": "responseNode",
+        "options": {}
+      }
+    },
+    {
+      "id": "bp2",
+      "name": "Route",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [420, 300],
+      "parameters": {
+        "jsCode": "// Supported actions (POST /webhook/bubbleplan body):\n//  { action: 'list' }\n//  { action: 'create', title, type?, parent_id?, color?, description?, tags?, priority?, deadline? }\n//  { action: 'update', id, patch: { ... } }\n//  { action: 'delete', id }\n//  { action: 'activeGoals' }  // convenience: goals with status=active\n//  { action: 'markDone', id } // convenience: patch status=done\n\nconst raw = $input.first().json;\nconst body = (raw.body && raw.body.action) ? raw.body : raw;\nconst action = String(body.action || '').trim();\nif (!action) {\n  return [{ json: { _skip: true, error: 'no action', statusCode: 400 } }];\n}\n\nconst token = $env.BUBBLEPLAN_TOKEN;\nif (!token) {\n  return [{ json: { _skip: true, error: 'BUBBLEPLAN_TOKEN not set on server', statusCode: 500 } }];\n}\n\nconst base = 'https://bubbleplan.ru/v1';\nlet method = 'GET';\nlet url = base + '/bubbles';\nlet payload = null;\n\nswitch (action) {\n  case 'list':\n  case 'activeGoals':\n    method = 'GET';\n    break;\n  case 'create':\n    method = 'POST';\n    payload = {\n      title: String(body.title || '').trim(),\n      type: body.type || 'goal'\n    };\n    if (body.parent_id) payload.parent_id = body.parent_id;\n    if (body.color) payload.color = body.color;\n    if (body.description) payload.description = body.description;\n    if (Array.isArray(body.tags)) payload.tags = body.tags;\n    if (body.priority) payload.priority = body.priority;\n    if (body.deadline) payload.deadline = body.deadline;\n    if (!payload.title) {\n      return [{ json: { _skip: true, error: 'title required', statusCode: 400 } }];\n    }\n    break;\n  case 'update':\n  case 'markDone':\n    if (!body.id) {\n      return [{ json: { _skip: true, error: 'id required', statusCode: 400 } }];\n    }\n    method = 'PATCH';\n    url = base + '/bubbles/' + encodeURIComponent(String(body.id));\n    payload = (action === 'markDone') ? { status: 'done' } : (body.patch || {});\n    break;\n  case 'delete':\n    if (!body.id) {\n      return [{ json: { _skip: true, error: 'id required', statusCode: 400 } }];\n    }\n    method = 'DELETE';\n    url = base + '/bubbles/' + encodeURIComponent(String(body.id));\n    break;\n  default:\n    return [{ json: { _skip: true, error: 'unknown action: ' + action, statusCode: 400 } }];\n}\n\nreturn [{ json: { _skip: false, action, token, method, url, payload, filterActiveGoals: action === 'activeGoals' } }];"
+      }
+    },
+    {
+      "id": "bp2b",
+      "name": "Is Skip?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [640, 300],
+      "parameters": {
+        "conditions": {
+          "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "loose" },
+          "conditions": [
+            {
+              "id": "cskip",
+              "leftValue": "={{ $json._skip }}",
+              "rightValue": true,
+              "operator": { "type": "boolean", "operation": "true", "singleValue": true }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "bp2c",
+      "name": "Respond Error",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [860, 180],
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({ ok: false, error: $json.error }) }}",
+        "options": {
+          "responseCode": "={{ $json.statusCode || 400 }}",
+          "responseHeaders": {
+            "entries": [
+              { "name": "Content-Type", "value": "application/json" },
+              { "name": "Access-Control-Allow-Origin", "value": "*" }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": "bp3",
+      "name": "Call Bubbleplan",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [860, 380],
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 1500,
+      "parameters": {
+        "method": "={{ $json.method }}",
+        "url": "={{ $json.url }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "Authorization", "value": "={{ 'Bearer ' + $json.token }}" },
+            { "name": "Content-Type",  "value": "application/json" }
+          ]
+        },
+        "sendBody": "={{ !!$json.payload }}",
+        "contentType": "raw",
+        "rawContentType": "application/json",
+        "body": "={{ $json.payload ? JSON.stringify($json.payload) : '' }}",
+        "options": {
+          "timeout": 20000,
+          "response": { "response": { "neverError": true } }
+        }
+      }
+    },
+    {
+      "id": "bp4",
+      "name": "Shape Response",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1080, 380],
+      "parameters": {
+        "jsCode": "const res = $input.first().json;\nconst ctx = $('Route').first().json;\nconst action = ctx.action;\n\n// httpRequest with neverError returns { statusCode, body, headers } at top level OR the body directly\nconst statusCode = res.statusCode || 200;\nconst raw = res.body != null ? res.body : res;\nlet parsed = raw;\nif (typeof raw === 'string') {\n  try { parsed = JSON.parse(raw); } catch(e) { parsed = { raw }; }\n}\n\nif (statusCode >= 400) {\n  return [{ json: { ok: false, statusCode, error: parsed?.error || parsed?.message || 'bubbleplan error', raw: parsed } }];\n}\n\n// For list/activeGoals — normalize\nif (action === 'list' || action === 'activeGoals') {\n  const bubbles = parsed.bubbles || parsed.data || [];\n  let filtered = bubbles;\n  if (ctx.filterActiveGoals) {\n    filtered = bubbles.filter(b => b.type === 'goal' && b.status === 'active');\n  }\n  return [{ json: { ok: true, total: parsed.total || filtered.length, bubbles: filtered } }];\n}\n\nreturn [{ json: { ok: true, result: parsed } }];"
+      }
+    },
+    {
+      "id": "bp5",
+      "name": "Respond OK",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [1300, 380],
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify($json) }}",
+        "options": {
+          "responseCode": "={{ $json.ok ? 200 : ($json.statusCode || 502) }}",
+          "responseHeaders": {
+            "entries": [
+              { "name": "Content-Type", "value": "application/json" },
+              { "name": "Access-Control-Allow-Origin", "value": "*" }
+            ]
+          }
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Bubbleplan Webhook": { "main": [[{ "node": "Route", "type": "main", "index": 0 }]] },
+    "Route":              { "main": [[{ "node": "Is Skip?", "type": "main", "index": 0 }]] },
+    "Is Skip?": {
+      "main": [
+        [{ "node": "Respond Error",   "type": "main", "index": 0 }],
+        [{ "node": "Call Bubbleplan", "type": "main", "index": 0 }]
+      ]
+    },
+    "Call Bubbleplan": { "main": [[{ "node": "Shape Response", "type": "main", "index": 0 }]] },
+    "Shape Response":  { "main": [[{ "node": "Respond OK",     "type": "main", "index": 0 }]] }
+  },
+  "versionId": "d0000001-0000-0000-0000-000000000018"
+}

@@ -1,5 +1,7 @@
-// Версия меняется при каждом деплое — старый кэш автоматически удаляется
-const CACHE = 'zeus-v1';
+// Bump версию при желании сбросить кэш всем юзерам одноразово.
+// Для регулярных апдейтов версия не нужна — статика идёт через
+// stale-while-revalidate: фоновое обновление на следующий визит.
+const CACHE = 'zeus-v2';
 
 self.addEventListener('install', e => {
   e.waitUntil(self.skipWaiting());
@@ -19,8 +21,16 @@ self.addEventListener('fetch', e => {
   // API-запросы — никогда не кэшировать
   if (url.includes('/webhook/')) return;
 
-  // HTML-файлы — всегда берём с сервера (network-first),
-  // чтобы обновления применялись сразу
+  // sw.js и manifest.json — network-first,
+  // чтобы апдейты применялись максимально быстро
+  if (/\/(sw\.js|manifest\.json)(\?|$)/.test(url)) {
+    e.respondWith(
+      fetch(e.request, { cache: 'no-store' }).catch(() => caches.match(e.request))
+    );
+    return;
+  }
+
+  // HTML — network-first (без кэша сети, всегда свежее)
   if (e.request.headers.get('accept')?.includes('text/html')) {
     e.respondWith(
       fetch(e.request)
@@ -34,17 +44,21 @@ self.addEventListener('fetch', e => {
     return;
   }
 
-  // Остальное (manifest, sw, иконки) — сначала кэш, при промахе — сеть
+  // Остальное (иконки, CSS, JS) — stale-while-revalidate:
+  // мгновенно отдаём из кэша, параллельно обновляем в фоне.
+  // На следующий визит юзер получит свежий ресурс.
   e.respondWith(
     caches.match(e.request).then(cached => {
-      if (cached) return cached;
-      return fetch(e.request).then(res => {
-        if (res.ok) {
-          const clone = res.clone();
-          caches.open(CACHE).then(c => c.put(e.request, clone));
-        }
-        return res;
-      });
+      const networkFetch = fetch(e.request)
+        .then(res => {
+          if (res && res.ok) {
+            const clone = res.clone();
+            caches.open(CACHE).then(c => c.put(e.request, clone));
+          }
+          return res;
+        })
+        .catch(() => cached);
+      return cached || networkFetch;
     })
   );
 });

@@ -285,6 +285,10 @@
       "name": "Whisper",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 1500,
+      "onError": "continueRegularOutput",
       "position": [
         1520,
         320
@@ -336,7 +340,7 @@
         320
       ],
       "parameters": {
-        "jsCode": "const chatId = $('Router').item.json.chatId;\nconst text = $input.first().json.text;\nconst store = $getWorkflowStaticData('global');\nconst section = store.sessions?.[String(chatId)]?.section || 'chat';\nconst prompts = {\n  chat:'Ты умный персональный ассистент по имени Зевс. Пользователя зовут Денис, обращайся к нему «Мой господин». Отвечай кратко, по-русски, дружелюбно. Без лишних вводных слов.',\n  tasks:'Ты ассистент Зевс по задачам. Пользователя зовут Денис, «Мой господин». Помогай с задачами и приоритетами. Кратко, по-русски.',\n  notes:'Ты ассистент Зевс по заметкам. Пользователя зовут Денис, «Мой господин». Структурируй идеи и мысли. Кратко, по-русски.',\n  sport:'Ты фитнес-ассистент Зевс. Пользователя зовут Денис, «Мой господин». Тренировки, калории, питание. Кратко, по-русски.',\n  work:'Ты бизнес-ассистент Зевс. Пользователя зовут Денис, «Мой господин». Рабочие задачи и проекты. Кратко, по-русски.',\n  ideas:'Ты творческий ассистент Зевс. Пользователя зовут Денис, «Мой господин». Принимай идеи, структурируй. Кратко, по-русски.',\n  producer:'Ты ИИ-агент «Продюсер». Помогаешь Денису (обращайся «Мой господин») с продюсированием контента: стратегия, монетизация, аудитория, планирование. Конкретные советы, по-русски.',\n  writer:'Ты ИИ-агент «Сценарист». Помогаешь Денису (обращайся «Мой господин») писать сценарии, скрипты, тексты для видео. По-русски.',\n  editor:'Ты ИИ-агент «Монтажёр». Помогаешь Денису (обращайся «Мой господин») с монтажом: тайминг, переходы, структура ролика. По-русски.',\n  sales:'Ты ИИ-агент «Продажник». Помогаешь Денису (обращайся «Мой господин») с продажами: скрипты, офферы, возражения, воронки. По-русски.'\n};\nreturn [{ json: { chatId, userText: text, isVoice: true, systemPrompt: prompts[section] || prompts.chat } }];"
+        "jsCode": "const chatId = $('Router').item.json.chatId;\nconst text = $input.first().json?.text;\nconst hasText = typeof text === 'string' && text.trim().length > 0;\nif (!hasText) {\n  return [{ json: { chatId, userText: 'Ответь строго этой фразой: «🔱 Не разобрал голосовое, Мой господин. Перешли текстом, пожалуйста.» Больше ничего.', isVoice: true, systemPrompt: 'Ты только повторяешь заготовленную реплику. Никакого творчества.' } }];\n}\nconst store = $getWorkflowStaticData('global');\nconst section = store.sessions?.[String(chatId)]?.section || 'chat';\nconst prompts = {\n  chat:'Ты умный персональный ассистент по имени Зевс. Пользователя зовут Денис, обращайся к нему «Мой господин». Отвечай кратко, по-русски, дружелюбно. Без лишних вводных слов.',\n  tasks:'Ты ассистент Зевс по задачам. Пользователя зовут Денис, «Мой господин». Помогай с задачами и приоритетами. Кратко, по-русски.',\n  notes:'Ты ассистент Зевс по заметкам. Пользователя зовут Денис, «Мой господин». Структурируй идеи и мысли. Кратко, по-русски.',\n  sport:'Ты фитнес-ассистент Зевс. Пользователя зовут Денис, «Мой господин». Тренировки, калории, питание. Кратко, по-русски.',\n  work:'Ты бизнес-ассистент Зевс. Пользователя зовут Денис, «Мой господин». Рабочие задачи и проекты. Кратко, по-русски.',\n  ideas:'Ты творческий ассистент Зевс. Пользователя зовут Денис, «Мой господин». Принимай идеи, структурируй. Кратко, по-русски.',\n  producer:'Ты ИИ-агент «Продюсер». Помогаешь Денису (обращайся «Мой господин») с продюсированием контента: стратегия, монетизация, аудитория, планирование. Конкретные советы, по-русски.',\n  writer:'Ты ИИ-агент «Сценарист». Помогаешь Денису (обращайся «Мой господин») писать сценарии, скрипты, тексты для видео. По-русски.',\n  editor:'Ты ИИ-агент «Монтажёр». Помогаешь Денису (обращайся «Мой господин») с монтажом: тайминг, переходы, структура ролика. По-русски.',\n  sales:'Ты ИИ-агент «Продажник». Помогаешь Денису (обращайся «Мой господин») с продажами: скрипты, офферы, возражения, воронки. По-русски.'\n};\nreturn [{ json: { chatId, userText: text, isVoice: true, systemPrompt: prompts[section] || prompts.chat } }];"
       }
     },
     {
@@ -357,6 +361,10 @@
       "name": "GPT",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 1500,
+      "onError": "continueRegularOutput",
       "position": [
         1960,
         430
@@ -394,7 +402,7 @@
         430
       ],
       "parameters": {
-        "jsCode": "const res = $input.first().json;\nconst text = res.choices?.[0]?.message?.content || 'Не удалось получить ответ';\nconst chatId = $('Router').item.json.chatId;\nconst isVoice = $('Router').item.json.isVoice;\nreturn [{ json: { chatId, text, isVoice } }];"
+        "jsCode": "const res = $input.first().json;\nlet text;\nif (res?.choices?.[0]?.message?.content) {\n  text = res.choices[0].message.content;\n} else if (res?.error) {\n  text = '🔱 Зевс задумался… попробуй через минуту, Мой господин.';\n} else {\n  text = '🔱 Зевс задумался… попробуй ещё раз, Мой господин.';\n}\nconst chatId = $('Router').item.json.chatId;\nconst isVoice = $('Router').item.json.isVoice;\nreturn [{ json: { chatId, text, isVoice } }];"
       }
     },
     {
@@ -434,6 +442,9 @@
       "name": "TTS",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 1500,
       "position": [
         2620,
         320
@@ -473,6 +484,9 @@
       "name": "Send Voice",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 1500,
       "position": [
         2840,
         320
@@ -505,6 +519,9 @@
       "name": "Send Text",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 1500,
       "position": [
         2620,
         540
@@ -916,6 +933,9 @@
       "name": "GPT Analyze",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 1500,
       "position": [1960, 700],
       "parameters": {
         "method": "POST",
@@ -1140,6 +1160,9 @@
       "name": "GPT Email Answer",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 1500,
       "position": [2840, 730],
       "parameters": {
         "method": "POST",
@@ -1227,6 +1250,9 @@
       "name": "GPT KB Answer",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 1500,
       "position": [2840, 430],
       "parameters": {
         "method": "POST",

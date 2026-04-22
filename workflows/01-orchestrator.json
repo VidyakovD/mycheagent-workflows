@@ -691,7 +691,7 @@
         "sendBody": true,
         "contentType": "raw",
         "rawContentType": "application/json",
-        "body": "={{ JSON.stringify({ chat_id: $('Is Channel CB?').item.json.data.startsWith('che:') ? '@che_v_che' : '-1002046512562', text: $json.text }) }}",
+        "body": "={{ JSON.stringify({ chat_id: $('Is Channel CB?').item.json.data.startsWith('che:') ? $env.TELEGRAM_CHANNEL_CHE : $env.TELEGRAM_CHANNEL_MAIN, text: $json.text }) }}",
         "options": {
           "response": {
             "response": {

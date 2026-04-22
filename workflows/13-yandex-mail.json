@@ -136,7 +136,7 @@
         "sendBody": true,
         "contentType": "raw",
         "rawContentType": "application/json",
-        "body": "={{ (function() { const gpt = $input.first().json; const bb = $('Build GPT Body').first().json; const summary = gpt.choices?.[0]?.message?.content || 'Не удалось получить сводку'; const text = '📧 ' + bb.slot + ' сводка почты (' + bb.count + ' писем)\\n\\n' + summary + '\\n\\n💬 Спроси подробнее — я помню контекст'; return JSON.stringify({ chat_id: 211279650, text: text }); })() }}",
+        "body": "={{ (function() { const gpt = $input.first().json; const bb = $('Build GPT Body').first().json; const summary = gpt.choices?.[0]?.message?.content || 'Не удалось получить сводку'; const text = '📧 ' + bb.slot + ' сводка почты (' + bb.count + ' писем)\\n\\n' + summary + '\\n\\n💬 Спроси подробнее — я помню контекст'; return JSON.stringify({ chat_id: $env.TELEGRAM_CHAT_ID, text: text }); })() }}",
         "options": {}
       }
     }

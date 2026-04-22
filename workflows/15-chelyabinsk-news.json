@@ -147,7 +147,7 @@
         "sendBody": true,
         "contentType": "raw",
         "rawContentType": "application/json",
-        "body": "={{ JSON.stringify({ chat_id: 211279650, text: '🏙 Челябинск-дайджест за вчера: подходящих проверенных новостей не нашлось.\\nПричина: ' + ($json.reason || 'нет данных') + '\\nПоисков: ' + ($json.searchedCount || 0) }) }}",
+        "body": "={{ JSON.stringify({ chat_id: $env.TELEGRAM_CHAT_ID, text: '🏙 Челябинск-дайджест за вчера: подходящих проверенных новостей не нашлось.\\nПричина: ' + ($json.reason || 'нет данных') + '\\nПоисков: ' + ($json.searchedCount || 0) }) }}",
         "options": { "response": { "response": { "neverError": true } } }
       }
     },
@@ -221,7 +221,7 @@
         "sendBody": true,
         "contentType": "raw",
         "rawContentType": "application/json",
-        "body": "={{ JSON.stringify({ chat_id: 211279650, text: $('Build Final').first().json.post, reply_markup: { inline_keyboard: [[ { text: '✅ Опубликовать в @che_v_che', callback_data: 'che:' + $('Build Final').first().json.id }, { text: '❌ Пропустить', callback_data: 'che_skip:' + $('Build Final').first().json.id } ]] } }) }}",
+        "body": "={{ JSON.stringify({ chat_id: $env.TELEGRAM_CHAT_ID, text: $('Build Final').first().json.post, reply_markup: { inline_keyboard: [[ { text: '✅ Опубликовать в @che_v_che', callback_data: 'che:' + $('Build Final').first().json.id }, { text: '❌ Пропустить', callback_data: 'che_skip:' + $('Build Final').first().json.id } ]] } }) }}",
         "options": { "response": { "response": { "neverError": true } } }
       }
     }

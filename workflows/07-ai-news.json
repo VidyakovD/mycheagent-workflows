@@ -212,7 +212,7 @@
         "sendBody": true,
         "contentType": "raw",
         "rawContentType": "application/json",
-        "body": "={{ JSON.stringify({ chat_id: 211279650, text: $('Extract Post').first().json.post, reply_markup: { inline_keyboard: [[ { text: '✅ Опубликовать в канал', callback_data: 'channel:' + $('Extract Post').first().json.id }, { text: '❌ Не публиковать', callback_data: 'channel_skip:' + $('Extract Post').first().json.id } ]] } }) }}",
+        "body": "={{ JSON.stringify({ chat_id: $env.TELEGRAM_CHAT_ID, text: $('Extract Post').first().json.post, reply_markup: { inline_keyboard: [[ { text: '✅ Опубликовать в канал', callback_data: 'channel:' + $('Extract Post').first().json.id }, { text: '❌ Не публиковать', callback_data: 'channel_skip:' + $('Extract Post').first().json.id } ]] } }) }}",
         "options": {}
       }
     }

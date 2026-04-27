@@ -89,10 +89,10 @@
             { "name": "Content-Type",  "value": "application/json" }
           ]
         },
-        "sendBody": "={{ !!$json.payload }}",
+        "sendBody": true,
         "contentType": "raw",
         "rawContentType": "application/json",
-        "body": "={{ $json.payload ? JSON.stringify($json.payload) : '' }}",
+        "body": "={{ $json.payload ? JSON.stringify($json.payload) : '{}' }}",
         "options": {
           "timeout": 20000,
           "response": { "response": { "neverError": true } }

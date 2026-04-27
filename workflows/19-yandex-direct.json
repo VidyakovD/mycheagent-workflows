@@ -1,0 +1,148 @@
+{
+  "name": "19-yandex-direct",
+  "id": "yadirect-proxy-001",
+  "active": false,
+  "settings": { "executionOrder": "v1", "timezone": "Asia/Yekaterinburg" },
+  "nodes": [
+    {
+      "id": "yd1",
+      "name": "Direct Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [200, 300],
+      "webhookId": "yadirect-hook",
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "yadirect",
+        "responseMode": "responseNode",
+        "options": {}
+      }
+    },
+    {
+      "id": "yd2",
+      "name": "Route",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [420, 300],
+      "parameters": {
+        "jsCode": "// Yandex Direct API v5 proxy.\n// docs: https://yandex.ru/dev/direct/doc/dg/concepts/about.html\n//\n// POST /webhook/yadirect with body { action, ...params }\n//\n// Supported actions (минимум для управления кампанией):\n//\n//   { action: 'clients.get' }                                    — info об аккаунте (валюта, тип, login)\n//\n//   { action: 'campaigns.get', filters? }                        — список кампаний\n//   { action: 'campaigns.add', campaigns: [...] }                — создать (рекомендую CreateInDraft)\n//   { action: 'campaigns.suspend', ids: [...] }                  — поставить на паузу\n//   { action: 'campaigns.resume',  ids: [...] }\n//   { action: 'campaigns.delete',  ids: [...] }\n//\n//   { action: 'adgroups.get', filters? }\n//   { action: 'adgroups.add', adGroups: [...] }\n//\n//   { action: 'ads.get', filters? }\n//   { action: 'ads.add', ads: [...] }\n//   { action: 'ads.moderate', ids: [...] }                        — отправить на модерацию\n//\n//   { action: 'keywords.add', keywords: [...] }                   — ключевые фразы\n//   { action: 'keywords.suspend' / 'resume' / 'delete', ids: [...] }\n//\n//   { action: 'changes.checkDictionaries' } / 'changes.check'     — проверка инкр.апдейтов\n//\n//   { action: 'raw', service, method, params }                    — на всякий случай: прокинуть как есть\n//\n//   { action: 'reports.get', body }                                — отчёты (другой эндпоинт, см. ниже)\n//\n// Env required:\n//   YANDEX_DIRECT_TOKEN      — OAuth токен (Bearer)\n//   YANDEX_DIRECT_LOGIN      — Client-Login (логин рекламодателя)\n//   YANDEX_DIRECT_SANDBOX    — '1' = sandbox, '0' / unset = prod\n\nconst raw = $input.first().json;\nconst body = (raw.body && raw.body.action) ? raw.body : raw;\nconst action = String(body.action || '').trim();\nif (!action) {\n  return [{ json: { _skip: true, error: 'no action', statusCode: 400 } }];\n}\n\nconst token = $env.YANDEX_DIRECT_TOKEN;\nif (!token) {\n  return [{ json: { _skip: true, error: 'YANDEX_DIRECT_TOKEN not set on server', statusCode: 500 } }];\n}\nconst login = $env.YANDEX_DIRECT_LOGIN || '';\nconst sandbox = String($env.YANDEX_DIRECT_SANDBOX || '0') === '1';\n\nconst apiBase     = sandbox ? 'https://api-sandbox.direct.yandex.com/json/v5' : 'https://api.direct.yandex.com/json/v5';\nconst reportsBase = sandbox ? 'https://api-sandbox.direct.yandex.com/v5/reports' : 'https://api.direct.yandex.com/v5/reports';\n\nlet service, method, params;\nlet url, payload, isReport = false;\n\nfunction split(a) {\n  const idx = a.indexOf('.');\n  if (idx < 0) return [a, 'get'];\n  return [a.slice(0, idx), a.slice(idx + 1)];\n}\n\nif (action === 'raw') {\n  service = String(body.service || '').trim();\n  method  = String(body.method  || 'get').trim();\n  params  = body.params || {};\n  if (!service) return [{ json: { _skip: true, error: 'service required for raw', statusCode: 400 } }];\n} else if (action === 'reports.get') {\n  isReport = true;\n  if (!body.body) return [{ json: { _skip: true, error: 'reports.get requires body (XML или JSON отчёта)', statusCode: 400 } }];\n  payload = body.body;\n} else {\n  [service, method] = split(action);\n  // map action → params\n  switch (action) {\n    case 'clients.get':\n      params = { FieldNames: body.FieldNames || ['Login','ClientId','Currency','Type','CountryId','Phone','Email','VatRate','SmsSettings'] };\n      break;\n    case 'campaigns.get':\n      params = {\n        SelectionCriteria: body.filters || {},\n        FieldNames: body.FieldNames || ['Id','Name','Status','State','Type','StartDate','EndDate','DailyBudget','Currency','Funds'],\n        TextCampaignFieldNames: body.TextCampaignFieldNames\n      };\n      Object.keys(params).forEach(k => params[k] === undefined && delete params[k]);\n      break;\n    case 'campaigns.add':\n      if (!Array.isArray(body.campaigns) || !body.campaigns.length) return [{ json: { _skip: true, error: 'campaigns array required', statusCode: 400 } }];\n      params = { Campaigns: body.campaigns };\n      break;\n    case 'campaigns.suspend':\n    case 'campaigns.resume':\n    case 'campaigns.delete':\n    case 'campaigns.archive':\n    case 'campaigns.unarchive':\n      if (!Array.isArray(body.ids) || !body.ids.length) return [{ json: { _skip: true, error: 'ids array required', statusCode: 400 } }];\n      params = { SelectionCriteria: { Ids: body.ids } };\n      break;\n    case 'adgroups.get':\n      params = {\n        SelectionCriteria: body.filters || {},\n        FieldNames: body.FieldNames || ['Id','Name','CampaignId','Status','Type','RegionIds','NegativeKeywords','TrackingParams']\n      };\n      break;\n    case 'adgroups.add':\n      if (!Array.isArray(body.adGroups) || !body.adGroups.length) return [{ json: { _skip: true, error: 'adGroups array required', statusCode: 400 } }];\n      params = { AdGroups: body.adGroups };\n      break;\n    case 'ads.get':\n      params = {\n        SelectionCriteria: body.filters || {},\n        FieldNames: body.FieldNames || ['Id','State','Status','AdGroupId','CampaignId','Type'],\n        TextAdFieldNames: body.TextAdFieldNames || ['Title','Title2','Text','Href','VCardId','SitelinkSetId']\n      };\n      break;\n    case 'ads.add':\n      if (!Array.isArray(body.ads) || !body.ads.length) return [{ json: { _skip: true, error: 'ads array required', statusCode: 400 } }];\n      params = { Ads: body.ads };\n      break;\n    case 'ads.moderate':\n    case 'ads.suspend':\n    case 'ads.resume':\n    case 'ads.delete':\n      if (!Array.isArray(body.ids) || !body.ids.length) return [{ json: { _skip: true, error: 'ids array required', statusCode: 400 } }];\n      params = { SelectionCriteria: { Ids: body.ids } };\n      break;\n    case 'keywords.add':\n      if (!Array.isArray(body.keywords) || !body.keywords.length) return [{ json: { _skip: true, error: 'keywords array required', statusCode: 400 } }];\n      params = { Keywords: body.keywords };\n      break;\n    case 'keywords.suspend':\n    case 'keywords.resume':\n    case 'keywords.delete':\n      if (!Array.isArray(body.ids) || !body.ids.length) return [{ json: { _skip: true, error: 'ids array required', statusCode: 400 } }];\n      params = { SelectionCriteria: { Ids: body.ids } };\n      break;\n    case 'changes.checkDictionaries':\n      params = {};\n      break;\n    case 'changes.check':\n      if (!body.timestamp) return [{ json: { _skip: true, error: 'timestamp required (UTC, RFC 3339)', statusCode: 400 } }];\n      params = { Timestamp: body.timestamp, FieldNames: body.FieldNames || ['Timestamp','CampaignsChanges','NotFoundCampaignIds'] };\n      break;\n    default:\n      return [{ json: { _skip: true, error: 'unknown action: ' + action + '. Use action=raw with {service, method, params} for arbitrary calls', statusCode: 400 } }];\n  }\n}\n\nif (isReport) {\n  url = reportsBase;\n} else {\n  url = apiBase + '/' + service;\n  payload = { method, params };\n}\n\nreturn [{ json: { _skip: false, action, token, login, sandbox, url, isReport, payload } }];"
+      }
+    },
+    {
+      "id": "yd2b",
+      "name": "Is Skip?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [640, 300],
+      "parameters": {
+        "conditions": {
+          "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "loose" },
+          "conditions": [
+            {
+              "id": "cskip",
+              "leftValue": "={{ $json._skip }}",
+              "rightValue": true,
+              "operator": { "type": "boolean", "operation": "true", "singleValue": true }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "yd2c",
+      "name": "Respond Error",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [860, 180],
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({ ok: false, error: $json.error }) }}",
+        "options": {
+          "responseCode": "={{ $json.statusCode || 400 }}",
+          "responseHeaders": {
+            "entries": [
+              { "name": "Content-Type", "value": "application/json" },
+              { "name": "Access-Control-Allow-Origin", "value": "*" }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": "yd3",
+      "name": "Call Direct API",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [860, 380],
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 1500,
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $json.url }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "Authorization",   "value": "={{ 'Bearer ' + $json.token }}" },
+            { "name": "Accept-Language", "value": "ru" },
+            { "name": "Content-Type",    "value": "application/json; charset=utf-8" },
+            { "name": "Client-Login",    "value": "={{ $json.login }}" }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "application/json",
+        "body": "={{ typeof $json.payload === 'string' ? $json.payload : JSON.stringify($json.payload) }}",
+        "options": {
+          "timeout": 30000,
+          "response": { "response": { "neverError": true, "fullResponse": true } }
+        }
+      }
+    },
+    {
+      "id": "yd4",
+      "name": "Shape Response",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1080, 380],
+      "parameters": {
+        "jsCode": "const res = $input.first().json;\nconst ctx = $('Route').first().json;\nconst statusCode = res.statusCode || 200;\nconst headers = res.headers || {};\nconst raw = res.body != null ? res.body : res;\n\nlet parsed = raw;\nif (typeof raw === 'string') {\n  try { parsed = JSON.parse(raw); } catch(e) { parsed = { raw }; }\n}\n\n// Direct API возвращает {result: ...} или {error: ...} в JSON, статус всегда 200/4xx/5xx\nconst direct = parsed && typeof parsed === 'object' ? parsed : {};\nconst errPayload = direct.error;\nif (errPayload) {\n  return [{ json: {\n    ok: false,\n    statusCode: 502,\n    error_code: errPayload.error_code,\n    error: errPayload.error_string || errPayload.error_detail,\n    detail: errPayload.error_detail,\n    request_id: errPayload.request_id,\n    units: headers['units'] || headers['Units']\n  } }];\n}\nif (statusCode >= 400) {\n  return [{ json: { ok: false, statusCode, error: 'http_' + statusCode, raw: parsed } }];\n}\n\nreturn [{ json: {\n  ok: true,\n  action: ctx.action,\n  sandbox: ctx.sandbox,\n  result: direct.result || direct,\n  units: headers['units'] || headers['Units']\n} }];"
+      }
+    },
+    {
+      "id": "yd5",
+      "name": "Respond OK",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [1300, 380],
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify($json) }}",
+        "options": {
+          "responseCode": "={{ $json.ok ? 200 : ($json.statusCode || 502) }}",
+          "responseHeaders": {
+            "entries": [
+              { "name": "Content-Type", "value": "application/json" },
+              { "name": "Access-Control-Allow-Origin", "value": "*" }
+            ]
+          }
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Direct Webhook": { "main": [[{ "node": "Route", "type": "main", "index": 0 }]] },
+    "Route":          { "main": [[{ "node": "Is Skip?", "type": "main", "index": 0 }]] },
+    "Is Skip?": {
+      "main": [
+        [{ "node": "Respond Error",   "type": "main", "index": 0 }],
+        [{ "node": "Call Direct API", "type": "main", "index": 0 }]
+      ]
+    },
+    "Call Direct API": { "main": [[{ "node": "Shape Response", "type": "main", "index": 0 }]] },
+    "Shape Response":  { "main": [[{ "node": "Respond OK",     "type": "main", "index": 0 }]] }
+  },
+  "versionId": "d0000001-0000-0000-0000-000000000019"
+}

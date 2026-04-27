@@ -42,16 +42,27 @@
       "name": "Should Parse?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2,
-      "position": [520, 300],
+      "position": [
+        520,
+        300
+      ],
       "parameters": {
         "conditions": {
-          "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "loose" },
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose"
+          },
           "conditions": [
             {
               "id": "cparse",
               "leftValue": "={{ $json.chatId }}",
               "rightValue": "",
-              "operator": { "type": "string", "operation": "notEmpty", "singleValue": true }
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
             }
           ],
           "combinator": "and"
@@ -64,16 +75,27 @@
       "name": "Should Reply?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2,
-      "position": [1180, 300],
+      "position": [
+        1180,
+        300
+      ],
       "parameters": {
         "conditions": {
-          "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "loose" },
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose"
+          },
           "conditions": [
             {
               "id": "creply",
               "leftValue": "={{ $json.token }}",
               "rightValue": "",
-              "operator": { "type": "string", "operation": "notEmpty", "singleValue": true }
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
             }
           ],
           "combinator": "and"
@@ -216,7 +238,10 @@
       "name": "Check Item",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [1400, 300],
+      "position": [
+        1400,
+        300
+      ],
       "parameters": {
         "jsCode": "const itemData = $input.first().json;\nconst title = (itemData.title || itemData.name || '').toLowerCase();\nconst categoryName = (itemData.category?.name || '').toLowerCase();\nconst hay = title + ' ' + categoryName;\n\n// Keywords that indicate this is our training/courses listing\nconst trainingKeywords = [\n  'курс', 'курсы', 'обучен', 'школ', 'уроки', 'урок', 'занят',\n  'монтаж', 'видеомонт', 'видеомейк', 'видеоредактор',\n  'premiere', 'after effects', 'davinci', 'final cut',\n  'нейрос', 'нейросет', 'ии ', ' ии', 'искусствен', 'ai ', 'ai,', 'chatgpt',\n  'midjourney', 'kling', 'suno', 'sora',\n  'репетитор', 'преподават', 'наставн', 'ментор',\n  'студия че', 'studiya che', 'studia che'\n];\n\nconst isTraining = trainingKeywords.some(kw => hay.includes(kw));\n\n// Pass through all fields + flag\nreturn [{ json: { ...itemData, isTrainingItem: isTraining, itemTitle: itemData.title || itemData.name || '', itemCategoryName: itemData.category?.name || '' } }];"
       }
@@ -226,16 +251,27 @@
       "name": "Is Training?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2,
-      "position": [1420, 300],
+      "position": [
+        1420,
+        300
+      ],
       "parameters": {
         "conditions": {
-          "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "loose" },
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose"
+          },
           "conditions": [
             {
               "id": "ctrain",
               "leftValue": "={{ $json.isTrainingItem }}",
               "rightValue": true,
-              "operator": { "type": "boolean", "operation": "true", "singleValue": true }
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
             }
           ],
           "combinator": "and"
@@ -274,7 +310,7 @@
         300
       ],
       "parameters": {
-        "jsCode": "const ctx = $('Merge Context').first().json;\nconst msgs = ($('Get Chat History').first().json.messages || []).slice().reverse();\n\nconst conversation = msgs\n  .filter(m => m.content?.text)\n  .map(m => ({\n    role: String(m.author_id) === String(ctx.userId) ? 'assistant' : 'user',\n    content: m.content.text\n  }));\n\n// Ensure last message is from user\nif (!conversation.length || conversation[conversation.length-1].role !== 'user') {\n  conversation.push({ role: 'user', content: ctx.lastText });\n}\n\n// Item info (which ad they wrote from)\nconst itemData = $('Get Item Info').first().json;\nconst itemTitle = itemData.title || itemData.name || '';\nconst itemCategory = itemData.category?.name || '';\nconst itemLine = itemTitle ? `\\n\\nОБЪЯВЛЕНИЕ: Человек написал по объявлению «${itemTitle}»${itemCategory ? ' (категория: ' + itemCategory + ')' : ''}. Отвечай с учётом этого контекста.` : '';\n\n// Get shared config from site-chat workflow\nconst siteConf = $input.first().json;\nconst basePrompt = siteConf.basePrompt || 'Ты — ассистент платформы Студия ЧЕ по видеомонтажу и ИИ.';\nconst courses = siteConf.courses || [];\n\nconst coursesList = courses.map((c,i) => `${i+1}. \"${c.name}\" — ${c.price}${c.level ? ' ('+c.level+')' : ''}`).join('\\n');\n\nconst systemPrompt = basePrompt + '\\n\\nКУРСЫ НА ПЛАТФОРМЕ:\\n' + coursesList + itemLine + `\n\nРОЛЬ: Ты — менеджер по продажам высшего класса в Студии ЧЕ. Не бот, а живой профессионал: уверенный, внимательный, располагающий. Твоя задача — помочь человеку решить его задачу через наш продукт и мягко довести до покупки.\n\nСТИЛЬ ОБЩЕНИЯ НА АВИТО:\n- ВСЕГДА обращайся на «Вы» (с большой буквы). Это деловое общение.\n- 2-4 предложения. Без воды, без формальностей, без «Здравствуйте, я представитель...». Сразу по делу, живо, по-человечески.\n- Пиши как опытный продавец в переписке: короткие предложения, без канцелярита, без смайликов более 1 на сообщение.\n\nЛОГИКА ПРОДАЖ:\n1. ПЕРВОЕ СООБЩЕНИЕ клиента — выясни контекст: что человеку нужно, какая цель (блог, работа, хобби, новая профессия). Не вываливай сразу курсы — задай 1 короткий уточняющий вопрос.\n2. ВЫЯСНИВ ПОТРЕБНОСТЬ — подбери 1-2 курса из списка, которые реально ему подходят. Объясни ЧТО человек получит (навык, результат, через сколько), а не формальное «что входит».\n3. ЦЕНА — называй сразу и уверенно, как только спросят. Никогда не уходи от ответа. Формат: «Курс X — Y рублей. Оплата единоразово, доступ навсегда».\n4. ВОЗРАЖЕНИЯ — работай мягко: «дорого» → покажи ценность (стоимость 1-2 заказов на фрилансе окупает). «Подумаю» → «Что конкретно смущает? Могу помочь разобраться». «Справлюсь сам» → уважай выбор, но напомни про структуру и поддержку.\n5. ДОПРОДАЖА — если человек интересуется одним курсом, упомяни связанный (например, купили монтаж → предложи ИИ-инструменты как следующий шаг).\n6. ЗАКРЫТИЕ — когда клиент готов («интересно», «как оплатить», «беру»), добавь SEND_SITE_LINK в конец ответа. Ссылка даст ему страницу курса и форму оплаты.\n\nТЕМАТИКА (ЖЁСТКО):\n- Ты отвечаешь ТОЛЬКО про наши курсы, видеомонтаж, нейросети, контент, работу видеомейкера и смежные темы.\n- Если клиент спрашивает про другое (погода, политика, личное, посторонние услуги, несвязанные товары) — вежливо скажи одним предложением что по этим вопросам не консультируешь, и верни разговор к обучению. Пример: «По этому вопросу подсказать не смогу, я специализируюсь на наших курсах по видеомонтажу и нейросетям. Если интересно обучение — расскажу».\n- Не поддерживай долгий офф-топик даже если клиент настаивает.\n\nЖЁСТКИЕ ПРАВИЛА:\n- НИКОГДА не выдумывай цены, курсы, условия, даты стартов или характеристики, которых нет в списке выше.\n- Если не знаешь ответа — честно скажи «Этот момент уточню у преподавателя и вернусь» и не придумывай.\n- Не обещай скидок без подтверждения.\n- SEND_SITE_LINK добавляй ТОЛЬКО когда клиент явно готов (купить, оплатить, записаться, посмотреть подробно, изучить программу). НЕ добавляй в первых ответах и при общих вопросах.`;\n\nconst body = JSON.stringify({\n  model: 'gpt-4o-mini',\n  messages: [{ role: 'system', content: systemPrompt }, ...conversation],\n  max_tokens: 350,\n  temperature: 0.7\n});\n\nreturn [{ json: { gptBody: body, token: ctx.token, userId: ctx.userId, chatId: ctx.chatId, msgId: ctx.msgId } }];"
+        "jsCode": "const ctx = $('Merge Context').first().json;\nconst msgs = ($('Get Chat History').first().json.messages || []).slice().reverse();\n\nconst conversation = msgs\n  .filter(m => m.content?.text)\n  .map(m => ({\n    role: String(m.author_id) === String(ctx.userId) ? 'assistant' : 'user',\n    content: m.content.text\n  }));\n\n// Ensure last message is from user\nif (!conversation.length || conversation[conversation.length-1].role !== 'user') {\n  conversation.push({ role: 'user', content: ctx.lastText });\n}\n\n// Item info (which ad they wrote from)\nconst itemData = $('Get Item Info').first().json;\nconst itemTitle = itemData.title || itemData.name || '';\nconst itemCategory = itemData.category?.name || '';\nconst itemLine = itemTitle ? `\\n\\nОБЪЯВЛЕНИЕ: Человек написал по объявлению «${itemTitle}»${itemCategory ? ' (категория: ' + itemCategory + ')' : ''}. Отвечай с учётом этого контекста.` : '';\n\n// Get shared config from site-chat workflow\nconst siteConf = $input.first().json;\nconst basePrompt = siteConf.basePrompt || 'Ты — ассистент платформы Студия ЧЕ по видеомонтажу и ИИ.';\nconst courses = siteConf.courses || [];\n\nconst coursesList = courses.map((c,i) => `${i+1}. \"${c.name}\" — ${c.price}${c.level ? ' ('+c.level+')' : ''}`).join('\\n');\n\n// --- Sales role: загружается из static data (редактируется через TG/PWA),\n// с дефолтом при пустом значении. Editable key: store.avitoConfig.salesPrompt\nconst DEFAULT_SALES_ROLE = `РОЛЬ: Ты — менеджер по продажам высшего класса в Студии ЧЕ. Не бот, а живой профессионал: уверенный, внимательный, располагающий. Твоя задача — помочь человеку решить его задачу через наш продукт и мягко довести до покупки.\n\nСТИЛЬ ОБЩЕНИЯ НА АВИТО:\n- ВСЕГДА обращайся на «Вы» (с большой буквы). Это деловое общение.\n- 2-4 предложения. Без воды, без формальностей, без «Здравствуйте, я представитель...». Сразу по делу, живо, по-человечески.\n- Пиши как опытный продавец в переписке: короткие предложения, без канцелярита, без смайликов более 1 на сообщение.\n\nЛОГИКА ПРОДАЖ:\n1. ПЕРВОЕ СООБЩЕНИЕ клиента — выясни контекст: что человеку нужно, какая цель (блог, работа, хобби, новая профессия). Не вываливай сразу курсы — задай 1 короткий уточняющий вопрос.\n2. ВЫЯСНИВ ПОТРЕБНОСТЬ — подбери 1-2 курса из списка, которые реально ему подходят. Объясни ЧТО человек получит (навык, результат, через сколько), а не формальное «что входит».\n3. ЦЕНА — называй сразу и уверенно, как только спросят. Никогда не уходи от ответа. Формат: «Курс X — Y рублей. Оплата единоразово, доступ навсегда».\n4. ВОЗРАЖЕНИЯ — работай мягко: «дорого» → покажи ценность (стоимость 1-2 заказов на фрилансе окупает). «Подумаю» → «Что конкретно смущает? Могу помочь разобраться». «Справлюсь сам» → уважай выбор, но напомни про структуру и поддержку.\n5. ДОПРОДАЖА — если человек интересуется одним курсом, упомяни связанный (например, купили монтаж → предложи ИИ-инструменты как следующий шаг).\n6. ЗАКРЫТИЕ — когда клиент готов («интересно», «как оплатить», «беру»), добавь SEND_SITE_LINK в конец ответа. Ссылка даст ему страницу курса и форму оплаты.\n\nТЕМАТИКА (ЖЁСТКО):\n- Ты отвечаешь ТОЛЬКО про наши курсы, видеомонтаж, нейросети, контент, работу видеомейкера и смежные темы.\n- Если клиент спрашивает про другое (погода, политика, личное, посторонние услуги, несвязанные товары) — вежливо скажи одним предложением что по этим вопросам не консультируешь, и верни разговор к обучению. Пример: «По этому вопросу подсказать не смогу, я специализируюсь на наших курсах по видеомонтажу и нейросетям. Если интересно обучение — расскажу».\n- Не поддерживай долгий офф-топик даже если клиент настаивает.\n\nЖЁСТКИЕ ПРАВИЛА:\n- НИКОГДА не выдумывай цены, курсы, условия, даты стартов или характеристики, которых нет в списке выше.\n- Если не знаешь ответа — честно скажи «Этот момент уточню у преподавателя и вернусь» и не придумывай.\n- Не обещай скидок без подтверждения.\n- SEND_SITE_LINK добавляй ТОЛЬКО когда клиент явно готов (купить, оплатить, записаться, посмотреть подробно, изучить программу). НЕ добавляй в первых ответах и при общих вопросах.`;\n\nconst store = $getWorkflowStaticData('global');\nif (!store.avitoConfig) store.avitoConfig = {};\nconst salesRole = (store.avitoConfig.salesPrompt && String(store.avitoConfig.salesPrompt).trim().length > 100)\n  ? String(store.avitoConfig.salesPrompt)\n  : DEFAULT_SALES_ROLE;\n\nconst systemPrompt = basePrompt + '\\n\\nКУРСЫ НА ПЛАТФОРМЕ:\\n' + coursesList + itemLine + '\\n\\n' + salesRole;\n\nconst body = JSON.stringify({\n  model: 'gpt-4o-mini',\n  messages: [{ role: 'system', content: systemPrompt }, ...conversation],\n  max_tokens: 350,\n  temperature: 0.7\n});\n\nreturn [{ json: { gptBody: body, token: ctx.token, userId: ctx.userId, chatId: ctx.chatId, msgId: ctx.msgId, usedOverride: salesRole !== DEFAULT_SALES_ROLE } }];"
       }
     },
     {
@@ -306,7 +342,10 @@
         "contentType": "raw",
         "rawContentType": "application/json",
         "body": "={{ $json.gptBody }}"
-      }
+      },
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 1500
     },
     {
       "id": "av9",

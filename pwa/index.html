@@ -1758,7 +1758,7 @@ renderT(); renderN(); renderS(); renderP();
 renderCal(); renderContent(); renderIdeas(); renderFin(); renderHub();
 initVoices();
 loadFromServer(); // sync from server in background
-if('serviceWorker' in navigator) navigator.serviceWorker.register('/app/sw.js').catch(()=>{});
+if('serviceWorker' in navigator) navigator.serviceWorker.register('/app/sw.js', { updateViaCache: 'none' }).then(reg => { setInterval(() => reg.update().catch(()=>{}), 30 * 60 * 1000); }).catch(()=>{});
 </script>
 </body>
 </html>

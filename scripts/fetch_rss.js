@@ -31,29 +31,82 @@ const S = [
   {n:'Fast Company',u:'https://www.fastcompany.com/technology/rss'}
 ];
 
-function t(s){return s?s.replace(/<\!\[CDATA\[/g,'').replace(/\]\]>/g,'').replace(/<[^>]+>/g,'').replace(/&amp;/g,'&').replace(/&lt;/g,'<').replace(/&gt;/g,'>').replace(/&#\d+;/g,'').trim():'';}
-function pd(s){if(!s)return null;try{const d=new Date(s);return isNaN(d)?null:d;}catch(e){return null;}}
+// --- HTML entity + CDATA + tag stripping -------------------------------------
+function decodeEntities(s) {
+  return s
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"')
+    .replace(/&apos;/g, "'")
+    .replace(/&#x([0-9a-f]+);/gi, (_, h) => {
+      try { return String.fromCodePoint(parseInt(h, 16)); } catch(e) { return ''; }
+    })
+    .replace(/&#(\d+);/g, (_, d) => {
+      try { return String.fromCodePoint(parseInt(d, 10)); } catch(e) { return ''; }
+    });
+}
+
+function t(s) {
+  if (!s) return '';
+  return decodeEntities(
+    s.replace(/<!\[CDATA\[([\s\S]*?)\]\]>/g, '$1')
+     .replace(/<[^>]+>/g, ' ')
+  ).replace(/\s+/g, ' ').trim();
+}
+
+function pd(s) {
+  if (!s) return null;
+  try { const d = new Date(s); return isNaN(d) ? null : d; } catch(e) { return null; }
+}
+
+// --- Generic tag extractor: handles attrs, namespaces, self-closing ---------
+function firstTag(raw, names) {
+  for (const name of names) {
+    // Escape colons for namespace-prefixed tags, allow optional attributes
+    const rx = new RegExp('<' + name.replace(/:/g, '\\:') + '(?:\\s[^>]*)?>([\\s\\S]*?)</' + name.replace(/:/g, '\\:') + '>', 'i');
+    const m = rx.exec(raw);
+    if (m && m[1] != null) return m[1];
+  }
+  return '';
+}
+
+// Atom link: prefer rel="alternate", fallback to any href
+function atomLink(raw) {
+  const alt = /<link[^>]+rel=["']alternate["'][^>]*href=["']([^"']+)["']/i.exec(raw)
+           || /<link[^>]+href=["']([^"']+)["'][^>]*rel=["']alternate["']/i.exec(raw);
+  if (alt) return alt[1];
+  const any = /<link[^>]+href=["']([^"']+)["']/i.exec(raw);
+  return any ? any[1] : '';
+}
 
 function parse(xml, src) {
   const items = [];
-  const rss = [...xml.matchAll(/<item>([\s\S]*?)<\/item>/g)];
-  for (const [,raw] of rss) {
-    const title = t((/<title[^>]*>([\s\S]*?)<\/title>/.exec(raw) || ['',''])[1]);
-    const link = t((/<link>([\s\S]*?)<\/link>/.exec(raw) || ['',''])[1]) || t((/<guid[^>]*>([\s\S]*?)<\/guid>/.exec(raw) || ['',''])[1]);
-    const date = pd(t((/<pubDate>([\s\S]*?)<\/pubDate>/.exec(raw) || ['',''])[1]));
-    const desc = t((/<description>([\s\S]*?)<\/description>/.exec(raw) || ['',''])[1]).slice(0, 150);
+
+  // RSS 2.0 (<item>…</item>)
+  const rss = xml.matchAll(/<item(?:\s[^>]*)?>([\s\S]*?)<\/item>/gi);
+  for (const m of rss) {
+    const raw = m[1];
+    const title = t(firstTag(raw, ['title']));
+    const link  = t(firstTag(raw, ['link'])) || t(firstTag(raw, ['guid']));
+    const date  = pd(t(firstTag(raw, ['pubDate', 'dc:date', 'published', 'updated'])));
+    const desc  = t(firstTag(raw, ['description', 'content:encoded', 'summary', 'dc:description'])).slice(0, 150);
     if (title && title.length > 5) items.push({ src, title, link, date, desc });
   }
+
+  // Atom (<entry>…</entry>) — run only if RSS path produced nothing
   if (!items.length) {
-    const atom = [...xml.matchAll(/<entry>([\s\S]*?)<\/entry>/g)];
-    for (const [,raw] of atom) {
-      const title = t((/<title[^>]*>([\s\S]*?)<\/title>/.exec(raw) || ['',''])[1]);
-      const link = (/<link[^>]+href="([^"]+)"/.exec(raw) || ['',''])[1];
-      const date = pd(t((/<published>([\s\S]*?)<\/published>/.exec(raw) || /<updated>([\s\S]*?)<\/updated>/.exec(raw) || ['',''])[1]));
-      const desc = t((/<summary[^>]*>([\s\S]*?)<\/summary>/.exec(raw) || ['',''])[1]).slice(0, 150);
+    const atom = xml.matchAll(/<entry(?:\s[^>]*)?>([\s\S]*?)<\/entry>/gi);
+    for (const m of atom) {
+      const raw = m[1];
+      const title = t(firstTag(raw, ['title']));
+      const link  = atomLink(raw) || t(firstTag(raw, ['id']));
+      const date  = pd(t(firstTag(raw, ['published', 'updated', 'dc:date'])));
+      const desc  = t(firstTag(raw, ['summary', 'content', 'description'])).slice(0, 150);
       if (title && title.length > 5) items.push({ src, title, link, date, desc });
     }
   }
+
   return items;
 }
 
@@ -70,7 +123,9 @@ const res = await Promise.allSettled(S.map(async s => {
       returnFullResponse: false
     });
     const text = typeof xml === 'string' ? xml : JSON.stringify(xml);
-    const items = parse(text, s.n);
+    let items = [];
+    try { items = parse(text, s.n); }
+    catch (parseErr) { errors.push({ src: s.n, err: 'parse: ' + String(parseErr.message || parseErr).slice(0, 100) }); }
     perSource.push({ src: s.n, count: items.length });
     return items;
   } catch (e) {
@@ -83,7 +138,6 @@ const res = await Promise.allSettled(S.map(async s => {
 const now = new Date();
 const cutoff = new Date(now - 48 * 3600 * 1000);
 const seen = new Set();
-const articles = [];
 const dated = [];
 const undated = [];
 

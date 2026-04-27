@@ -3,7 +3,8 @@
   "id": "yd-monitor-001",
   "active": true,
   "settings": {
-    "executionOrder": "v1"
+    "executionOrder": "v1",
+    "timezone": "Asia/Yekaterinburg"
   },
   "nodes": [
     {
@@ -110,7 +111,7 @@
         "sendBody": true,
         "contentType": "raw",
         "rawContentType": "application/json",
-        "body": "={{ JSON.stringify({ chat_id: 211279650, text: $json.message }) }}",
+        "body": "={{ JSON.stringify({ chat_id: $env.TELEGRAM_CHAT_ID, text: $json.message }) }}",
         "options": {}
       }
     }

@@ -3,7 +3,8 @@
   "id": "ya-mail-001",
   "active": true,
   "settings": {
-    "executionOrder": "v1"
+    "executionOrder": "v1",
+    "timezone": "Asia/Yekaterinburg"
   },
   "nodes": [
     {
@@ -11,7 +12,10 @@
       "name": "Collect Emails",
       "type": "n8n-nodes-base.emailReadImap",
       "typeVersion": 2,
-      "position": [200, 300],
+      "position": [
+        200,
+        300
+      ],
       "parameters": {
         "mailbox": "INBOX",
         "postProcessAction": "read",
@@ -33,7 +37,10 @@
       "name": "Buffer Email",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [420, 300],
+      "position": [
+        420,
+        300
+      ],
       "parameters": {
         "jsCode": "const email = $input.first().json;\nconst from = email.from?.text || email.from?.value?.[0]?.address || email.from || 'Unknown';\nconst subject = email.subject || '(без темы)';\nconst body = (email.text || email.textAsHtml || email.html || '').replace(/<[^>]+>/g, ' ').replace(/\\s+/g, ' ').trim().slice(0, 1500);\nconst date = email.date || new Date().toISOString();\nconst emailId = 'em_' + Date.now() + '_' + Math.random().toString(36).slice(2,8);\n\nconst store = $getWorkflowStaticData('global');\nif (!store.emailBuffer) store.emailBuffer = [];\n\nstore.emailBuffer.push({ id: emailId, from, subject, body, date, collected: new Date().toISOString() });\nif (store.emailBuffer.length > 200) store.emailBuffer = store.emailBuffer.slice(-200);\n\nreturn [{ json: { buffered: true, bufferSize: store.emailBuffer.length } }];"
       }
@@ -43,13 +50,16 @@
       "name": "3x Daily",
       "type": "n8n-nodes-base.scheduleTrigger",
       "typeVersion": 1.2,
-      "position": [200, 500],
+      "position": [
+        200,
+        500
+      ],
       "parameters": {
         "rule": {
           "interval": [
             {
               "field": "cronExpression",
-              "expression": "0 4,11,18 * * *"
+              "expression": "0 7,20 * * *"
             }
           ]
         }
@@ -60,9 +70,12 @@
       "name": "Prepare Digest",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [420, 500],
+      "position": [
+        420,
+        500
+      ],
       "parameters": {
-        "jsCode": "const store = $getWorkflowStaticData('global');\nconst emails = store.emailBuffer || [];\n\nif (!emails.length) {\n  return [{ json: { skip: true, count: 0 } }];\n}\n\n// Slot detection by current hour (Yekaterinburg UTC+5)\nconst now = new Date();\nconst hourUtc = now.getUTCHours();\nlet slot = '🌅 Утренняя'; // 04:00 UTC = 09:00 Ekb\nif (hourUtc === 11) slot = '☀️ Дневная'; // 11:00 UTC = 16:00 Ekb\nelse if (hourUtc === 18) slot = '🌙 Вечерняя'; // 18:00 UTC = 23:00 Ekb\n\n// Save emails snapshot for context\nif (!store.emails) store.emails = [];\nfor (const e of emails) {\n  store.emails.unshift({ id: e.id, from: e.from, subject: e.subject, body: e.body, date: e.date, summary: '' });\n}\nif (store.emails.length > 100) store.emails = store.emails.slice(0, 100);\n\n// Build list for GPT (compact)\nconst list = emails.map((e,i) => (i+1) + '. От: ' + e.from + '\\n   Тема: ' + e.subject + '\\n   Текст: ' + (e.body || '').slice(0, 400)).join('\\n\\n');\n\n// Clear buffer\nstore.emailBuffer = [];\n\nreturn [{ json: { skip: false, count: emails.length, slot, list } }];"
+        "jsCode": "const store = $getWorkflowStaticData('global');\nconst emails = store.emailBuffer || [];\n\nif (!emails.length) {\n  return [{ json: { skip: true, count: 0 } }];\n}\n\n// Slot detection by Yekaterinburg local hour (UTC+5)\nconst hourEkb = (new Date().getUTCHours() + 5) % 24;\nconst slot = hourEkb < 14 ? '🌅 Утренняя' : '🌇 Вечерняя';\n\n// Save emails snapshot for context\nif (!store.emails) store.emails = [];\nfor (const e of emails) {\n  store.emails.unshift({ id: e.id, from: e.from, subject: e.subject, body: e.body, date: e.date, summary: '' });\n}\nif (store.emails.length > 100) store.emails = store.emails.slice(0, 100);\n\n// Build list for GPT (compact)\nconst list = emails.map((e,i) => (i+1) + '. От: ' + e.from + '\\n   Тема: ' + e.subject + '\\n   Текст: ' + (e.body || '').slice(0, 400)).join('\\n\\n');\n\n// Clear buffer\nstore.emailBuffer = [];\n\nreturn [{ json: { skip: false, count: emails.length, slot, list } }];"
       }
     },
     {
@@ -70,16 +83,27 @@
       "name": "Has Emails?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2,
-      "position": [640, 500],
+      "position": [
+        640,
+        500
+      ],
       "parameters": {
         "conditions": {
-          "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "loose" },
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose"
+          },
           "conditions": [
             {
               "id": "cem",
               "leftValue": "={{ $json.skip }}",
               "rightValue": true,
-              "operator": { "type": "boolean", "operation": "false", "singleValue": true }
+              "operator": {
+                "type": "boolean",
+                "operation": "false",
+                "singleValue": true
+              }
             }
           ],
           "combinator": "and"
@@ -92,7 +116,10 @@
       "name": "Build GPT Body",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [860, 500],
+      "position": [
+        860,
+        500
+      ],
       "parameters": {
         "jsCode": "const data = $input.first().json;\nconst systemPrompt = 'Ты почтовый ассистент Зевс. Тебе дают список писем за период. Сделай КРАТКУЮ сводку на русском:\\n\\nФормат:\\n🔴 ВАЖНОЕ (если есть) — оплаты, коды, банки, договора, дедлайны. 1-2 строки на каждое с указанием отправителя.\\n📬 ПО ДЕЛУ (если есть) — рабочая переписка, личное, ответы. Кратко.\\n📭 ПРОЧЕЕ — рассылки, реклама, уведомления. Одной строкой: \"N рассылок (Ozon, VK, и др.)\".\\n\\nВ конце: \"Всего писем: N\". Никаких комментариев, только сводка. Максимум 15 строк.';\n\nconst userContent = 'Писем за период: ' + data.count + '.\\n\\n' + data.list;\n\nconst body = JSON.stringify({\n  model: 'gpt-4o-mini',\n  messages: [{ role: 'system', content: systemPrompt }, { role: 'user', content: userContent }],\n  max_tokens: 800\n});\n\nreturn [{ json: { body, slot: data.slot, count: data.count } }];"
       }
@@ -102,66 +129,134 @@
       "name": "GPT Summary",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [1080, 500],
+      "position": [
+        1080,
+        500
+      ],
       "parameters": {
         "method": "POST",
         "url": "https://api.openai.com/v1/chat/completions",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
-            { "name": "Authorization", "value": "={{ 'Bearer ' + $env.OPENAI_API_KEY }}" },
-            { "name": "Content-Type", "value": "application/json" }
+            {
+              "name": "Authorization",
+              "value": "={{ 'Bearer ' + $env.OPENAI_API_KEY }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
           ]
         },
         "sendBody": true,
         "contentType": "raw",
         "rawContentType": "application/json",
         "body": "={{ $json.body }}",
-        "options": { "timeout": 60000 }
-      }
+        "options": {
+          "timeout": 60000
+        }
+      },
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 1500
     },
     {
       "id": "m8",
       "name": "Send Digest",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [1300, 500],
+      "position": [
+        1300,
+        500
+      ],
       "parameters": {
         "method": "POST",
         "url": "={{ 'https://api.telegram.org/bot' + $env.TELEGRAM_BOT_TOKEN + '/sendMessage' }}",
         "sendHeaders": true,
         "headerParameters": {
-          "parameters": [{ "name": "Content-Type", "value": "application/json" }]
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
         },
         "sendBody": true,
         "contentType": "raw",
         "rawContentType": "application/json",
-        "body": "={{ (function() { const gpt = $input.first().json; const bb = $('Build GPT Body').first().json; const summary = gpt.choices?.[0]?.message?.content || 'Не удалось получить сводку'; const text = '📧 ' + bb.slot + ' сводка почты (' + bb.count + ' писем)\\n\\n' + summary + '\\n\\n💬 Спроси подробнее — я помню контекст'; return JSON.stringify({ chat_id: 211279650, text: text }); })() }}",
+        "body": "={{ (function() { const gpt = $input.first().json; const bb = $('Build GPT Body').first().json; const summary = gpt.choices?.[0]?.message?.content || 'Не удалось получить сводку'; const text = '📧 ' + bb.slot + ' сводка почты (' + bb.count + ' писем)\\n\\n' + summary + '\\n\\n💬 Спроси подробнее — я помню контекст'; return JSON.stringify({ chat_id: $env.TELEGRAM_CHAT_ID, text: text }); })() }}",
         "options": {}
       }
     }
   ],
   "connections": {
     "Collect Emails": {
-      "main": [[{ "node": "Buffer Email", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "Buffer Email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "3x Daily": {
-      "main": [[{ "node": "Prepare Digest", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "Prepare Digest",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Prepare Digest": {
-      "main": [[{ "node": "Has Emails?", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "Has Emails?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Has Emails?": {
       "main": [
-        [{ "node": "Build GPT Body", "type": "main", "index": 0 }],
+        [
+          {
+            "node": "Build GPT Body",
+            "type": "main",
+            "index": 0
+          }
+        ],
         []
       ]
     },
     "Build GPT Body": {
-      "main": [[{ "node": "GPT Summary", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "GPT Summary",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "GPT Summary": {
-      "main": [[{ "node": "Send Digest", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "Send Digest",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     }
   },
   "versionId": "d0000001-0000-0000-0000-000000000013"

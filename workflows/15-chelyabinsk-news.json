@@ -3,7 +3,8 @@
   "id": "chel-news-001",
   "active": true,
   "settings": {
-    "executionOrder": "v1"
+    "executionOrder": "v1",
+    "timezone": "Asia/Yekaterinburg"
   },
   "nodes": [
     {
@@ -11,7 +12,10 @@
       "name": "Every Morning",
       "type": "n8n-nodes-base.scheduleTrigger",
       "typeVersion": 1.2,
-      "position": [200, 300],
+      "position": [
+        200,
+        300
+      ],
       "parameters": {
         "rule": {
           "interval": [
@@ -28,7 +32,10 @@
       "name": "Manual Trigger",
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2,
-      "position": [200, 440],
+      "position": [
+        200,
+        440
+      ],
       "webhookId": "trigger-chel",
       "parameters": {
         "httpMethod": "POST",
@@ -42,17 +49,30 @@
       "name": "Fetch Channel Style",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [420, 370],
+      "position": [
+        420,
+        370
+      ],
       "parameters": {
         "method": "GET",
         "url": "https://t.me/s/che_v_che",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
-            { "name": "User-Agent", "value": "Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)" }
+            {
+              "name": "User-Agent",
+              "value": "Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)"
+            }
           ]
         },
-        "options": { "response": { "response": { "neverError": true } }, "timeout": 30000 }
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          },
+          "timeout": 30000
+        }
       }
     },
     {
@@ -60,7 +80,10 @@
       "name": "Extract Style",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [640, 370],
+      "position": [
+        640,
+        370
+      ],
       "parameters": {
         "jsCode": "const raw = $input.first().json;\nconst html = typeof raw === 'string' ? raw : (raw.data || raw.body || JSON.stringify(raw));\n\n// Extract posts from Telegram public preview HTML\nconst postRegex = /<div[^>]*class=\"[^\"]*tgme_widget_message_text[^\"]*\"[^>]*>([\\s\\S]*?)<\\/div>/g;\nconst posts = [];\nlet m;\nwhile ((m = postRegex.exec(html)) !== null && posts.length < 15) {\n  let txt = m[1]\n    .replace(/<br\\s*\\/?>/gi, '\\n')\n    .replace(/<a[^>]*>([\\s\\S]*?)<\\/a>/g, '$1')\n    .replace(/<[^>]+>/g, '')\n    .replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '\\\"').replace(/&#39;/g, \"'\").replace(/&nbsp;/g, ' ')\n    .trim();\n  if (txt.length > 80) posts.push(txt.slice(0, 2500));\n}\n\n// Hardcoded author samples (from @denichel) — used as base + any fresh posts from preview\nconst AUTHOR_SAMPLES = [\n  `Созидать и делиться.\\n\\nСовершенно спонтанно посетили музейный комплекс УГМК в Верхней Пышме. \\n\\nИнтерактив и тонны информации на 17 гектарах, сколько трудов вложено, остается только догадываться. Но множество экспозиций объективно стоят десятки миллионов рублей, а то и долларов. Внимание к деталям и масштаб - это очень круто.\\n\\nНаверняка, многие были здесь, или слышали о существовании музея в Верхней Пышме.\\n\\nОткрытое Меценатство - это отдельный вид искусства.\\n\\nНо вот, что радует: В Верхней Пышме и в регионе в целом видно, что поддержку культурным инициативам воспринимают не как дань моде, а как стратегию. Власти создают условия, ресурсы, инфраструктуру.\\n\\nВидимо понимают, что туристы и желание вернуться создают финансовый поток в регион. \\n\\nЛетом мы обязательно вернемся сюда, параллельно посетив Нижний Тагил (завод музей), Невьянск (башню). Если доделают «Белый Дом» в Кыштыме.`,\n  `Как атомная история поменяла взгляд на блог или почему сегодня многие отпишутся (или нет)?\\n\\nНаверно в любом деле бывают застои, тем более в творческом. Пост без картинок, эмоджи и всякого такого. Немного истории, а потом выводы...\\n\\nСледующей темой должен стать фильм про \"Маяк\". Да в ограниченном коридоре тем, кажется все исчерпаны. Год, два, три, рассказывать про город прикольно, если он отвечает тем же, но не вышло, и я не про деньги, я про возможности, эксклюзивы и отсутствие рамок, да и интересов стало много больше, а копаться хочется в том, что интересно мне.\\n\\nДа, часть людей, привыкших к «старому контенту», может уйти. Это нормально. Зато останутся те, кому интересен не только формат, но и путь автора. И именно с ними можно двигаться дальше, пробовать новое и говорить о многом.\\n\\nПоэтому я и продолжаю. Не потому что «надо», а потому что иначе уже не получается.`,\n  `289 лет назад 2 сентября 1736 года полковник Алексей Тевкелев отправил доношение (фото 1) об основании крепости (фото 2) между Миасской и Чебаркульской крепостями (фото 3).\\n\\nПочему же мы празднуем сегодня? Да всё просто! В 1918 году Ленин перевел Россию на Григорианский календарь (до этого момента страна жила по Юлианскому), чтобы удобнее было вести дела с Европой. \\n\\nА так как он (календарь) был вперед на 11 дней, всё приплюсовалось, и сегодня, мы отмечаем ДР города 13 числа по новому стилю. \\n\\nС момента основания Челябинской крепости на реке Миасс прошло почти три века, и за это время наш город стал символом труда, силы и духа - Город металлургов и машиностроителей.`\n];\n\nconst combined = [...AUTHOR_SAMPLES, ...posts.filter(p => p.length > 150).slice(0, 5)];\nconst styleRef = combined.slice(0, 8).map((p, i) => '--- Пример ' + (i + 1) + ' ---\\n' + p).join('\\n\\n');\n\nreturn [{ json: { styleRef, sampleCount: combined.length, freshFromChannel: posts.length } }];"
       }
@@ -70,7 +93,10 @@
       "name": "Prep Research Body",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [860, 370],
+      "position": [
+        860,
+        370
+      ],
       "parameters": {
         "jsCode": "const styleRef = $input.first().json.styleRef;\n// Yesterday's full day by Yekaterinburg (UTC+5)\nconst nowEkb = new Date(Date.now() + 5*3600*1000);\nconst yest = new Date(nowEkb.getTime() - 24*3600*1000);\nconst yesterdayDate = yest.toISOString().slice(0,10);\nconst today = new Date().toLocaleDateString('ru-RU', {day:'numeric',month:'long',year:'numeric'});\nconst yesterdayRu = yest.toLocaleDateString('ru-RU', {day:'numeric',month:'long',year:'numeric'});\n\nconst instruction = 'Твоя задача — собрать ПОЗИТИВНЫЕ новости про Челябинск и Челябинскую область ЗА ВЧЕРАШНИЙ ДЕНЬ — ' + yesterdayRu + ' (' + yesterdayDate + ' по Екатеринбургу). Сегодня ' + today + ', мы ищем именно за весь вчерашний день 00:00–23:59 по Екб.\\n\\nГЛАВНОЕ — ПРАВДИВОСТЬ. Каждая новость должна быть подтверждена реальным URL. НЕ выдумывай детали.\\n\\nСделай несколько веб-поисков, сколько нужно. Варьируй запросы:\\n- \"Челябинск новости сегодня\"\\n- \"Челябинская область открытие\"\\n- \"Челябинск достижения site:74.ru\"\\n- \"ЮУрГУ новости\"\\n- \"ХК Трактор\"\\n- \"Челябинск благоустройство\"\\n- \"Челябинск культура премьера\"\\n- \"Челябинск стартап\"\\n- по районам (Тракторозаводский, Центральный, Курчатовский, Ленинский, Металлургический, Советский, Калининский)\\n- по городам области (Магнитогорск, Златоуст, Миасс, Копейск, Троицк, Озёрск, Снежинск)\\n\\nКЛЮЧЕВЫЕ САЙТЫ: 74.ru, chelyabinsk.ru, 1obl.ru, cheltv.ru, uralpress.ru, vecherka.su, mediazavod.ru, obzor174.ru, up74.ru, argumenti74.ru, kursdela.biz, chelindustry.ru, pg74.ru, znak.com, ura.news, nakanune.ru, chelyabinsk.rbc.ru, chel.aif.ru, chel.kp.ru, mkchel.ru, pravmin.gov74.ru, gov74.ru, chgorduma.ru, cheladmin.ru, susu.ru, csu.ru, traktor.ru, mmk.ru, chtpz.ru, teatrpushkin-chel.ru, chelopera.ru, chelmuseum.ru, chelfilarm.ru, chelaero.ru, visitchelyabinsk.ru, park-zuratkul.ru, taganay.org, а также ТГ-каналы @uralweek, @znak_cheb, @chelyabinsk_today, @cheltv_online, @pg74ru, @pravitelstvo_74, @Mahonin74 (через t.me/s/...).\\n\\nЧТО СОБИРАЕМ (ТОЛЬКО ХОРОШЕЕ):\\n- Открытия: парки, школы, сады, больницы, производства, дороги, объекты\\n- Спортивные победы команд и спортсменов (Трактор, Металлург, ФК Челябинск)\\n- Культура: премьеры, концерты, выставки, фестивали\\n- Наука и образование: университеты, гранты, разработки, олимпиады\\n- Благоустройство: ремонт дорог/дворов, скверы, площадки\\n- Бизнес: новые производства, инвестиции, экспорт, стартапы\\n- Экология: озеленение, очистка рек, заповедники\\n- Социальные инициативы, волонтёры, благотворительность\\n- Инфраструктура: аэропорт, транспорт, мосты\\n- Туризм: Таганай, Зюраткуль, Ильмены\\n- Люди: истории добрых дел, яркие персоны\\n\\nКАТЕГОРИЧЕСКИ ИСКЛЮЧАЙ: криминал, аварии, пожары, ЧП, коррупцию, скандалы, протесты, политические споры, рост цен, погодные коллапсы.\\n\\nЖЁСТКОЕ ТРЕБОВАНИЕ К ССЫЛКАМ: source_url ОБЯЗАТЕЛЬНО должна вести на КОНКРЕТНУЮ СТАТЬЮ — с путём вида /news/, /article/, /2026/, с датой или slug в URL. Например: https://cheltv.ru/news/2026/04/18/открыт-умный-маршрут-в-миассе/. НЕ просто домен вроде https://cheltv.ru/. Если ты не можешь подтвердить новость прямой ссылкой на статью — НЕ включай её в JSON. Лучше вернуть 0 постов, чем 3 сомнительных.\\n\\nВерни СТРОГО JSON (без markdown fences):\\n{\\n  \"searched_count\": число поисков,\\n  \"posts\": [\\n    {\\n      \"category\": \"открытие|спорт|культура|наука|благоустройство|бизнес|экология|образование|соц.инициатива|туризм|люди\",\\n      \"headline\": \"заголовок до 80 символов\",\\n      \"summary\": \"2-3 предложения фактов: ЧТО, КОГДА, ГДЕ, КТО. Цифры и имена.\",\\n      \"why_good\": \"1 предложение — что это даёт городу и жителям\",\\n      \"source_name\": \"название издания\",\\n      \"source_url\": \"ПРЯМАЯ ссылка на конкретную статью (НЕ главная страница домена)\"\\n    }\\n  ]\\n}\\n\\nЛучше 0 правдивых чем 5 сомнительных. Если не уверен в факте или не нашёл прямой URL — НЕ добавляй.';\n\nconst diverseNote = '\\n\\nОЧЕНЬ ВАЖНО: ПОКРЫТИЕ РАЗНЫМИ СМИ. В итоговом JSON должно быть МИНИМУМ 3 РАЗНЫХ ДОМЕНА источников (не все новости с одного сайта). Если все три новости ведут на cheltv.ru — это неприемлемо. Ищи на 74.ru, 1obl.ru, uralpress.ru, vecherka.su, mediazavod.ru, pravmin.gov74.ru, kursdela.biz, argumenti74.ru, znak.com, ura.news, chel.aif.ru, chel.kp.ru, mkchel.ru и других — разнообразь. Лучше меньше новостей но с разных источников.';\n\nconst body = JSON.stringify({\n  model: 'claude-haiku-4-5-20251001',\n  max_tokens: 4000,\n  system: 'Ты вдумчивый новостной агент. Ищешь ПРАВДИВЫЕ позитивные новости Челябинска за вчерашний день, используя web_search. Верни валидный JSON без markdown fences.',\n  tools: [\n    { type: 'web_search_20250305', name: 'web_search', max_uses: 8 }\n  ],\n  messages: [\n    { role: 'user', content: instruction + diverseNote }\n  ]\n});\n\nreturn [{ json: { body, styleRef } }];"
       }
@@ -80,31 +106,51 @@
       "name": "Call Claude Research",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [1080, 370],
+      "position": [
+        1080,
+        370
+      ],
       "parameters": {
         "method": "POST",
         "url": "https://api.anthropic.com/v1/messages",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
-            { "name": "x-api-key", "value": "={{ $env.ANTHROPIC_DIRECT_KEY }}" },
-            { "name": "anthropic-version", "value": "2023-06-01" },
-            { "name": "Content-Type", "value": "application/json" }
+            {
+              "name": "x-api-key",
+              "value": "={{ $env.ANTHROPIC_DIRECT_KEY }}"
+            },
+            {
+              "name": "anthropic-version",
+              "value": "2023-06-01"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
           ]
         },
         "sendBody": true,
         "contentType": "raw",
         "rawContentType": "application/json",
         "body": "={{ $json.body }}",
-        "options": { "timeout": 300000 }
-      }
+        "options": {
+          "timeout": 300000
+        }
+      },
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 1500
     },
     {
       "id": "ch6",
       "name": "Parse Posts",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [1300, 370],
+      "position": [
+        1300,
+        370
+      ],
       "parameters": {
         "jsCode": "const res = $input.first().json;\n// Anthropic /v1/messages returns content[] with type='text'\nconst content = res.content || [];\nlet jsonText = '';\nfor (const c of content.slice().reverse()) {\n  if (c.type === 'text' && c.text) { jsonText = c.text; break; }\n}\n\nif (!jsonText) return [{ json: { skip: true, reason: 'no text from Claude' } }];\n\njsonText = jsonText.replace(/```json\\s*/g, '').replace(/```\\s*$/g, '').trim();\nconst jm = jsonText.match(/\\{[\\s\\S]*\\}/);\nif (jm) jsonText = jm[0];\n\nlet parsed;\ntry { parsed = JSON.parse(jsonText); } catch(e) { return [{ json: { skip: true, reason: 'parse error' } }]; }\n\nconst rawPosts = parsed.posts || [];\nconst searchedCount = parsed.searched_count || 0;\n\nfunction hasRealPath(url) {\n  if (!url || typeof url !== 'string') return false;\n  try {\n    const u = new URL(url);\n    // Accept if pathname is longer than 10 chars and has at least one digit OR 2+ dashes (slug-like)\n    if (u.pathname.length < 10) return false;\n    const hasDigit = /\\d/.test(u.pathname);\n    const hasDashes = (u.pathname.match(/-/g) || []).length >= 2;\n    return hasDigit || hasDashes;\n  } catch(e) { return false; }\n}\n\nfunction getDomain(url) {\n  try { return new URL(url).hostname.replace(/^www\\./, ''); } catch(e) { return ''; }\n}\n\nconst posts = rawPosts.filter(p => hasRealPath(p.source_url));\nconst rejected = rawPosts.length - posts.length;\nconst rejectedUrls = rawPosts.filter(p => !hasRealPath(p.source_url)).map(p => p.source_url || '(empty)').slice(0, 3);\n\n// Require at least 2 distinct domains (only when we have 3+ posts)\nconst domains = new Set(posts.map(p => getDomain(p.source_url)).filter(d => d));\n\nif (!posts.length) {\n  return [{ json: { skip: true, reason: 'rejected all ' + rejected + ' URLs: ' + rejectedUrls.join(' | '), searchedCount, rawCount: rawPosts.length } }];\n}\n\nif (domains.size < 2 && posts.length >= 3) {\n  return [{ json: { skip: true, reason: 'all posts from same domain (' + [...domains].join(',') + '), need 2+', searchedCount } }];\n}\n\nconst store = $getWorkflowStaticData('global');\nconst today = new Date().toISOString().slice(0, 10);\nstore.lastChelDigest = today;\n\nconst styleRef = $('Prep Research Body').first().json.styleRef || '';\n\nreturn [{ json: { posts, searchedCount, styleRef, skip: false, today, rejectedCount: rejected, domainCount: domains.size } }];"
       }
@@ -114,16 +160,27 @@
       "name": "Has Posts?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2,
-      "position": [1410, 370],
+      "position": [
+        1410,
+        370
+      ],
       "parameters": {
         "conditions": {
-          "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "loose" },
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose"
+          },
           "conditions": [
             {
               "id": "chp1",
               "leftValue": "={{ $json.skip }}",
               "rightValue": true,
-              "operator": { "type": "boolean", "operation": "notEquals", "singleValue": true }
+              "operator": {
+                "type": "boolean",
+                "operation": "notEquals",
+                "singleValue": true
+              }
             }
           ],
           "combinator": "and"
@@ -136,19 +193,33 @@
       "name": "Notify No Posts",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [1520, 500],
+      "position": [
+        1520,
+        500
+      ],
       "parameters": {
         "method": "POST",
         "url": "={{ 'https://api.telegram.org/bot' + $env.TELEGRAM_BOT_TOKEN + '/sendMessage' }}",
         "sendHeaders": true,
         "headerParameters": {
-          "parameters": [{ "name": "Content-Type", "value": "application/json" }]
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
         },
         "sendBody": true,
         "contentType": "raw",
         "rawContentType": "application/json",
-        "body": "={{ JSON.stringify({ chat_id: 211279650, text: '🏙 Челябинск-дайджест за вчера: подходящих проверенных новостей не нашлось.\\nПричина: ' + ($json.reason || 'нет данных') + '\\nПоисков: ' + ($json.searchedCount || 0) }) }}",
-        "options": { "response": { "response": { "neverError": true } } }
+        "body": "={{ JSON.stringify({ chat_id: $env.TELEGRAM_CHAT_ID, text: '🏙 Челябинск-дайджест за вчера: подходящих проверенных новостей не нашлось.\\nПричина: ' + ($json.reason || 'нет данных') + '\\nПоисков: ' + ($json.searchedCount || 0) }) }}",
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          }
+        }
       }
     },
     {
@@ -156,31 +227,51 @@
       "name": "Format in Author Tone",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [1520, 370],
+      "position": [
+        1520,
+        370
+      ],
       "parameters": {
         "method": "POST",
         "url": "https://api.anthropic.com/v1/messages",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
-            { "name": "x-api-key", "value": "={{ $env.ANTHROPIC_DIRECT_KEY }}" },
-            { "name": "anthropic-version", "value": "2023-06-01" },
-            { "name": "Content-Type", "value": "application/json" }
+            {
+              "name": "x-api-key",
+              "value": "={{ $env.ANTHROPIC_DIRECT_KEY }}"
+            },
+            {
+              "name": "anthropic-version",
+              "value": "2023-06-01"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
           ]
         },
         "sendBody": true,
         "contentType": "raw",
         "rawContentType": "application/json",
         "body": "={{ (function() { const posts = $json.posts || []; const styleRef = $json.styleRef || ''; const nowEkb = new Date(Date.now() + 5*3600*1000); const yest = new Date(nowEkb.getTime() - 24*3600*1000); const yesterdayRu = yest.toLocaleDateString('ru-RU', {day:'numeric',month:'long'}); const newsList = posts.map((p,i) => (i+1)+'. [' + (p.category||'') + '] ' + (p.headline||'') + '\\n   Факты: ' + (p.summary||'') + '\\n   Чем хорошо: ' + (p.why_good||'')).join('\\n\\n'); const sys = 'Ты пишешь пост-подборку хороших новостей Челябинска за вчерашний день для Telegram-канала @che_v_che (автор @denichel).\\n\\nГЛАВНОЕ — точно воспроизвести АВТОРСКИЙ ТОН. Изучи примеры ниже. Ключевые черты стиля автора:\\n- Рефлексивные тексты 800-1500 символов.\\n- От первого лица («мы», «я», «наш город»). Рассуждает, делится мыслями.\\n- Риторические вопросы, разговорные обороты («прикольно», «наверняка», «вот, что радует»), параллельно возвышенные («отдельный вид искусства»).\\n- Тире между мыслями. Скобки с пояснениями.\\n- Концептуальный заголовок.\\n- Эмодзи почти не использует. Без Markdown.\\n- Обращается к читателю как к другу.\\n\\nЗАДАЧА: собери новости в ОДИН пост в этом стиле. Живой текст с объединяющей мыслью.\\n\\nНЕ пиши «ДАЙДЖЕСТ». Живой заголовок в духе автора.\\n\\nНЕ ссылки. НЕ @che_v_che в конце. Без упоминаний ИИ.\\n\\nТолько факты из данных.\\n\\n=== ПРИМЕРЫ ПОСТОВ АВТОРА ===\\n' + styleRef + '\\n=== КОНЕЦ ПРИМЕРОВ ==='; return JSON.stringify({ model: 'claude-haiku-4-5-20251001', max_tokens: 2000, system: sys, messages: [{ role: 'user', content: 'Собери пост хороших новостей Челябинска за ' + yesterdayRu + ' в авторском тоне.\\n\\n=== НОВОСТИ ЗА ВЧЕРА ===\\n\\n' + newsList }] }); })() }}",
-        "options": { "timeout": 90000 }
-      }
+        "options": {
+          "timeout": 90000
+        }
+      },
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 1500
     },
     {
       "id": "ch8",
       "name": "Build Final",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [1740, 370],
+      "position": [
+        1740,
+        370
+      ],
       "parameters": {
         "jsCode": "const res = $input.first().json;\nlet post = '';\n// AWstore (OpenAI-compatible) returns choices[0].message.content\nif (res.choices && res.choices[0]?.message?.content) {\n  post = res.choices[0].message.content.trim();\n} else if (res.content && Array.isArray(res.content)) {\n  const textBlock = res.content.find(c => c.type === 'text');\n  post = textBlock?.text?.trim() || '';\n}\npost = post.replace(/@che_v_che\\s*$/i, '').trim();\npost += '\\n\\n@che_v_che';\nconst id = 'chel_' + Date.now() + '_' + Math.random().toString(36).slice(2,7);\nreturn [{ json: { post, id } }];"
       }
@@ -190,19 +281,33 @@
       "name": "Save Pending",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [1960, 370],
+      "position": [
+        1960,
+        370
+      ],
       "parameters": {
         "method": "POST",
         "url": "https://mycheagent.ru/webhook/pwa-data",
         "sendHeaders": true,
         "headerParameters": {
-          "parameters": [{ "name": "Content-Type", "value": "application/json" }]
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
         },
         "sendBody": true,
         "contentType": "raw",
         "rawContentType": "application/json",
         "body": "={{ JSON.stringify({ action: 'savePending', id: $json.id, text: $json.post }) }}",
-        "options": { "response": { "response": { "neverError": true } } }
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          }
+        }
       }
     },
     {
@@ -210,58 +315,164 @@
       "name": "Send to Denis",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [2180, 370],
+      "position": [
+        2180,
+        370
+      ],
       "parameters": {
         "method": "POST",
         "url": "={{ 'https://api.telegram.org/bot' + $env.TELEGRAM_BOT_TOKEN + '/sendMessage' }}",
         "sendHeaders": true,
         "headerParameters": {
-          "parameters": [{ "name": "Content-Type", "value": "application/json" }]
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
         },
         "sendBody": true,
         "contentType": "raw",
         "rawContentType": "application/json",
-        "body": "={{ JSON.stringify({ chat_id: 211279650, text: $('Build Final').first().json.post, reply_markup: { inline_keyboard: [[ { text: '✅ Опубликовать в @che_v_che', callback_data: 'che:' + $('Build Final').first().json.id }, { text: '❌ Пропустить', callback_data: 'che_skip:' + $('Build Final').first().json.id } ]] } }) }}",
-        "options": { "response": { "response": { "neverError": true } } }
+        "body": "={{ JSON.stringify({ chat_id: $env.TELEGRAM_CHAT_ID, text: $('Build Final').first().json.post, reply_markup: { inline_keyboard: [[ { text: '✅ Опубликовать в @che_v_che', callback_data: 'che:' + $('Build Final').first().json.id }, { text: '❌ Пропустить', callback_data: 'che_skip:' + $('Build Final').first().json.id } ]] } }) }}",
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          }
+        }
       }
     }
   ],
   "connections": {
     "Every Morning": {
-      "main": [[{ "node": "Fetch Channel Style", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "Fetch Channel Style",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Manual Trigger": {
-      "main": [[{ "node": "Fetch Channel Style", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "Fetch Channel Style",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Fetch Channel Style": {
-      "main": [[{ "node": "Extract Style", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "Extract Style",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Extract Style": {
-      "main": [[{ "node": "Prep Research Body", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "Prep Research Body",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Prep Research Body": {
-      "main": [[{ "node": "Call Claude Research", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "Call Claude Research",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Call Claude Research": {
-      "main": [[{ "node": "Parse Posts", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "Parse Posts",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Parse Posts": {
-      "main": [[{ "node": "Has Posts?", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "Has Posts?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Has Posts?": {
       "main": [
-        [{ "node": "Format in Author Tone", "type": "main", "index": 0 }],
-        [{ "node": "Notify No Posts", "type": "main", "index": 0 }]
+        [
+          {
+            "node": "Format in Author Tone",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Notify No Posts",
+            "type": "main",
+            "index": 0
+          }
+        ]
       ]
     },
     "Format in Author Tone": {
-      "main": [[{ "node": "Build Final", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "Build Final",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Build Final": {
-      "main": [[{ "node": "Save Pending", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "Save Pending",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Save Pending": {
-      "main": [[{ "node": "Send to Denis", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "Send to Denis",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     }
   },
   "versionId": "d0000002-0000-0000-0000-000000000015"

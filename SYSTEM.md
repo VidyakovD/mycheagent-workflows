@@ -7,7 +7,7 @@
 | Сервер | 178.215.238.107 (Ubuntu 22.04, 1vCPU, 2GB RAM) |
 | SSH | root / xD1mU0yG6inT |
 | Домен | https://mycheagent.ru |
-| n8n UI | https://mycheagent.ru (vidyakovd@gmail.com / 28371988) |
+| n8n UI | https://mycheagent.ru (vidyakovd@gmail.com / Zeus28371988) |
 | n8n версия | 2.15.0 |
 | Docker compose | /root/n8n/docker-compose.yml |
 | Репозиторий | https://github.com/VidyakovD/mycheagent-workflows |

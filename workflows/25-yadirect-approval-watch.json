@@ -1,0 +1,150 @@
+{
+  "name": "25-yadirect-approval-watch",
+  "id": "yadirect-approval-watch-001",
+  "active": true,
+  "settings": { "executionOrder": "v1", "timezone": "Asia/Yekaterinburg" },
+  "nodes": [
+    {
+      "id": "aw1",
+      "name": "Every 30 min",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [200, 300],
+      "parameters": {
+        "rule": {
+          "interval": [{ "field": "minutes", "minutesInterval": 30 }]
+        }
+      }
+    },
+    {
+      "id": "aw2",
+      "name": "Already Notified?",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [420, 300],
+      "parameters": {
+        "jsCode": "const store = $getWorkflowStaticData('global');\nif (store.approved) {\n  // Уже отправили уведомление — больше не дёргаем Direct\n  return [{ json: { _skip: true } }];\n}\nreturn [{ json: { _skip: false } }];"
+      }
+    },
+    {
+      "id": "aw2b",
+      "name": "Skip?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [640, 300],
+      "parameters": {
+        "conditions": {
+          "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "loose" },
+          "conditions": [
+            {
+              "id": "csk",
+              "leftValue": "={{ $json._skip }}",
+              "rightValue": true,
+              "operator": { "type": "boolean", "operation": "true", "singleValue": true }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "aw3",
+      "name": "Probe Direct",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [860, 380],
+      "parameters": {
+        "method": "POST",
+        "url": "https://mycheagent.ru/webhook/yadirect",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "Content-Type", "value": "application/json" }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "application/json",
+        "body": "={{ JSON.stringify({ action: 'clients.get' }) }}",
+        "options": {
+          "timeout": 30000,
+          "response": { "response": { "neverError": true } }
+        }
+      }
+    },
+    {
+      "id": "aw4",
+      "name": "Check Result",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1080, 380],
+      "parameters": {
+        "jsCode": "const res = $input.first().json;\n\n// Признак «всё ещё не одобрено»: error_code === 58\nconst stillPending = res?.error_code === 58 || res?.detail?.includes?.('заявку на доступ');\n\nif (stillPending) {\n  return [{ json: { _approved: false, _silent: true } }];\n}\n\n// Любой другой ответ (включая ok:true с данными клиента, либо иную ошибку) трактуем как «решение принято»\nconst store = $getWorkflowStaticData('global');\nstore.approved = true;\nstore.approvedAt = new Date().toISOString();\nstore.approvedSnapshot = res;\n\nlet text;\nif (res?.ok) {\n  const c = res.result?.clients?.[0] || {};\n  text = '🎉 *Яндекс.Директ — заявка одобрена!*\\n\\n' +\n         'Логин: ' + (c.Login || '?') + '\\n' +\n         'ClientId: ' + (c.ClientId || '?') + '\\n' +\n         'Валюта: ' + (c.Currency || '?') + '\\n' +\n         'Тип аккаунта: ' + (c.Type || '?') + '\\n\\n' +\n         '✅ Можно запускать кампании.\\n' +\n         '_(сторожевой воркфлоу 25 отключил себя)_';\n} else {\n  text = '⚠️ *Яндекс.Директ — статус заявки изменился*\\n\\n' +\n         'API ответил не error_code=58, но и не ok:true.\\n\\n' +\n         '`' + JSON.stringify(res).slice(0, 800) + '`\\n\\n' +\n         '_Может быть отказ или нужно уточнение. Проверь почту/кабинет Директа._';\n}\n\nreturn [{ json: { _approved: true, _silent: false, text } }];"
+      }
+    },
+    {
+      "id": "aw4b",
+      "name": "Silent?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [1300, 380],
+      "parameters": {
+        "conditions": {
+          "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "loose" },
+          "conditions": [
+            {
+              "id": "csi",
+              "leftValue": "={{ $json._silent }}",
+              "rightValue": true,
+              "operator": { "type": "boolean", "operation": "true", "singleValue": true }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "aw5",
+      "name": "Send TG Alert",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1520, 460],
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 1500,
+      "parameters": {
+        "method": "POST",
+        "url": "={{ 'https://api.telegram.org/bot' + $env.TELEGRAM_BOT_TOKEN + '/sendMessage' }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [{ "name": "Content-Type", "value": "application/json" }]
+        },
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "application/json",
+        "body": "={{ JSON.stringify({ chat_id: $env.TELEGRAM_CHAT_ID, text: $json.text, parse_mode: 'Markdown' }) }}"
+      }
+    }
+  ],
+  "connections": {
+    "Every 30 min":      { "main": [[{ "node": "Already Notified?", "type": "main", "index": 0 }]] },
+    "Already Notified?": { "main": [[{ "node": "Skip?",             "type": "main", "index": 0 }]] },
+    "Skip?": {
+      "main": [
+        [],
+        [{ "node": "Probe Direct", "type": "main", "index": 0 }]
+      ]
+    },
+    "Probe Direct": { "main": [[{ "node": "Check Result", "type": "main", "index": 0 }]] },
+    "Check Result": { "main": [[{ "node": "Silent?",      "type": "main", "index": 0 }]] },
+    "Silent?": {
+      "main": [
+        [],
+        [{ "node": "Send TG Alert", "type": "main", "index": 0 }]
+      ]
+    }
+  },
+  "versionId": "d0000001-0000-0000-0000-000000000025"
+}

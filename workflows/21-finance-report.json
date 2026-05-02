@@ -1,0 +1,201 @@
+{
+  "name": "21-finance-report",
+  "id": "finance-report-001",
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "timezone": "Asia/Yekaterinburg"
+  },
+  "nodes": [
+    {
+      "id": "fr1",
+      "name": "Monthly Cron",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        200,
+        260
+      ],
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 9 1 * *"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "fr2",
+      "name": "Manual Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        200,
+        420
+      ],
+      "webhookId": "trigger-finance",
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "trigger-finance",
+        "responseMode": "lastNode",
+        "options": {}
+      }
+    },
+    {
+      "id": "fr3",
+      "name": "Determine Month",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        420,
+        340
+      ],
+      "parameters": {
+        "jsCode": "const input = $input.first().json;\nconst body = (input && (input.body || input)) || {};\nconst now = new Date();\nconst isWebhook = !!(input && (input.headers || input.body));\nlet monthKey = body.monthKey;\nif (!monthKey) {\n  if (isWebhook) {\n    monthKey = now.toISOString().slice(0, 7);\n  } else {\n    const prev = new Date(now.getFullYear(), now.getMonth() - 1, 1);\n    monthKey = prev.toISOString().slice(0, 7);\n  }\n}\nreturn [{ json: { monthKey, isWebhook } }];"
+      }
+    },
+    {
+      "id": "fr4",
+      "name": "Fetch Tx",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        640,
+        340
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "https://mycheagent.ru/webhook/pwa-data",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "application/json",
+        "body": "={{ JSON.stringify({ action: 'getAlfaTx', monthKey: $json.monthKey }) }}",
+        "options": {
+          "timeout": 30000,
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          }
+        }
+      }
+    },
+    {
+      "id": "fr5",
+      "name": "Aggregate",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        860,
+        340
+      ],
+      "parameters": {
+        "jsCode": "const txs = $input.first().json.txs || [];\nconst monthKey = $('Determine Month').first().json.monthKey;\nconst monthNames = ['январь','февраль','март','апрель','май','июнь','июль','август','сентябрь','октябрь','ноябрь','декабрь'];\nconst [yyyy, mm] = monthKey.split('-');\nconst monthName = monthNames[parseInt(mm) - 1] || mm;\nconst fmt = n => n.toLocaleString('ru-RU', { minimumFractionDigits: 2, maximumFractionDigits: 2 });\n\nif (!txs.length) {\n  return [{ json: { text: '💰 Финансы — ' + monthName + ' ' + yyyy + '\\n\\nПо Альфе нет транзакций.', monthKey, total: 0, count: 0, byCategory: {} } }];\n}\n\nconst buckets = {};\nlet total = 0;\nfor (const t of txs) {\n  const c = t.category || '⚠️ Без категории';\n  if (!buckets[c]) buckets[c] = { sum: 0, count: 0 };\n  buckets[c].sum += Number(t.amount) || 0;\n  buckets[c].count += 1;\n  total += Number(t.amount) || 0;\n}\nconst sorted = Object.entries(buckets).sort((a, b) => b[1].sum - a[1].sum);\n\nconst lines = ['💰 Финансы — ' + monthName + ' ' + yyyy, ''];\nlines.push('ИТОГО: ' + fmt(total) + ' ₽ · ' + txs.length + ' операций');\nlines.push('');\nfor (const [cat, agg] of sorted) {\n  const pct = total > 0 ? Math.round(agg.sum / total * 100) : 0;\n  lines.push(cat + ' — ' + fmt(agg.sum) + ' ₽ (' + pct + '%, ' + agg.count + ')');\n}\n\nconst unc = txs.filter(t => !t.category);\nif (unc.length) {\n  lines.push('');\n  lines.push('🔍 Без категории: ' + unc.length + ' шт. — нажми кнопки в карточках транзакций.');\n  for (const t of unc.slice(0, 10)) {\n    lines.push('· ' + fmt(t.amount) + ' ₽ — MCC ' + (t.mcc || '?') + ' — ' + (t.purpose || '').slice(0, 80));\n  }\n  if (unc.length > 10) lines.push('… и ещё ' + (unc.length - 10));\n}\n\nconst byCategory = {};\nfor (const [cat, agg] of sorted) byCategory[cat] = { sum: agg.sum, count: agg.count };\n\nreturn [{ json: { text: lines.join('\\n'), monthKey, total, count: txs.length, byCategory } }];"
+      }
+    },
+    {
+      "id": "fr6",
+      "name": "Send TG",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1080,
+        340
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "={{ 'https://api.telegram.org/bot' + $env.TELEGRAM_BOT_TOKEN + '/sendMessage' }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "application/json",
+        "body": "={{ JSON.stringify({ chat_id: $env.TELEGRAM_CHAT_ID, text: $json.text }) }}",
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          }
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Monthly Cron": {
+      "main": [
+        [
+          {
+            "node": "Determine Month",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Manual Webhook": {
+      "main": [
+        [
+          {
+            "node": "Determine Month",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Determine Month": {
+      "main": [
+        [
+          {
+            "node": "Fetch Tx",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch Tx": {
+      "main": [
+        [
+          {
+            "node": "Aggregate",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Aggregate": {
+      "main": [
+        [
+          {
+            "node": "Send TG",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "versionId": "d0000001-0000-0000-0000-000000000021"
+}

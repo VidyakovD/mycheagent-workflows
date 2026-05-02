@@ -1489,6 +1489,119 @@
         "body": "={{ JSON.stringify({ callback_query_id: $json.callbackId, text: '⏭ Пропущено' }) }}",
         "options": {}
       }
+    },
+    {
+      "id": "fc1",
+      "name": "Is Fincat CB?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        1080,
+        560
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "fc_re",
+              "leftValue": "={{ $json.data }}",
+              "rightValue": "^fincat:",
+              "operator": {
+                "type": "string",
+                "operation": "regex"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "fc2",
+      "name": "Parse Fincat",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1300,
+        560
+      ],
+      "parameters": {
+        "jsCode": "const j = $input.first().json;\nconst m = (j.data || '').match(/^fincat:([^:]+):(\\d+)$/);\nif (!m) return [];\nconst cats = ['Еда','Коммуналка','Топливо','Такси','Кредит','Отдых','Дети','Здоровье и спорт','Неожид','Покупки','Покурить','Подписки оплаты','ИИ, серверы, костыли'];\nconst idx = parseInt(m[2]);\nconst category = cats[idx] || null;\nreturn [{ json: { txId: m[1], category, chatId: j.chatId, callbackId: j.callbackId } }];"
+      }
+    },
+    {
+      "id": "fc3",
+      "name": "Set Alfa Category",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1520,
+        560
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "https://mycheagent.ru/webhook/pwa-data",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "application/json",
+        "body": "={{ JSON.stringify({ action: 'setAlfaCategory', txId: $json.txId, category: $json.category, rememberRule: true }) }}",
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          }
+        }
+      }
+    },
+    {
+      "id": "fc4",
+      "name": "Answer Fincat",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1740,
+        560
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "={{ 'https://api.telegram.org/bot' + $env.TELEGRAM_BOT_TOKEN + '/answerCallbackQuery' }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "application/json",
+        "body": "={{ (function(){ const pf = $('Parse Fincat').item.json; const sa = $input.first().json; const retro = sa?.retro || 0; const tail = retro > 0 ? ' (+ ' + retro + ' прошлых)' : ''; return JSON.stringify({ callback_query_id: pf.callbackId, text: '✅ Записал в ' + pf.category + tail, show_alert: false }); })() }}",
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          }
+        }
+      }
     }
   ],
   "connections": {
@@ -2032,7 +2145,47 @@
         ],
         [
           {
+            "node": "Is Fincat CB?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Is Fincat CB?": {
+      "main": [
+        [
+          {
+            "node": "Parse Fincat",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
             "node": "Answer Skipped",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Fincat": {
+      "main": [
+        [
+          {
+            "node": "Set Alfa Category",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set Alfa Category": {
+      "main": [
+        [
+          {
+            "node": "Answer Fincat",
             "type": "main",
             "index": 0
           }

@@ -1,0 +1,271 @@
+{
+  "name": "22-bubbleplan-sync",
+  "id": "bubbleplan-sync-001",
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "timezone": "Asia/Yekaterinburg"
+  },
+  "nodes": [
+    {
+      "id": "bs1",
+      "name": "Every 15 min",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        200,
+        300
+      ],
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "*/15 * * * *"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "bs1b",
+      "name": "Manual Trigger",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        200,
+        440
+      ],
+      "webhookId": "trigger-bubbles",
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "trigger-bubbles",
+        "responseMode": "lastNode",
+        "options": {}
+      }
+    },
+    {
+      "id": "bs2",
+      "name": "Fetch Bubbles",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        420,
+        370
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "https://mycheagent.ru/webhook/bubbleplan",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "application/json",
+        "body": "={{ JSON.stringify({ action: 'list' }) }}",
+        "options": {
+          "timeout": 30000,
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          }
+        }
+      },
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 2000
+    },
+    {
+      "id": "bs3",
+      "name": "Sync to PWA",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        640,
+        370
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "https://mycheagent.ru/webhook/pwa-data",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "application/json",
+        "body": "={{ JSON.stringify({ action: 'syncBubbles', bubbles: ($json.bubbles || []).map(b => ({ id: b.id, type: b.type, title: b.title, parent_id: b.parent_id, color: b.color, description: b.description, tags: b.tags, priority: b.priority, deadline: b.deadline, executors: b.executors, status: b.status, checklist: b.checklist, created_at: b.created_at, updated_at: b.updated_at })) }) }}",
+        "options": {
+          "timeout": 20000,
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          }
+        }
+      }
+    },
+    {
+      "id": "bs4",
+      "name": "Check Deadlines",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        860,
+        370
+      ],
+      "parameters": {
+        "jsCode": "const bubbles = $('Fetch Bubbles').first().json.bubbles || [];\nconst store = $getWorkflowStaticData('global');\nif (!store.notified) store.notified = {};  // { bubbleId: 'YYYY-MM-DD' }\n\nconst nowMs = Date.now();\nconst H24 = 24 * 3600 * 1000;\nconst today = new Date().toISOString().slice(0, 10);\n\n// Build parent index for context (so we can show 'Goal / Subtask')\nconst byId = {};\nfor (const b of bubbles) byId[b.id] = b;\nfunction parentTitle(b) {\n  if (!b.parent_id) return null;\n  const p = byId[b.parent_id];\n  return p ? p.title : null;\n}\n\nconst burning = [];\nfor (const b of bubbles) {\n  if (b.status !== 'active') continue;\n  if (!b.deadline) continue;\n  const dlMs = typeof b.deadline === 'number' ? b.deadline : Date.parse(b.deadline);\n  if (!dlMs || isNaN(dlMs)) continue;\n  const diffMs = dlMs - nowMs;\n  // Burning if deadline is within +/- 24h window (24h before — горит, just-passed — просрочено)\n  if (diffMs > H24) continue;\n  if (diffMs < -H24) continue;\n  if (store.notified[b.id] === today) continue;\n  burning.push({\n    id: b.id,\n    title: b.title,\n    parent: parentTitle(b),\n    type: b.type,\n    deadline: dlMs,\n    diffH: Math.round(diffMs / 3600000),\n    overdue: diffMs < 0\n  });\n}\n\n// Mark notified (will be persisted in static data after workflow run)\nfor (const b of burning) store.notified[b.id] = today;\n\n// Cleanup old notified entries (>30 days)\nconst cutoff = new Date(Date.now() - 30 * 24 * 3600 * 1000).toISOString().slice(0, 10);\nfor (const id of Object.keys(store.notified)) {\n  if (store.notified[id] < cutoff) delete store.notified[id];\n}\n\nif (!burning.length) return [{ json: { hasBurning: false, total: bubbles.length, syncedTotal: bubbles.length } }];\n\n// Format TG message\nconst lines = ['🔥 Горящие задачи (' + burning.length + ')', ''];\nfor (const b of burning) {\n  const path = b.parent ? (b.parent + ' / ' + b.title) : b.title;\n  const time = b.overdue\n    ? '⛔ просрочено на ' + Math.abs(b.diffH) + 'ч'\n    : '⏳ через ' + b.diffH + 'ч';\n  lines.push('· ' + path + '  —  ' + time);\n}\n\nreturn [{ json: { hasBurning: true, text: lines.join('\\n'), burning, total: bubbles.length, syncedTotal: bubbles.length } }];"
+      }
+    },
+    {
+      "id": "bs5",
+      "name": "Has Burning?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        1080,
+        370
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose"
+          },
+          "conditions": [
+            {
+              "id": "cb1",
+              "leftValue": "={{ $json.hasBurning }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "bs6",
+      "name": "Send TG",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1300,
+        300
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "={{ 'https://api.telegram.org/bot' + $env.TELEGRAM_BOT_TOKEN + '/sendMessage' }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "application/json",
+        "body": "={{ JSON.stringify({ chat_id: $env.TELEGRAM_CHAT_ID, text: $json.text }) }}",
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          }
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Every 15 min": {
+      "main": [
+        [
+          {
+            "node": "Fetch Bubbles",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Manual Trigger": {
+      "main": [
+        [
+          {
+            "node": "Fetch Bubbles",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch Bubbles": {
+      "main": [
+        [
+          {
+            "node": "Sync to PWA",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Sync to PWA": {
+      "main": [
+        [
+          {
+            "node": "Check Deadlines",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Deadlines": {
+      "main": [
+        [
+          {
+            "node": "Has Burning?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Has Burning?": {
+      "main": [
+        [
+          {
+            "node": "Send TG",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        []
+      ]
+    }
+  },
+  "versionId": "d0000001-0000-0000-0000-000000000022"
+}

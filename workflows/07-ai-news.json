@@ -216,8 +216,48 @@
         "sendBody": true,
         "contentType": "raw",
         "rawContentType": "application/json",
-        "body": "={{ JSON.stringify({ chat_id: $env.TELEGRAM_CHAT_ID, text: $('Extract Post').first().json.post, reply_markup: { inline_keyboard: [[ { text: '✅ Опубликовать в канал', callback_data: 'channel:' + $('Extract Post').first().json.id }, { text: '❌ Не публиковать', callback_data: 'channel_skip:' + $('Extract Post').first().json.id } ]] } }) }}",
-        "options": {}
+        "body": "={{ JSON.stringify({ chat_id: $env.TELEGRAM_CHANNEL_MAIN, text: $('Extract Post').first().json.post }) }}",
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          }
+        }
+      }
+    },
+    {
+      "id": "an8",
+      "name": "Notify Admin",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1740,
+        300
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "={{ 'https://api.telegram.org/bot' + $env.TELEGRAM_BOT_TOKEN + '/sendMessage' }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "application/json",
+        "body": "={{ (function(){ const post = $('Extract Post').first().json.post || ''; const firstLine = post.split('\\n').find(l => l.trim()) || '(пусто)'; const ch = $input.first().json; const ok = ch && (ch.ok === true || ch.message_id || (ch.result && ch.result.message_id)); return JSON.stringify({ chat_id: $env.TELEGRAM_CHAT_ID, text: (ok ? '✅' : '⚠️') + ' Дайджест ИИ опубликован в канал\\n\\n' + firstLine.slice(0, 120) }); })() }}",
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          }
+        }
       }
     }
   ],
@@ -304,6 +344,17 @@
         [
           {
             "node": "Send TG",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send TG": {
+      "main": [
+        [
+          {
+            "node": "Notify Admin",
             "type": "main",
             "index": 0
           }

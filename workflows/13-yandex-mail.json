@@ -188,6 +188,47 @@
         "body": "={{ (function() { const gpt = $input.first().json; const bb = $('Build GPT Body').first().json; const summary = gpt.choices?.[0]?.message?.content || 'Не удалось получить сводку'; const text = '📧 ' + bb.slot + ' сводка почты (' + bb.count + ' писем)\\n\\n' + summary + '\\n\\n💬 Спроси подробнее — я помню контекст'; return JSON.stringify({ chat_id: $env.TELEGRAM_CHAT_ID, text: text }); })() }}",
         "options": {}
       }
+    },
+    {
+      "id": "m9",
+      "name": "Filter Alfa",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        420,
+        100
+      ],
+      "parameters": {
+        "jsCode": "const e = $input.first().json;\nconst from = (e.from?.text || e.from?.value?.[0]?.address || e.from || '').toLowerCase();\nif (!/(alfa|альфа)/i.test(from)) return [];\n\nconst subject = e.subject || '';\nconst rawHtml = e.html || '';\nconst fullBody = (e.text || e.textAsHtml || rawHtml.replace(/<[^>]+>/g, ' ')).replace(/\\s+/g, ' ').trim();\n\nconst amountMatch = fullBody.match(/списана\\s+сумма\\s+([\\d\\s]+(?:[.,]\\d{2})?)/i);\nif (amountMatch) {\n  const amount = parseFloat(amountMatch[1].replace(/\\s/g, '').replace(',', '.'));\n  const acctMatch = fullBody.match(/счёта\\s+\\*(\\d{4})/i);\n  const account = acctMatch ? acctMatch[1] : null;\n  const dateMatch = fullBody.match(/от\\s+(\\d{2}\\.\\d{2}\\.\\d{2,4})/);\n  const txDate = dateMatch ? dateMatch[1] : null;\n  let isoDate = null;\n  if (txDate) {\n    const parts = txDate.split('.');\n    const yyyy = parts[2].length === 2 ? '20' + parts[2] : parts[2];\n    isoDate = yyyy + '-' + parts[1].padStart(2,'0') + '-' + parts[0].padStart(2,'0');\n  }\n  const monthKey = isoDate ? isoDate.slice(0,7) : new Date().toISOString().slice(0,7);\n\n  let purpose = '';\n  const purposeIdx = fullBody.indexOf('Назначение платежа:');\n  if (purposeIdx > -1) {\n    purpose = fullBody.slice(purposeIdx + 'Назначение платежа:'.length).trim();\n    const cuts = ['Это сообщение', 'С уважением', 'Информация для клиентов', 'Это автоматическ'];\n    for (const c of cuts) {\n      const i = purpose.indexOf(c);\n      if (i > -1) purpose = purpose.slice(0, i).trim();\n    }\n    purpose = purpose.slice(0, 500);\n  }\n\n  const mccMatch = fullBody.match(/MCC\\s*(\\d{3,4})/i);\n  const mcc = mccMatch ? mccMatch[1] : null;\n\n  const store = $getWorkflowStaticData('global');\n  if (!store.alfaTx) store.alfaTx = [];\n  const txId = 'tx_' + Date.now() + '_' + Math.random().toString(36).slice(2,5);\n  const tx = { id: txId, type: 'spending', amount, account, txDate, isoDate, monthKey, purpose, mcc, subject };\n  store.alfaTx.push(tx);\n  if (store.alfaTx.length > 5000) store.alfaTx = store.alfaTx.slice(-5000);\n\n  return [{ json: Object.assign({ parsed: true }, tx) }];\n}\n\nreturn [{ json: { parsed: false, subject, body: fullBody.slice(0, 1500) } }];"
+      }
+    },
+    {
+      "id": "m10",
+      "name": "Send Alfa Probe",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        640,
+        100
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "={{ 'https://api.telegram.org/bot' + $env.TELEGRAM_BOT_TOKEN + '/sendMessage' }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "application/json",
+        "body": "={{ JSON.stringify({ chat_id: $env.TELEGRAM_CHAT_ID, text: $json.parsed ? ('💸 ALFA списание: ' + $json.amount + ' ₽\\nСчёт: *' + ($json.account||'?') + ' | Дата: ' + ($json.txDate||'?') + ' | MCC: ' + ($json.mcc||'?') + '\\n\\nНазначение:\\n' + ($json.purpose||'(не извлечено)')) : ('⚠️ ALFA непонятное письмо\\nТема: ' + ($json.subject||'(без темы)') + '\\n\\n' + ($json.body||'')) }) }}",
+        "options": {}
+      }
     }
   ],
   "connections": {
@@ -196,6 +237,22 @@
         [
           {
             "node": "Buffer Email",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Filter Alfa",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Filter Alfa": {
+      "main": [
+        [
+          {
+            "node": "Send Alfa Probe",
             "type": "main",
             "index": 0
           }

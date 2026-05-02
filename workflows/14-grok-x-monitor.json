@@ -139,7 +139,7 @@
         "sendBody": true,
         "contentType": "raw",
         "rawContentType": "application/json",
-        "body": "={{ JSON.stringify({ model: 'claude-haiku-4-5-20251001', max_tokens: 500, system: 'Ты пишешь краткий новостной пост для Telegram-канала Студия ЧЕ (про развитие ИИ: в бизнесе, видео, картинки, фильмы, аудио, автоматизация). НИКАКОГО первого лица — это НЕ от имени автора, это чистая новость. Пиши в третьем лице, фактологично, без «я», «мы». Без воды. Тон — как короткая новостная сводка в СМИ.\\n\\nФормат:\\n- Первая строка: эмодзи + заголовок (до 80 символов)\\n- Пустая строка\\n- 2-3 предложения сути: ЧТО произошло, КТО сделал, КАКИЕ возможности даёт. Цифры, факты, имена продуктов.\\n- Пустая строка\\n- Одна короткая строка «Где применимо:» с 1 предложением сценария использования.\\n- Пустая строка\\n- Ссылка (если есть)\\n\\nДлина 400-600 символов. Обычный текст без Markdown.', messages: [{ role: 'user', content: 'Новость: ' + ($json.headline||'') + '\\nИсточник: ' + ($json.source||'') + '\\nСсылка: ' + ($json.source_url||'') + '\\nСуть: ' + ($json.summary||'') + '\\nЗначимость: ' + ($json.why_relevant||'') }] }) }}",
+        "body": "={{ JSON.stringify({ model: 'claude-haiku-4-5-20251001', max_tokens: 500, system: 'Ты пишешь краткий новостной пост для Telegram-канала Студия ЧЕ (про развитие ИИ: в бизнесе, видео, картинки, фильмы, аудио, автоматизация). НИКАКОГО первого лица — это НЕ от имени автора, это чистая новость. Пиши в третьем лице, фактологично, без «я», «мы». Без воды. Тон — как короткая новостная сводка в СМИ.\\n\\nФормат:\\n- Первая строка: эмодзи + заголовок (до 80 символов)\\n- Пустая строка\\n- 2-3 предложения сути: ЧТО произошло, КТО сделал, КАКИЕ возможности даёт. Цифры, факты, имена продуктов.\\n- Пустая строка\\n- Одна короткая строка «Где применимо:» с 1 предложением сценария использования.\\n\\nЗАПРЕЩЕНО: никаких URL, ссылок, доменов или @-упоминаний — только текст новости.\\n\\nДлина 400-600 символов. Обычный текст без Markdown.', messages: [{ role: 'user', content: 'Новость: ' + ($json.headline||'') + '\\nСуть: ' + ($json.summary||'') + '\\nЗначимость: ' + ($json.why_relevant||'') }] }) }}",
         "options": {
           "timeout": 60000
         }
@@ -158,7 +158,7 @@
         370
       ],
       "parameters": {
-        "jsCode": "const res = $input.first().json;\n// Claude API returns content array\nlet post = '';\nif (res.content && Array.isArray(res.content)) {\n  const textBlock = res.content.find(c => c.type === 'text');\n  post = textBlock?.text?.trim() || '';\n} else if (res.choices) {\n  post = res.choices?.[0]?.message?.content?.trim() || '';\n}\npost = post.replace(/@studiyaCHE\\s*$/i, '').trim();\npost += '\\n\\n@studiyaCHE';\nconst id = 'grok_' + Date.now() + '_' + Math.random().toString(36).slice(2,7);\nreturn [{ json: { post, id } }];"
+        "jsCode": "const res = $input.first().json;\n// Claude API returns content array\nlet post = '';\nif (res.content && Array.isArray(res.content)) {\n  const textBlock = res.content.find(c => c.type === 'text');\n  post = textBlock?.text?.trim() || '';\n} else if (res.choices) {\n  post = res.choices?.[0]?.message?.content?.trim() || '';\n}\npost = post.replace(/https?:\\/\\/\\S+/g, '').replace(/[ \\t]+\\n/g, '\\n').replace(/\\n{3,}/g, '\\n\\n').trim();\npost = post.replace(/@studiyaCHE\\s*$/i, '').trim();\npost += '\\n\\n@studiyaCHE';\nconst id = 'grok_' + Date.now() + '_' + Math.random().toString(36).slice(2,7);\nreturn [{ json: { post, id } }];"
       }
     },
     {

@@ -54,7 +54,7 @@
         370
       ],
       "parameters": {
-        "jsCode": "const HANDLES = [\n  // AI labs / foundation models\n  'OpenAI','AnthropicAI','GoogleDeepMind','MistralAI','xai','Meta','nvidia','CohereAI','Adept',\n  // Founders / researchers\n  'sama','ylecun','DarioAmodei','karpathy','demishassabis','sundarpichai','satyanadella','drjimfan',\n  // Business / enterprise AI\n  'perplexity_ai','cursor_ai','harvey__ai','glean','writer','jasper_ai','notion','zapier','n8n_io','replit','cognition_labs','SierraAI','readdotai','hippocratic_ai',\n  // Dev / coding AI\n  'github','lovable_dev','bolt_new','v0',\n  // Video AI\n  'runwayml','LumaLabsAI','Kling_ai','KLING_AI','midjourney','HeyGen_Official','pika_labs','HailuoAI_MiniMax','GenmoAI','sync_so','captions_AI',\n  // Audio / music AI\n  'suno_ai_','ElevenLabsIO','udiomusic',\n  // Image AI\n  'StabilityAI','blackforestlabs','ideogram_ai','leonardoai_',\n  // News / analysts\n  'rowancheung','AndrewYNg','emollick'\n];\n\nconst handlesList = HANDLES.join(', @');\n// Fixed 24-hour window — dedupe handles duplicates\nconst since = new Date(Date.now() - 24*3600*1000).toISOString().slice(0,16);\n\nconst instruction = `Найди ЗНАЧИМЫЕ AI-новости за последние 24 часа (с ${since}) от X-аккаунтов: @${handlesList}. Интересуют ТОЛЬКО:\\n- новые релизы моделей (видео, аудио, изображения, LLM)\\n- новые фичи и обновления ИИ-инструментов\\n- анонсы продуктов\\n- значимые технические демо\\n\\nИгнорируй:\\n- личные мнения без релиза\\n- мемы, шутки\\n- рекламу событий без продукта\\n- общие размышления\\n\\nДля каждой найденной новости сделай web-поиск чтобы добрать контекст (что это за продукт, ссылки, цена, дата).\\n\\nВерни СТРОГО JSON: {\\n  \"posts\": [\\n    {\\n      \"headline\": \"короткий заголовок до 80 символов\",\\n      \"source\": \"@handle\",\\n      \"source_url\": \"ссылка на X-пост\",\\n      \"summary\": \"2-3 предложения: что произошло, какие возможности\",\\n      \"why_relevant\": \"1 предложение почему это важно (применение в бизнесе/автоматизации или в работе с видео/картинками/аудио, в зависимости от типа новости)\",\\n      \"extra_links\": [\"опциональные доп.ссылки на блог/сайт\"]\\n    }\\n  ]\\n}\\n\\nСтарайся найти 2-4 значимых новости. Если действительно ничего нет — {\"posts\": []}.`;\n\nconst body = JSON.stringify({\n  model: 'grok-4-fast-reasoning',\n  input: instruction,\n  tools: [\n    { type: 'web_search' },\n    { type: 'x_search' }\n  ]\n});\n\nreturn [{ json: { body } }];"
+        "jsCode": "const HANDLES = [\n  // AI labs / foundation models\n  'OpenAI','AnthropicAI','GoogleDeepMind','MistralAI','xai','Meta','nvidia','CohereAI','Adept',\n  // Founders / researchers\n  'sama','ylecun','DarioAmodei','karpathy','demishassabis','sundarpichai','satyanadella','drjimfan',\n  // Business / enterprise AI\n  'perplexity_ai','cursor_ai','harvey__ai','glean','writer','jasper_ai','notion','zapier','n8n_io','replit','cognition_labs','SierraAI','readdotai','hippocratic_ai',\n  // Dev / coding AI\n  'github','lovable_dev','bolt_new','v0',\n  // Video AI\n  'runwayml','LumaLabsAI','Kling_ai','KLING_AI','midjourney','HeyGen_Official','pika_labs','HailuoAI_MiniMax','GenmoAI','sync_so','captions_AI',\n  // Audio / music AI\n  'suno_ai_','ElevenLabsIO','udiomusic',\n  // Image AI\n  'StabilityAI','blackforestlabs','ideogram_ai','leonardoai_',\n  // News / analysts\n  'rowancheung','AndrewYNg','emollick'\n];\n\nconst handlesList = HANDLES.join(', @');\n// Fixed 24-hour window — dedupe handles duplicates\nconst since = new Date(Date.now() - 48*3600*1000).toISOString().slice(0,16);\n\nconst instruction = `Найди ЗНАЧИМЫЕ AI-новости за последние 48 часов (с ${since}) от X-аккаунтов: @${handlesList}. Интересуют ТОЛЬКО:\\n- новые релизы моделей (видео, аудио, изображения, LLM)\\n- новые фичи и обновления ИИ-инструментов\\n- анонсы продуктов\\n- значимые технические демо\\n\\nИгнорируй:\\n- личные мнения без релиза\\n- мемы, шутки\\n- рекламу событий без продукта\\n- общие размышления\\n\\nДля каждой найденной новости сделай web-поиск чтобы добрать контекст (что это за продукт, ссылки, цена, дата).\\n\\nВерни СТРОГО JSON: {\\n  \"posts\": [\\n    {\\n      \"headline\": \"короткий заголовок до 80 символов\",\\n      \"source\": \"@handle\",\\n      \"source_url\": \"ссылка на X-пост\",\\n      \"summary\": \"2-3 предложения: что произошло, какие возможности\",\\n      \"why_relevant\": \"1 предложение почему это важно (применение в бизнесе/автоматизации или в работе с видео/картинками/аудио, в зависимости от типа новости)\",\\n      \"extra_links\": [\"опциональные доп.ссылки на блог/сайт\"]\\n    }\\n  ]\\n}\\n\\nСтарайся найти 2-4 значимых новости. Если действительно ничего нет — {\"posts\": []}.`;\n\nconst body = JSON.stringify({\n  model: 'grok-4-fast-reasoning',\n  input: instruction,\n  tools: [\n    { type: 'web_search' },\n    { type: 'x_search' }\n  ]\n});\n\nreturn [{ json: { body } }];"
       }
     },
     {
@@ -104,7 +104,7 @@
         370
       ],
       "parameters": {
-        "jsCode": "const data = $input.first().json;\nconst output = data.output || [];\n\nlet jsonText = '';\nfor (const o of output) {\n  if (o.type === 'message' && Array.isArray(o.content)) {\n    for (const c of o.content) {\n      if (c.type === 'output_text' && c.text) {\n        jsonText = c.text;\n        break;\n      }\n    }\n  }\n  if (jsonText) break;\n}\n\nif (!jsonText) return [];\n\njsonText = jsonText.replace(/```json\\s*/g, '').replace(/```\\s*$/g, '').trim();\n\nlet parsed;\ntry { parsed = JSON.parse(jsonText); } catch(e) { return []; }\n\nconst posts = parsed.posts || [];\nif (!posts.length) return [];\n\n// Strong URL-based key: extract X status ID or domain+pathname from any URL variant\nfunction urlKey(url) {\n  if (!url || typeof url !== 'string') return '';\n  try {\n    const u = new URL(url);\n    // For X/Twitter extract status ID (most reliable)\n    const xMatch = u.pathname.match(/\\/status\\/(\\d+)/);\n    if (xMatch) return 'x_' + xMatch[1];\n    // Otherwise domain + pathname (stripped of trailing slash/query)\n    return u.hostname.replace(/^www\\./, '') + u.pathname.replace(/\\/$/, '').toLowerCase();\n  } catch(e) { return ''; }\n}\n\n// Headline normalization — shorter, stricter\nfunction headlineKey(s) {\n  return (s || '').toLowerCase()\n    .replace(/[^a-zа-я0-9\\s]/gi, ' ')\n    .replace(/\\s+/g, ' ')\n    .trim()\n    .split(' ').slice(0, 4).join(' '); // first 4 words — catches 'Luma запустила студию AI' ≈ 'Luma запустила студию гибридного'\n}\n\n// Extract key brand/entity (first proper noun or known word) from headline/summary combined\nfunction brandKey(post) {\n  const text = ((post.headline || '') + ' ' + (post.summary || '')).toLowerCase();\n  const brands = ['luma','openai','anthropic','google','deepmind','meta','nvidia','microsoft','midjourney','runway','kling','suno','heygen','pika','hailuo','stability','anthropic','xai','mistral','ideogram','elevenlabs','genmo','apple','amazon','aws','ibm'];\n  for (const b of brands) {\n    if (text.includes(b)) {\n      // combine brand + first significant word after it (to not collapse different news about same brand)\n      const words = text.replace(/[^a-zа-я0-9\\s]/gi, ' ').split(/\\s+/);\n      const idx = words.indexOf(b);\n      return b + '_' + (words.slice(idx+1, idx+4).join(' ') || '');\n    }\n  }\n  return '';\n}\n\nconst store = $getWorkflowStaticData('global');\nif (!store.sentGrokPosts) store.sentGrokPosts = [];\nconst sentSet = new Set(store.sentGrokPosts);\n\nconst seenInRun = new Set();\nconst fresh = [];\nfor (const p of posts) {\n  if (!p.headline) continue;\n  // Compute 3 possible keys — if ANY matches seen, skip\n  const keys = [];\n  const uk = urlKey(p.source_url);\n  if (uk) keys.push('url:' + uk);\n  const hk = headlineKey(p.headline);\n  if (hk.length > 5) keys.push('h:' + hk);\n  const bk = brandKey(p);\n  if (bk) keys.push('b:' + bk);\n  \n  if (!keys.length) continue;\n  \n  // Check if any key already seen\n  const already = keys.some(k => sentSet.has(k) || seenInRun.has(k));\n  if (already) continue;\n  \n  // Mark all keys as seen\n  for (const k of keys) {\n    seenInRun.add(k);\n    store.sentGrokPosts.push(k);\n  }\n  fresh.push(p);\n}\n\nif (store.sentGrokPosts.length > 500) store.sentGrokPosts = store.sentGrokPosts.slice(-500);\n\nreturn fresh.map(p => ({ json: p }));"
+        "jsCode": "const data = $input.first().json;\nconst output = data.output || [];\n\nlet jsonText = '';\nfor (const o of output) {\n  if (o.type === 'message' && Array.isArray(o.content)) {\n    for (const c of o.content) {\n      if (c.type === 'output_text' && c.text) {\n        jsonText = c.text;\n        break;\n      }\n    }\n  }\n  if (jsonText) break;\n}\n\nif (!jsonText) return [{ json: { _empty: true, reason: 'no output_text' } }];\n\njsonText = jsonText.replace(/```json\\s*/g, '').replace(/```\\s*$/g, '').trim();\n\nlet parsed;\ntry { parsed = JSON.parse(jsonText); } catch(e) { return [{ json: { _empty: true, reason: 'json parse error' } }]; }\n\nconst posts = parsed.posts || [];\nif (!posts.length) return [{ json: { _empty: true, reason: 'grok returned 0 posts' } }];\n\n// Strong URL-based key: extract X status ID or domain+pathname from any URL variant\nfunction urlKey(url) {\n  if (!url || typeof url !== 'string') return '';\n  try {\n    const u = new URL(url);\n    // For X/Twitter extract status ID (most reliable)\n    const xMatch = u.pathname.match(/\\/status\\/(\\d+)/);\n    if (xMatch) return 'x_' + xMatch[1];\n    // Otherwise domain + pathname (stripped of trailing slash/query)\n    return u.hostname.replace(/^www\\./, '') + u.pathname.replace(/\\/$/, '').toLowerCase();\n  } catch(e) { return ''; }\n}\n\n// Headline normalization — shorter, stricter\nfunction headlineKey(s) {\n  return (s || '').toLowerCase()\n    .replace(/[^a-zа-я0-9\\s]/gi, ' ')\n    .replace(/\\s+/g, ' ')\n    .trim()\n    .split(' ').slice(0, 4).join(' '); // first 4 words — catches 'Luma запустила студию AI' ≈ 'Luma запустила студию гибридного'\n}\n\n// Extract key brand/entity (first proper noun or known word) from headline/summary combined\nfunction brandKey(post) {\n  const text = ((post.headline || '') + ' ' + (post.summary || '')).toLowerCase();\n  const brands = ['luma','openai','anthropic','google','deepmind','meta','nvidia','microsoft','midjourney','runway','kling','suno','heygen','pika','hailuo','stability','anthropic','xai','mistral','ideogram','elevenlabs','genmo','apple','amazon','aws','ibm'];\n  for (const b of brands) {\n    if (text.includes(b)) {\n      // combine brand + first significant word after it (to not collapse different news about same brand)\n      const words = text.replace(/[^a-zа-я0-9\\s]/gi, ' ').split(/\\s+/);\n      const idx = words.indexOf(b);\n      return b + '_' + (words.slice(idx+1, idx+4).join(' ') || '');\n    }\n  }\n  return '';\n}\n\nconst store = $getWorkflowStaticData('global');\nif (!store.sentGrokPosts) store.sentGrokPosts = [];\nconst sentSet = new Set(store.sentGrokPosts);\n\nconst seenInRun = new Set();\nconst fresh = [];\nfor (const p of posts) {\n  if (!p.headline) continue;\n  // Compute 3 possible keys — if ANY matches seen, skip\n  const keys = [];\n  const uk = urlKey(p.source_url);\n  if (uk) keys.push('url:' + uk);\n  const hk = headlineKey(p.headline);\n  if (hk.length > 5) keys.push('h:' + hk);\n  const bk = brandKey(p);\n  if (bk) keys.push('b:' + bk);\n  \n  if (!keys.length) continue;\n  \n  // Check if any key already seen\n  const already = keys.some(k => sentSet.has(k) || seenInRun.has(k));\n  if (already) continue;\n  \n  // Mark all keys as seen\n  for (const k of keys) {\n    seenInRun.add(k);\n    store.sentGrokPosts.push(k);\n  }\n  fresh.push(p);\n}\n\nif (store.sentGrokPosts.length > 500) store.sentGrokPosts = store.sentGrokPosts.slice(-500);\n\nif (!fresh.length) return [{ json: { _empty: true, reason: 'all posts dedup-filtered (' + posts.length + ' total)' } }];\nreturn fresh.map(p => ({ json: p }));"
       }
     },
     {
@@ -262,6 +262,73 @@
           }
         }
       }
+    },
+    {
+      "id": "gx10",
+      "name": "Has Posts?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        1080,
+        370
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose"
+          },
+          "conditions": [
+            {
+              "id": "gxhas",
+              "leftValue": "={{ $json._empty }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "false",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "gx11",
+      "name": "Notify No Posts",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1300,
+        500
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "={{ 'https://api.telegram.org/bot' + $env.TELEGRAM_BOT_TOKEN + '/sendMessage' }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "application/json",
+        "body": "={{ (function(){ const t = new Date().toLocaleTimeString('ru-RU', { timeZone: 'Asia/Yekaterinburg', hour: '2-digit', minute: '2-digit' }); const reason = $json.reason || ''; return JSON.stringify({ chat_id: $env.TELEGRAM_CHAT_ID, text: '🟢 Grok-чек ' + t + ' (ЕКБ): за 48ч значимых ИИ-новостей нет' + (reason ? '\\n  ' + reason : '') }); })() }}",
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          }
+        }
+      }
     }
   ],
   "connections": {
@@ -313,7 +380,25 @@
       "main": [
         [
           {
+            "node": "Has Posts?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Has Posts?": {
+      "main": [
+        [
+          {
             "node": "Format via GPT",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Notify No Posts",
             "type": "main",
             "index": 0
           }

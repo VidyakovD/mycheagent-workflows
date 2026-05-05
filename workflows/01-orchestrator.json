@@ -382,13 +382,13 @@
       ],
       "parameters": {
         "method": "POST",
-        "url": "={{ $env.ANTHROPIC_BASE_URL + '/v1/chat/completions' }}",
+        "url": "https://api.openai.com/v1/chat/completions",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
             {
               "name": "Authorization",
-              "value": "={{ 'Bearer ' + $env.ANTHROPIC_API_KEY }}"
+              "value": "={{ 'Bearer ' + $env.OPENAI_API_KEY }}"
             },
             {
               "name": "Content-Type",
@@ -399,8 +399,11 @@
         "sendBody": true,
         "contentType": "raw",
         "rawContentType": "application/json",
-        "body": "={{ JSON.stringify({ model: 'claude-haiku-4.5', messages: [{ role: 'user', content: $json.systemPrompt + '\\n\\n' + $json.userText }], max_tokens: 500 }) }}",
-        "options": {}
+        "body": "={{ JSON.stringify({ model: 'gpt-4o-mini', messages: [{ role: 'system', content: $json.systemPrompt }, { role: 'user', content: $json.userText }], max_tokens: 500 }) }}",
+        "options": {
+          "timeout": 30000,
+          "response": { "response": { "neverError": true } }
+        }
       }
     },
     {

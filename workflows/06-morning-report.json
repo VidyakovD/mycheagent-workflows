@@ -28,6 +28,37 @@
       }
     },
     {
+      "id": "mr1b",
+      "name": "Fetch Alfa",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        300,
+        300
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "https://mycheagent.ru/webhook/pwa-data",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "application/json",
+        "body": "={{ JSON.stringify({ action: 'getAlfaTx', monthKey: new Date().toISOString().slice(0,7) }) }}",
+        "options": {
+          "timeout": 15000,
+          "response": { "response": { "neverError": true } }
+        }
+      }
+    },
+    {
       "id": "mr2",
       "name": "Gather Data",
       "type": "n8n-nodes-base.code",
@@ -37,7 +68,7 @@
         300
       ],
       "parameters": {
-        "jsCode": "const store = $getWorkflowStaticData('global');\n// Find Denis's session — pick the session with most data\nconst sessions = store.u || {};\nlet best = null, bestScore = -1;\nfor (const [sid, u] of Object.entries(sessions)) {\n  const score = (u.tasks?.length||0) + (u.projects?.length||0) + (u.notes?.length||0);\n  if (score > bestScore) { bestScore = score; best = u; }\n}\nif (!best) best = {};\n\nconst today = new Date().toISOString().slice(0,10);\nconst todayRu = new Date().toLocaleDateString('ru',{weekday:'long',day:'numeric',month:'long'});\n\n// Pending tasks\nconst pending = (best.tasks||[]).filter(t=>!t.done);\n// Upcoming calendar events (next 7 days)\nconst in7 = new Date(Date.now()+7*86400000).toISOString().slice(0,10);\nconst events = (best.calendar||[]).filter(e=>e.date>=today&&e.date<=in7).sort((a,b)=>a.date>b.date?1:-1);\n// Finance this month\nconst thisMonth = today.slice(0,7);\nconst finIn  = (best.finance||[]).filter(e=>e.type==='in' &&e.date?.startsWith(thisMonth)).reduce((s,e)=>s+e.amount,0);\nconst finOut = (best.finance||[]).filter(e=>e.type==='out'&&e.date?.startsWith(thisMonth)).reduce((s,e)=>s+e.amount,0);\n// Content in progress\nconst ctActive = (best.content||[]).filter(e=>e.status!=='done').length;\n// Ideas count\nconst ideasCount = (best.ideas||[]).length;\n\nreturn [{ json: { todayRu, pending, events, finIn, finOut, ctActive, ideasCount } }];"
+        "jsCode": "const store = $getWorkflowStaticData('global');\nconst sessions = store.u || {};\nlet best = null, bestScore = -1;\nfor (const [sid, u] of Object.entries(sessions)) {\n  const score = (u.tasks?.length||0) + (u.projects?.length||0) + (u.notes?.length||0);\n  if (score > bestScore) { bestScore = score; best = u; }\n}\nif (!best) best = {};\n\nconst today = new Date().toISOString().slice(0,10);\nconst todayRu = new Date().toLocaleDateString('ru',{weekday:'long',day:'numeric',month:'long'});\n\nconst pending = (best.tasks||[]).filter(t=>!t.done);\nconst in7 = new Date(Date.now()+7*86400000).toISOString().slice(0,10);\nconst events = (best.calendar||[]).filter(e=>e.date>=today&&e.date<=in7).sort((a,b)=>a.date>b.date?1:-1);\nconst thisMonth = today.slice(0,7);\n\n// Finance: пользовательские записи + транзакции Альфы из backend\nconst userFin = best.finance || [];\nconst alfaTxs = $('Fetch Alfa').first().json.txs || [];\nconst userIn = userFin.filter(e=>e.type==='in' &&e.date?.startsWith(thisMonth)).reduce((s,e)=>s+e.amount,0);\nconst userOut = userFin.filter(e=>e.type==='out'&&e.date?.startsWith(thisMonth)).reduce((s,e)=>s+e.amount,0);\nconst alfaIn = alfaTxs.filter(t=>t.direction==='in').reduce((s,t)=>s+(Number(t.amount)||0),0);\nconst alfaOut = alfaTxs.filter(t=>t.direction!=='in').reduce((s,t)=>s+(Number(t.amount)||0),0);\nconst finIn = userIn + alfaIn;\nconst finOut = userOut + alfaOut;\nconst alfaCount = alfaTxs.length;\n\n// Top-3 категорий трат месяца\nconst byCat = {};\nfor (const t of alfaTxs) {\n  if (t.direction === 'in') continue;\n  const c = t.category || '❓';\n  byCat[c] = (byCat[c] || 0) + (Number(t.amount) || 0);\n}\nconst topCats = Object.entries(byCat).sort((a,b)=>b[1]-a[1]).slice(0,3).map(([c,s])=>c+': '+Math.round(s)+' ₽').join(', ');\n\nconst ctActive = (best.content||[]).filter(e=>e.status!=='done').length;\nconst ideasCount = (best.ideas||[]).length;\n\nreturn [{ json: { todayRu, pending, events, finIn, finOut, alfaCount, topCats, ctActive, ideasCount } }];"
       }
     },
     {
@@ -68,7 +99,7 @@
         "sendBody": true,
         "contentType": "raw",
         "rawContentType": "application/json",
-        "body": "={{ JSON.stringify({ model: 'gpt-4o-mini', messages: [{ role: 'system', content: 'Ты Зевс — личный ассистент Дениса. Составь краткое утреннее сводное сообщение в Telegram (Markdown). Используй эмодзи. Обращайся по имени «Денис» или на «ты». Будь краток и по делу.' }, { role: 'user', content: 'Дата: ' + $json.todayRu + '\\n\\nЗадачи в очереди: ' + $json.pending.length + ($json.pending.length ? '\\n' + $json.pending.slice(0,5).map((t,i)=>(i+1)+'. '+t.text).join('\\n') : '') + '\\n\\nСобытия (7 дней): ' + ($json.events.length ? $json.events.map(e=>e.date+' — '+e.text).join(', ') : 'нет') + '\\n\\nФинансы месяц: +' + $json.finIn + ' / −' + $json.finOut + ' ₽' + '\\n\\nКонтент в работе: ' + $json.ctActive + '\\nИдей на проработку: ' + $json.ideasCount }], max_tokens: 400 }) }}"
+        "body": "={{ JSON.stringify({ model: 'gpt-4o-mini', messages: [{ role: 'system', content: 'Ты Зевс — личный ассистент Дениса. Составь краткое утреннее сводное сообщение в Telegram (Markdown). Используй эмодзи. Обращайся по имени «Денис» или на «ты». Будь краток и по делу.' }, { role: 'user', content: 'Дата: ' + $json.todayRu + '\\n\\nЗадачи в очереди: ' + $json.pending.length + ($json.pending.length ? '\\n' + $json.pending.slice(0,5).map((t,i)=>(i+1)+'. '+t.text).join('\\n') : '') + '\\n\\nСобытия (7 дней): ' + ($json.events.length ? $json.events.map(e=>e.date+' — '+e.text).join(', ') : 'нет') + '\\n\\nФинансы за месяц: пришло +' + Math.round($json.finIn).toLocaleString('ru-RU') + ' ₽, потрачено −' + Math.round($json.finOut).toLocaleString('ru-RU') + ' ₽ (Альфа: ' + $json.alfaCount + ' операций)' + ($json.topCats ? '\\nТоп трат: ' + $json.topCats : '') + '\\n\\nКонтент в работе: ' + $json.ctActive + '\\nИдей на проработку: ' + $json.ideasCount }], max_tokens: 400 }) }}"
       },
       "retryOnFail": true,
       "maxTries": 3,
@@ -117,6 +148,17 @@
   ],
   "connections": {
     "Every Morning": {
+      "main": [
+        [
+          {
+            "node": "Fetch Alfa",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch Alfa": {
       "main": [
         [
           {

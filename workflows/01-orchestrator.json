@@ -1605,6 +1605,106 @@
           }
         }
       }
+    },
+    {
+      "id": "fr1",
+      "name": "Is Finrm CB?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        1080,
+        680
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "fr_re",
+              "leftValue": "={{ $json.data }}",
+              "rightValue": "^finrm:",
+              "operator": {
+                "type": "string",
+                "operation": "regex"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "fr2",
+      "name": "Remove Alfa Tx",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1300,
+        680
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "https://mycheagent.ru/webhook/pwa-data",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "application/json",
+        "body": "={{ JSON.stringify({ action: 'removeAlfaTx', txId: ($json.data || '').replace(/^finrm:/, '') }) }}",
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          }
+        }
+      }
+    },
+    {
+      "id": "fr3",
+      "name": "Answer Finrm",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1520,
+        680
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "={{ 'https://api.telegram.org/bot' + $env.TELEGRAM_BOT_TOKEN + '/answerCallbackQuery' }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "application/json",
+        "body": "={{ (function(){ const cb = $('Is Finrm CB?').item.json; const r = $input.first().json; const ok = r?.ok && r?.removed; return JSON.stringify({ callback_query_id: cb.callbackId, text: ok ? '🗑 Удалил из учёта' : '⚠️ Уже удалена или не найдена', show_alert: false }); })() }}",
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          }
+        }
+      }
     }
   ],
   "connections": {
@@ -2166,7 +2266,36 @@
         ],
         [
           {
+            "node": "Is Finrm CB?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Is Finrm CB?": {
+      "main": [
+        [
+          {
+            "node": "Remove Alfa Tx",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
             "node": "Answer Skipped",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Remove Alfa Tx": {
+      "main": [
+        [
+          {
+            "node": "Answer Finrm",
             "type": "main",
             "index": 0
           }

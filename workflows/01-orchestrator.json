@@ -1180,18 +1180,18 @@
       "position": [2840, 730],
       "parameters": {
         "method": "POST",
-        "url": "={{ $env.ANTHROPIC_BASE_URL + '/v1/chat/completions' }}",
+        "url": "https://api.openai.com/v1/chat/completions",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
-            { "name": "Authorization", "value": "={{ 'Bearer ' + $env.ANTHROPIC_API_KEY }}" },
+            { "name": "Authorization", "value": "={{ 'Bearer ' + $env.OPENAI_API_KEY }}" },
             { "name": "Content-Type", "value": "application/json" }
           ]
         },
         "sendBody": true,
         "contentType": "raw",
         "rawContentType": "application/json",
-        "body": "={{ (function() { const emails = $json.emails || []; const userQ = $('Router').first().json.text; const context = emails.map(e => 'От: ' + e.from + '\\nТема: ' + e.subject + '\\nТекст: ' + (e.body || '').slice(0, 1000) + '\\n---').join('\\n'); return JSON.stringify({ model: 'claude-haiku-4.5', messages: [{ role: 'user', content: 'Ты ассистент Зевс. Пользователь спрашивает про почту. Вот контекст последних писем:\\n\\n' + context + '\\n\\nВопрос: ' + userQ + '\\n\\nОтветь кратко, по-русски, обращайся по имени «Денис» или на «ты».' }], max_tokens: 500 }); })() }}",
+        "body": "={{ (function() { const emails = $json.emails || []; const userQ = $('Router').first().json.text; const context = emails.map(e => 'От: ' + e.from + '\\nТема: ' + e.subject + '\\nТекст: ' + (e.body || '').slice(0, 1000) + '\\n---').join('\\n'); return JSON.stringify({ model: 'gpt-4o-mini', messages: [{ role: 'user', content: 'Ты ассистент Зевс. Пользователь спрашивает про почту. Вот контекст последних писем:\\n\\n' + context + '\\n\\nВопрос: ' + userQ + '\\n\\nОтветь кратко, по-русски, обращайся по имени «Денис» или на «ты».' }], max_tokens: 500 }); })() }}",
         "options": {}
       }
     },
@@ -1270,18 +1270,18 @@
       "position": [2840, 430],
       "parameters": {
         "method": "POST",
-        "url": "={{ $env.ANTHROPIC_BASE_URL + '/v1/chat/completions' }}",
+        "url": "https://api.openai.com/v1/chat/completions",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
-            { "name": "Authorization", "value": "={{ 'Bearer ' + $env.ANTHROPIC_API_KEY }}" },
+            { "name": "Authorization", "value": "={{ 'Bearer ' + $env.OPENAI_API_KEY }}" },
             { "name": "Content-Type", "value": "application/json" }
           ]
         },
         "sendBody": true,
         "contentType": "raw",
         "rawContentType": "application/json",
-        "body": "={{ (function() { const results = $json.results || []; const userQ = $('Router').first().json.text; if (!results.length) { return JSON.stringify({ model: 'claude-haiku-4.5', messages: [{ role: 'user', content: 'Скажи Денису, что в его базе знаний ничего не нашлось по запросу:' + userQ + '. Одно предложение.' }], max_tokens: 150 }); } const context = results.map(r => 'ФАЙЛ: ' + r.name + '\\nОписание: ' + (r.description||'') + '\\nСодержимое: ' + (r.summary||'') + '\\nФакты: ' + (r.facts||[]).join('; ')).join('\\n\\n---\\n\\n'); return JSON.stringify({ model: 'claude-haiku-4.5', messages: [{ role: 'user', content: 'Ты ассистент Зевс. Пользователь (Денис, на «ты») спрашивает про свои файлы.\\n\\nБАЗА ЗНАНИЙ (найдено ' + results.length + ' файлов):\\n\\n' + context + '\\n\\nВОПРОС: ' + userQ + '\\n\\nОтветь по существу на основе базы знаний. Если нужной инфы в фактах нет — скажи что файл есть, но в нём этой информации не найдено. Кратко, по-русски.' }], max_tokens: 600 }); })() }}",
+        "body": "={{ (function() { const results = $json.results || []; const userQ = $('Router').first().json.text; if (!results.length) { return JSON.stringify({ model: 'gpt-4o-mini', messages: [{ role: 'user', content: 'Скажи Денису, что в его базе знаний ничего не нашлось по запросу:' + userQ + '. Одно предложение.' }], max_tokens: 150 }); } const context = results.map(r => 'ФАЙЛ: ' + r.name + '\\nОписание: ' + (r.description||'') + '\\nСодержимое: ' + (r.summary||'') + '\\nФакты: ' + (r.facts||[]).join('; ')).join('\\n\\n---\\n\\n'); return JSON.stringify({ model: 'gpt-4o-mini', messages: [{ role: 'user', content: 'Ты ассистент Зевс. Пользователь (Денис, на «ты») спрашивает про свои файлы.\\n\\nБАЗА ЗНАНИЙ (найдено ' + results.length + ' файлов):\\n\\n' + context + '\\n\\nВОПРОС: ' + userQ + '\\n\\nОтветь по существу на основе базы знаний. Если нужной инфы в фактах нет — скажи что файл есть, но в нём этой информации не найдено. Кратко, по-русски.' }], max_tokens: 600 }); })() }}",
         "options": {}
       }
     },

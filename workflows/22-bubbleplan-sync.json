@@ -9,7 +9,7 @@
   "nodes": [
     {
       "id": "bs1",
-      "name": "Every 15 min",
+      "name": "Every 3 hours",
       "type": "n8n-nodes-base.scheduleTrigger",
       "typeVersion": 1.2,
       "position": [
@@ -21,7 +21,7 @@
           "interval": [
             {
               "field": "cronExpression",
-              "expression": "*/15 * * * *"
+              "expression": "0 */3 * * *"
             }
           ]
         }
@@ -199,7 +199,7 @@
     }
   ],
   "connections": {
-    "Every 15 min": {
+    "Every 3 hours": {
       "main": [
         [
           {

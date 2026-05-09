@@ -1,7 +1,7 @@
 {
   "name": "25-yadirect-approval-watch",
   "id": "yadirect-approval-watch-001",
-  "active": true,
+  "active": false,
   "settings": { "executionOrder": "v1", "timezone": "Asia/Yekaterinburg" },
   "nodes": [
     {

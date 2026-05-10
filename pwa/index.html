@@ -611,6 +611,11 @@ body{background:var(--bg);color:var(--tx);
         <div class="hc-title">Финансы</div>
         <div class="hc-sub" id="hc-finance-sub">Нет записей</div>
       </div>
+      <div class="hub-card" onclick="goSec('bubbles')">
+        <div class="hc-ico">🎯</div>
+        <div class="hc-title">Цели</div>
+        <div class="hc-sub" id="hc-bubbles-sub">Загрузка...</div>
+      </div>
       <div class="hub-card" onclick="goSec('studiache')" style="grid-column:1/-1;border-color:rgba(0,240,255,.25);">
         <div class="hc-ico">🎓</div>
         <div class="hc-title">Студия ЧЕ — Бот</div>
@@ -690,6 +695,17 @@ body{background:var(--bg);color:var(--tx);
 
 
   <!-- STUDIACHE BOT CONFIG -->
+  <!-- BUBBLES -->
+  <div class="sec" id="s-bubbles">
+    <div class="sec-back" onclick="goSec('hub')">
+      <svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg>
+      Разделы
+    </div>
+    <div class="sh">🎯 Цели (Bubbleplan)</div>
+    <div id="bubbles-meta" style="font-size:11px;color:#888;padding:0 14px 8px;"></div>
+    <div class="list" id="bubbles-list" style="padding-bottom:20px;"></div>
+  </div>
+
   <div class="sec" id="s-studiache">
     <div class="sec-back" onclick="goSec('hub')">
       <svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg>
@@ -804,6 +820,8 @@ let calendar  = ls('calendar', []);
 let content   = ls('content',  []);
 let ideas     = ls('ideas',    []);
 let finance   = ls('finance',  []);
+let bubbles   = [];   // Bubbleplan — синкается с сервера, локально не сохраняем
+let bubblesSyncedAt = null;
 let chatHist  = ls('chatHist', []);
 let curProjId = null;
 let finType   = 'in';
@@ -843,6 +861,7 @@ async function loadFromServer() {
     if (d.content?.length)  { content  = d.content;  localStorage.setItem('content',  JSON.stringify(content));  changed=true; }
     if (d.ideas?.length)    { ideas    = d.ideas;     localStorage.setItem('ideas',    JSON.stringify(ideas));    changed=true; }
     if (d.finance?.length)  { finance  = d.finance;   localStorage.setItem('finance',  JSON.stringify(finance));  changed=true; }
+    if (Array.isArray(d.bubbles)) { bubbles = d.bubbles; bubblesSyncedAt = d.bubblesSyncedAt || null; renderBubbles(); }
     if (changed) { renderT(); renderN(); renderS(); renderP(); renderCal(); renderContent(); renderIdeas(); renderFin(); }
     // Show unread reports from website bot in chat
     if (Array.isArray(d.reports) && d.reports.length) {
@@ -877,6 +896,65 @@ function goSec(name) {
   if (name==='ideas')     renderIdeas();
   if (name==='finance')   renderFin();
   if (name==='studiache') scLoad();
+  if (name==='bubbles')   renderBubbles();
+}
+
+// ══ BUBBLES (Bubbleplan goals) ═══════════════
+function renderBubbles() {
+  const list = document.getElementById('bubbles-list');
+  const meta = document.getElementById('bubbles-meta');
+  if (!list) return;
+  const now = Date.now();
+  const H24 = 24*3600*1000;
+  const active = bubbles.filter(b => b.status === 'active');
+  const goals = active.filter(b => !b.parent_id);
+  const byParent = {};
+  for (const b of active) {
+    if (b.parent_id) {
+      (byParent[b.parent_id] = byParent[b.parent_id] || []).push(b);
+    }
+  }
+  const burning = active.filter(b => {
+    if (!b.deadline) return false;
+    const dl = typeof b.deadline === 'number' ? b.deadline : Date.parse(b.deadline);
+    return dl && Math.abs(dl - now) <= H24;
+  });
+  if (meta) {
+    const synced = bubblesSyncedAt ? new Date(bubblesSyncedAt).toLocaleString('ru-RU', {dateStyle:'short',timeStyle:'short'}) : 'не синкалось';
+    meta.textContent = `Активных: ${active.length} · Целей: ${goals.length} · 🔥 Горит: ${burning.length} · Синк: ${synced}`;
+  }
+  if (!goals.length) {
+    list.innerHTML = `<div style="padding:20px;text-align:center;color:#888;font-size:13px;">Нет активных целей. Синкаются раз в 3 часа.</div>`;
+    return;
+  }
+  // Сортируем: с горящими дедлайнами вверх, потом по updatedAt
+  goals.sort((a, b) => {
+    const aDl = a.deadline ? (typeof a.deadline==='number'?a.deadline:Date.parse(a.deadline)) : Infinity;
+    const bDl = b.deadline ? (typeof b.deadline==='number'?b.deadline:Date.parse(b.deadline)) : Infinity;
+    return aDl - bDl;
+  });
+  list.innerHTML = goals.map(g => {
+    const subs = (byParent[g.id] || []);
+    const subsHTML = subs.length
+      ? `<div style="margin-top:8px;border-top:1px solid rgba(255,255,255,.06);padding-top:6px;">${subs.map(s=>{
+          const sDl = s.deadline ? (typeof s.deadline==='number'?s.deadline:Date.parse(s.deadline)) : null;
+          const burn = sDl && Math.abs(sDl-now)<=H24 ? '🔥 ' : '';
+          const dlStr = sDl ? new Date(sDl).toLocaleDateString('ru-RU', {day:'numeric',month:'short'}) : '';
+          return `<div style="font-size:12px;color:#bbb;padding:3px 0 3px 12px;">${burn}↳ ${esc(s.title)}${dlStr?` <span style="color:#666">· ${dlStr}</span>`:''}</div>`;
+        }).join('')}</div>`
+      : '';
+    const gDl = g.deadline ? (typeof g.deadline==='number'?g.deadline:Date.parse(g.deadline)) : null;
+    const gBurn = gDl && Math.abs(gDl-now)<=H24 ? '🔥 ' : '';
+    const dlStr = gDl ? new Date(gDl).toLocaleDateString('ru-RU', {day:'numeric',month:'short'}) : '';
+    const colorBar = g.color ? `border-left:3px solid ${g.color};` : '';
+    return `<div class="t-item" style="${colorBar}flex-direction:column;align-items:stretch;">
+      <div style="display:flex;align-items:center;gap:8px;">
+        <div style="flex:1;font-weight:500;">${gBurn}${esc(g.title)}</div>
+        ${dlStr?`<div style="font-size:11px;color:#888;">${dlStr}</div>`:''}
+      </div>
+      ${subsHTML}
+    </div>`;
+  }).join('');
 }
 
 // ══ CHAT ═════════════════════════════════════
@@ -1471,6 +1549,19 @@ function renderHub() {
   el('hc-content-sub',  ctSub);
   el('hc-ideas-sub',    idSub);
   el('hc-finance-sub',  finSub);
+  // Bubbleplan
+  const activeBubbles = bubbles.filter(b => b.status === 'active');
+  const goalsCount = activeBubbles.filter(b => !b.parent_id).length;
+  const now = Date.now(); const H24 = 24*3600*1000;
+  const burning = activeBubbles.filter(b => {
+    if (!b.deadline) return false;
+    const dl = typeof b.deadline === 'number' ? b.deadline : Date.parse(b.deadline);
+    return dl && Math.abs(dl - now) <= H24;
+  }).length;
+  const bubSub = activeBubbles.length
+    ? `${goalsCount} ${goalsCount===1?'цель':'целей'}${burning?' · 🔥 '+burning:''}`
+    : (bubblesSyncedAt ? 'Нет активных' : 'Загрузка...');
+  el('hc-bubbles-sub', bubSub);
 }
 
 // ══ CALENDAR ══════════════════════════════════

@@ -331,6 +331,19 @@
       }
     },
     {
+      "id": "gx13",
+      "name": "Build VK",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1740,
+        620
+      ],
+      "parameters": {
+        "jsCode": "const src = $('Build Final').first().json.post || '';\nconst H = '🚀';\nlet t = src.replace(/@studiyaCHE/gi, '').replace(/\\n{3,}/g, '\\n\\n').trim();\nif (/^\\s*\\p{Extended_Pictographic}/u.test(t)) {\n  t = t.replace(/^\\s*\\p{Extended_Pictographic}+\\uFE0F?\\s*/u, H + ' ');\n} else {\n  t = H + ' ' + t;\n}\n// drop newest/rare emoji (Symbols & Pictographs Extended-A) that VK can't render\nt = t.replace(/[\\u{1FA70}-\\u{1FAFF}]\\uFE0F?/gu, '');\nt = t.replace(/[ \\t]{2,}/g, ' ').replace(/ +([.,!?;:»)])/g, '$1').replace(/[ \\t]+\\n/g, '\\n').replace(/\\n{3,}/g, '\\n\\n').trim();\nreturn [{ json: { vkText: t } }];"
+      }
+    },
+    {
       "id": "gx12",
       "name": "Post VK",
       "type": "n8n-nodes-base.httpRequest",
@@ -346,11 +359,26 @@
         "contentType": "form-urlencoded",
         "bodyParameters": {
           "parameters": [
-            { "name": "owner_id", "value": "={{ $env.VK_OWNER_ID }}" },
-            { "name": "from_group", "value": "1" },
-            { "name": "message", "value": "={{ $('Build Final').first().json.post.replace(/@studiyaCHE/gi, '').replace(/\\n{3,}/g, '\\n\\n').trim() }}" },
-            { "name": "access_token", "value": "={{ $env.VK_TOKEN }}" },
-            { "name": "v", "value": "5.199" }
+            {
+              "name": "owner_id",
+              "value": "={{ $env.VK_OWNER_ID }}"
+            },
+            {
+              "name": "from_group",
+              "value": "1"
+            },
+            {
+              "name": "message",
+              "value": "={{ $json.vkText }}"
+            },
+            {
+              "name": "access_token",
+              "value": "={{ $env.VK_TOKEN }}"
+            },
+            {
+              "name": "v",
+              "value": "5.199"
+            }
           ]
         },
         "options": {
@@ -477,7 +505,7 @@
       "main": [
         [
           {
-            "node": "Post VK",
+            "node": "Build VK",
             "type": "main",
             "index": 0
           }
@@ -489,6 +517,17 @@
         [
           {
             "node": "Notify Admin",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build VK": {
+      "main": [
+        [
+          {
+            "node": "Post VK",
             "type": "main",
             "index": 0
           }

@@ -2157,6 +2157,85 @@
         "body": "={{ JSON.stringify({ callback_query_id: $('Is Content Rej?').item.json.callbackId, text: '❌ Отклонено' }) }}",
         "options": {}
       }
+    },
+    {
+      "id": "ncar1",
+      "name": "Is Carousel Pub?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        1080,
+        0
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "ncar1_c",
+              "leftValue": "={{ $json.data }}",
+              "rightValue": "^cpubc:",
+              "operator": {
+                "type": "string",
+                "operation": "regex"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "ncar2",
+      "name": "Get Carousel",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1300,
+        -60
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "https://mycheagent.ru/webhook/pwa-data",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "application/json",
+        "body": "={{ JSON.stringify({ action: 'getPending', id: $json.data.replace(/^cpubc:/, '') }) }}",
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          }
+        }
+      }
+    },
+    {
+      "id": "ncar3",
+      "name": "Pub Carousel",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1520,
+        -60
+      ],
+      "parameters": {
+        "jsCode": "const cb = $('Is Carousel Pub?').item.json;\nconst pend = $input.first().json;\nlet data; try { data = JSON.parse(pend.text); } catch(e) { data = { caption:'', fileIds: [] }; }\nconst TG = $env.TELEGRAM_BOT_TOKEN;\nconst media = (data.fileIds||[]).map((fid,i)=>({ type:'photo', media:fid, ...(i===0 && data.caption ? { caption:data.caption } : {}) }));\nawait this.helpers.httpRequest({ method:'POST', url:'https://api.telegram.org/bot'+TG+'/sendMediaGroup', body:{ chat_id:$env.TELEGRAM_CHANNEL_MAIN, media }, json:true });\nconst vk = (data.caption||'').replace(/@studiyaCHE/gi,'').replace(/[\\u{1FA70}-\\u{1FAFF}]\\uFE0F?/gu,'').replace(/\\n{3,}/g,'\\n\\n').trim();\nlet vkRes = {};\nif (vk) {\n  const u = 'https://api.vk.com/method/wall.post?owner_id='+encodeURIComponent($env.VK_OWNER_ID)+'&from_group=1&message='+encodeURIComponent(vk)+'&access_token='+$env.VK_TOKEN+'&v=5.199';\n  vkRes = await this.helpers.httpRequest({ method:'POST', url:u, json:true });\n}\nawait this.helpers.httpRequest({ method:'POST', url:'https://api.telegram.org/bot'+TG+'/answerCallbackQuery', body:{ callback_query_id: cb.callbackId, text:'✅ Карусель в TG, текст в VK' }, json:true });\nreturn [{ json:{ ok:true } }];"
+      }
     }
   ],
   "connections": {
@@ -2495,7 +2574,7 @@
         ],
         [
           {
-            "node": "Is Content Pub?",
+            "node": "Is Carousel Pub?",
             "type": "main",
             "index": 0
           }
@@ -2962,6 +3041,35 @@
         [
           {
             "node": "Answer Content Pub",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Is Carousel Pub?": {
+      "main": [
+        [
+          {
+            "node": "Get Carousel",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Is Content Pub?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Carousel": {
+      "main": [
+        [
+          {
+            "node": "Pub Carousel",
             "type": "main",
             "index": 0
           }

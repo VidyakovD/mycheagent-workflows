@@ -1,0 +1,245 @@
+{
+  "name": "15-content-carousel",
+  "id": "content-carousel-001",
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "timezone": "Asia/Yekaterinburg"
+  },
+  "nodes": [
+    {
+      "id": "cc1",
+      "name": "Manual Trigger",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        200,
+        300
+      ],
+      "webhookId": "trigger-carousel",
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "trigger-carousel",
+        "responseMode": "onReceived",
+        "options": {}
+      }
+    },
+    {
+      "id": "cc2",
+      "name": "Build Design Body",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        420,
+        300
+      ],
+      "parameters": {
+        "jsCode": "const body = ($input.first().json && $input.first().json.body) || {};\nconst topic = body.topic || 'Как собрать 30 постов за час через ИИ';\nconst reqBody = JSON.stringify({\n  model: 'claude-sonnet-4-5-20250929',\n  max_tokens: 1500,\n  system: \"Ты контент-дизайнер канала «Студия ЧЕ» (ИИ для бизнеса, автор — Денис Видяков, практик). Спроектируй ПРИКЛАДНУЮ карусель из 5 слайдов. Верни СТРОГО JSON без markdown: {\\\\\\\"caption\\\\\\\": \\\\\\\"текст под каруселью от первого лица, 2-3 строки пользы + мягкий вывод, 2-3 хэштега\\\\\\\", \\\\\\\"slides\\\\\\\": [{\\\\\\\"kind\\\\\\\":\\\\\\\"cover\\\\\\\",\\\\\\\"title\\\\\\\":\\\\\\\"крючок-заголовок капсом до 40 симв\\\\\\\",\\\\\\\"line\\\\\\\":\\\\\\\"обещание одной строкой\\\\\\\",\\\\\\\"image_brief\\\\\\\":\\\\\\\"что нарисовать (объект/сцена)\\\\\\\"}, {\\\\\\\"kind\\\\\\\":\\\\\\\"point\\\\\\\",\\\\\\\"n\\\\\\\":1,\\\\\\\"title\\\\\\\":\\\\\\\"шаг капсом\\\\\\\",\\\\\\\"line\\\\\\\":\\\\\\\"1 строка сути\\\\\\\",\\\\\\\"image_brief\\\\\\\":\\\\\\\"иконка\\\\\\\"}, {\\\\\\\"kind\\\\\\\":\\\\\\\"point\\\\\\\",\\\\\\\"n\\\\\\\":2,...}, {\\\\\\\"kind\\\\\\\":\\\\\\\"point\\\\\\\",\\\\\\\"n\\\\\\\":3,...}, {\\\\\\\"kind\\\\\\\":\\\\\\\"cta\\\\\\\",\\\\\\\"title\\\\\\\":\\\\\\\"вывод капсом\\\\\\\",\\\\\\\"line\\\\\\\":\\\\\\\"мягкий призыв\\\\\\\",\\\\\\\"image_brief\\\\\\\":\\\\\\\"финальная иллюстрация\\\\\\\"}]}. Тексты на русском, коротко, по делу, минимум текста на слайде.\",\n  messages: [{ role: 'user', content: 'Тема прикладной карусели: ' + topic + '. Спроектируй карусель строго в JSON.' }],\n});\nreturn [{ json: { reqBody, topic } }];"
+      }
+    },
+    {
+      "id": "cc3",
+      "name": "Design Carousel",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        640,
+        300
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.anthropic.com/v1/messages",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "x-api-key",
+              "value": "={{ $env.ANTHROPIC_DIRECT_KEY }}"
+            },
+            {
+              "name": "anthropic-version",
+              "value": "2023-06-01"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "application/json",
+        "body": "={{ $json.reqBody }}",
+        "options": {
+          "timeout": 120000
+        }
+      },
+      "retryOnFail": true,
+      "maxTries": 2,
+      "waitBetweenTries": 1500
+    },
+    {
+      "id": "cc4",
+      "name": "Parse Design",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        860,
+        300
+      ],
+      "parameters": {
+        "jsCode": "const res = $input.first().json;\nlet txt = '';\nif (res.content && Array.isArray(res.content)) { const tb = res.content.find(c=>c.type==='text'); txt = tb && tb.text ? tb.text : ''; }\nelse if (res.choices) { txt = res.choices[0] && res.choices[0].message ? res.choices[0].message.content : ''; }\ntxt = txt.replace(/\\`\\`\\`json/gi,'').replace(/\\`\\`\\`/g,'').trim();\nlet design;\ntry { design = JSON.parse(txt); } catch(e) { return [{ json: { _error: 'json parse', raw: txt.slice(0,300) } }]; }\nconst topic = $('Build Design Body').first().json.topic;\nreturn [{ json: { caption: design.caption || '', slides: design.slides || [], topic } }];"
+      }
+    },
+    {
+      "id": "cc5",
+      "name": "Gen + Preview",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1080,
+        300
+      ],
+      "parameters": {
+        "jsCode": "const d = $input.first().json;\nif (d._error) {\n  await this.helpers.httpRequest({ method:'POST', url:'https://api.telegram.org/bot'+$env.TELEGRAM_BOT_TOKEN+'/sendMessage', body:{ chat_id:$env.TELEGRAM_CHAT_ID, text:'⚠️ Карусель: дизайн не распарсился' }, json:true });\n  return [{ json:{ ok:false } }];\n}\nconst STYLE = \"ЕДИНЫЙ ФИРМЕННЫЙ СТИЛЬ канала «Студия ЧЕ» про ИИ для бизнеса. Современная комикс / поп-арт иллюстрация: жирные чёрные контуры, плоские заливки, halftone-текстура точками, динамичные скоростные линии. СТРОГО ОГРАНИЧЕННАЯ ПАЛИТРА: насыщенный оранжевый #FF6A00, чистый чёрный, белый — никаких других цветов. Типографика: один жирный гротескный шрифт без засечек, заголовки КАПСОМ. Композиция чистая, премиальная, много воздуха, НЕ перегружено деталями. Без водяных знаков и мусора.\";\nfunction slidePrompt(s){\n  if (s.kind==='cover') return 'СЛАЙД-ОБЛОЖКА карусели, вертикальный формат. Крупный заголовок капсом по центру, ТОЧНЫЙ текст без ошибок: «'+(s.title||'')+'». Ниже подзаголовок: «'+(s.line||'')+'». Иллюстрация: '+(s.image_brief||'')+'. Внизу мелко: «СТУДИЯ ЧЕ».';\n  if (s.kind==='cta') return 'ФИНАЛЬНЫЙ СЛАЙД карусели, вертикальный. Заголовок капсом: «'+(s.title||'')+'». Строка: «'+(s.line||'')+'». Иллюстрация: '+(s.image_brief||'')+'. Внизу мелко: «СТУДИЯ ЧЕ».';\n  return 'СЛАЙД-ПУНКТ карусели, вертикальный. Сверху крупная оранжевая цифра «'+(s.n||'')+'». Заголовок капсом: «'+(s.title||'')+'». Ниже одна строка: «'+(s.line||'')+'». Маленькая комикс-иконка: '+(s.image_brief||'')+'. Минимум текста, много воздуха.';\n}\nconst slides = (d.slides||[]).slice(0,8);\nconst buffers = [];\nfor (const s of slides) {\n  const img = await this.helpers.httpRequest({ method:'POST', url:'https://api.openai.com/v1/images/generations', headers:{ Authorization:'Bearer '+$env.OPENAI_API_KEY, 'Content-Type':'application/json' }, body:{ model:'gpt-image-2', prompt: STYLE+'\\n\\n'+slidePrompt(s), size:'1024x1536', n:1 }, json:true, timeout:120000 });\n  buffers.push(Buffer.from(img.data[0].b64_json,'base64'));\n}\nconst media = buffers.map((b,i)=>({ type:'photo', media:'attach://f'+i, ...(i===0?{ caption:'🆕 Карусель: '+d.topic }:{}) }));\nconst formData = { chat_id: String($env.TELEGRAM_CHAT_ID), media: JSON.stringify(media) };\nbuffers.forEach((b,i)=>{ formData['f'+i] = { value:b, options:{ filename:'s'+i+'.png', contentType:'image/png' } }; });\nlet sent = await this.helpers.httpRequest({ method:'POST', url:'https://api.telegram.org/bot'+$env.TELEGRAM_BOT_TOKEN+'/sendMediaGroup', formData });\nif (typeof sent === 'string') { try { sent = JSON.parse(sent); } catch(e){} }\nconst arr = sent.result || sent || [];\nconst fileIds = arr.map(m => { const ph = m.photo; return ph[ph.length-1].file_id; });\nconst id = 'carousel_' + Date.now();\nreturn [{ json: { id, caption: d.caption || '', topic: d.topic, fileIds, count: fileIds.length } }];"
+      }
+    },
+    {
+      "id": "cc6",
+      "name": "Save Pending",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1300,
+        300
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "https://mycheagent.ru/webhook/pwa-data",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "application/json",
+        "body": "={{ JSON.stringify({ action: 'savePending', id: $json.id, text: JSON.stringify({ caption: $json.caption, fileIds: $json.fileIds }) }) }}",
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          }
+        }
+      }
+    },
+    {
+      "id": "cc7",
+      "name": "Send Approval",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1520,
+        300
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "={{ 'https://api.telegram.org/bot' + $env.TELEGRAM_BOT_TOKEN + '/sendMessage' }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "application/json",
+        "body": "={{ (function(){ const e = $('Gen + Preview').first().json; return JSON.stringify({ chat_id: $env.TELEGRAM_CHAT_ID, text: '☝️ Карусель «' + e.topic + '» (' + e.count + ' слайдов). Опубликовать в канал + VK?', reply_markup: { inline_keyboard: [[ { text: '✅ Опубликовать', callback_data: 'cpubc:' + e.id }, { text: '❌ Отклонить', callback_data: 'crej:' + e.id } ]] } }); })() }}",
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          }
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Manual Trigger": {
+      "main": [
+        [
+          {
+            "node": "Build Design Body",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Design Body": {
+      "main": [
+        [
+          {
+            "node": "Design Carousel",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Design Carousel": {
+      "main": [
+        [
+          {
+            "node": "Parse Design",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Design": {
+      "main": [
+        [
+          {
+            "node": "Gen + Preview",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Gen + Preview": {
+      "main": [
+        [
+          {
+            "node": "Save Pending",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Save Pending": {
+      "main": [
+        [
+          {
+            "node": "Send Approval",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "versionId": "d0000001-0000-0000-0000-000000000015"
+}

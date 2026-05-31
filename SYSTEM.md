@@ -119,7 +119,11 @@ Telegram (текст/голос)
 - **Режим А** (агент пишет сам): ежедневный cron 10:00 ЕКБ (+ вебхук `trigger-content`) → нода «Plan Day» по дню недели берёт рубрику/тему → Claude пишет в голосе канала → `savePending` → шлёт черновик админу (`TELEGRAM_CHAT_ID`) с кнопками **✅ `cpub:<id>` / ❌ `crej:<id>`**.
 - **Режим Б** (материал от владельца): за 2 дня шлёт админу запрос по шаблону ТЗ (приём материала через `/material` — этап 1b).
 - **Публикация по апруву**: в оркестраторе (`01`) добавлены ноды `Is Content Pub?`/`Is Content Rej?` → по `cpub:<id>` берёт pending-пост и постит в **TG-канал (MAIN) + VK** (нода Build VK Pub нормализует эмодзи), по `crej:<id>` — отклоняет. Вставлено перед `Is Channel CB?`, существующие callback'и не затронуты.
-- Карусели-картинки (gpt-image-1) + загрузка медиа в TG/VK — **этап 2**.
+### Карусели (этап 2) — воркфлоу `15-content-carousel`
+- Вебхук `trigger-carousel` (POST `{topic}`) → Claude проектирует 5 слайдов (JSON: cover/3×point/cta + caption) → нода «Gen + Preview» генерит каждый слайд через **gpt-image-2** в едином фирменном стиле (оранж/чёрн/бел, комикс, halftone, один жирный шрифт) → шлёт админу **превью-альбомом** (`sendMediaGroup`), забирает `file_id` каждого фото → `savePending` (caption + fileIds) → кнопки **✅ `cpubc:<id>` / ❌ `crej:<id>`**.
+- Публикация по `cpubc:` (оркестратор, ноды `Is Carousel Pub?`/`Get Carousel`/`Pub Carousel`): постит альбом в TG-канал **теми же `file_id`** (без перезагрузки картинок) + текст-подпись в VK.
+- **VK-картинки пока НЕ постятся**: community-токен не грузит фото на стену (error 27/28), а user-токен получить не удалось (VK закрыл implicit/classic OAuth — `invalid scope`, фото-методы недоступны service-токену). В VK идёт текстовая версия. Чтобы включить VK-картинки — нужен VK **user-токен** (`photos,wall,groups`) → потом добавить `photos.getWallUploadServer`→`saveWallPhoto`→attachments.
+- Фирменный стиль картинок зашит блоком-промптом в ноде «Gen + Preview» (и применим к обложкам обычных постов).
 
 ### Яндекс.Директ — ОТКЛЮЧЁН
 Воркфлоу `19-yandex-direct`, `20-yadirect-daily`, `25-yadirect-approval-watch` деактивированы (`unpublish:workflow`) и перенесены из `workflows/` в `workflows-disabled/`, чтобы `deploy.sh` не включал их заново (деплой публикует ВСЁ из `workflows/*.json`). Их env (`YANDEX_DIRECT_*`) оставлены в docker-compose.

@@ -253,7 +253,7 @@
         "sendBody": true,
         "contentType": "raw",
         "rawContentType": "application/json",
-        "body": "={{ (function(){ const post = $('Build Final').first().json.post || ''; const firstLine = post.split('\\n').find(l => l.trim()) || '(пусто)'; const ch = $input.first().json; const ok = ch && (ch.ok === true || ch.message_id || (ch.result && ch.result.message_id)); return JSON.stringify({ chat_id: $env.TELEGRAM_CHAT_ID, text: (ok ? '✅' : '⚠️') + ' Grok-новость опубликована\\n\\n' + firstLine.slice(0, 120) }); })() }}",
+        "body": "={{ (function(){ const post = $('Build Final').first().json.post || ''; const firstLine = post.split('\\n').find(l => l.trim()) || '(пусто)'; const tg = $('Send TG').first().json; const tgOk = tg && (tg.ok === true || tg.message_id || (tg.result && tg.result.message_id)); const vk = $('Post VK').first().json; const vkOk = vk && vk.response && vk.response.post_id; const vkMsg = vkOk ? ('ВК ✅ пост ' + vk.response.post_id) : ('ВК ⚠️ ' + ((vk && vk.error && vk.error.error_msg) || 'ошибка')); return JSON.stringify({ chat_id: $env.TELEGRAM_CHAT_ID, text: (tgOk ? '✅' : '⚠️') + ' Grok-новость → TG-канал\\n' + vkMsg + '\\n\\n' + firstLine.slice(0, 120) }); })() }}",
         "options": {
           "response": {
             "response": {
@@ -329,6 +329,41 @@
           }
         }
       }
+    },
+    {
+      "id": "gx12",
+      "name": "Post VK",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1740,
+        500
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.vk.com/method/wall.post",
+        "sendBody": true,
+        "contentType": "form-urlencoded",
+        "bodyParameters": {
+          "parameters": [
+            { "name": "owner_id", "value": "={{ $env.VK_OWNER_ID }}" },
+            { "name": "from_group", "value": "1" },
+            { "name": "message", "value": "={{ $('Build Final').first().json.post }}" },
+            { "name": "access_token", "value": "={{ $env.VK_TOKEN }}" },
+            { "name": "v", "value": "5.199" }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          }
+        }
+      },
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 2000
     }
   ],
   "connections": {
@@ -439,6 +474,17 @@
       ]
     },
     "Send TG": {
+      "main": [
+        [
+          {
+            "node": "Post VK",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Post VK": {
       "main": [
         [
           {

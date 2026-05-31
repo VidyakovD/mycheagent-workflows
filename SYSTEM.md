@@ -105,6 +105,15 @@ Telegram (текст/голос)
 | AWstore (Claude) | sk-aw-ddf23... | ✅ Используется — claude-sonnet-4.6 |
 | Claude Code (AWstore) | sk-aw-ddf23... | В settings.json |
 | Telegram Bot | 8706131738:AAG... | Работает |
+| VK (сообщество ai_che) | vk1.a.QNX... | ✅ community-токен, права wall/photos/docs/messages/stories/manage/market. Умеет ПУБЛИКОВАТЬ, но не удалять/редактировать посты (group-auth) |
+
+> **VK env (только на сервере):** `VK_TOKEN`, `VK_OWNER_ID=-239149473` (группа «Видяков Денис \| AI для бизнеса», id 239149473).
+
+### Дублирование постов в VK
+Воркфлоу `07-ai-news` (дайджест) и `14-grok-x-monitor` (Grok-новости) после `Send TG` публикуют тот же текст на стену группы VK через ноду **Post VK** (`wall.post`, `from_group=1`). Статус публикации в VK добавлен в сообщение «Notify Admin».
+
+### Яндекс.Директ — ОТКЛЮЧЁН
+Воркфлоу `19-yandex-direct`, `20-yadirect-daily`, `25-yadirect-approval-watch` деактивированы (`unpublish:workflow`) и перенесены из `workflows/` в `workflows-disabled/`, чтобы `deploy.sh` не включал их заново (деплой публикует ВСЁ из `workflows/*.json`). Их env (`YANDEX_DIRECT_*`) оставлены в docker-compose.
 
 ---
 

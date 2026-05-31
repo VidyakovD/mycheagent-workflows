@@ -278,7 +278,7 @@
           "parameters": [
             { "name": "owner_id", "value": "={{ $env.VK_OWNER_ID }}" },
             { "name": "from_group", "value": "1" },
-            { "name": "message", "value": "={{ $('Extract Post').first().json.post }}" },
+            { "name": "message", "value": "={{ $('Extract Post').first().json.post.replace(/@studiyaCHE/gi, '').replace(/\\n{3,}/g, '\\n\\n').trim() }}" },
             { "name": "access_token", "value": "={{ $env.VK_TOKEN }}" },
             { "name": "v", "value": "5.199" }
           ]

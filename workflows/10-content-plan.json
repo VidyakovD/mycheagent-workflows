@@ -1,0 +1,384 @@
+{
+  "name": "10-content-plan",
+  "id": "content-plan-001",
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "timezone": "Asia/Yekaterinburg"
+  },
+  "nodes": [
+    {
+      "id": "cp1",
+      "name": "Daily 10:00 EKB",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        200,
+        300
+      ],
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 10 * * *"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "cp1b",
+      "name": "Manual Trigger",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        200,
+        460
+      ],
+      "webhookId": "trigger-content",
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "trigger-content",
+        "responseMode": "onReceived",
+        "options": {}
+      }
+    },
+    {
+      "id": "cp2",
+      "name": "Plan Day",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        440,
+        360
+      ],
+      "parameters": {
+        "jsCode": "const body = ($input.first().json && $input.first().json.body) || {};\nconst now = new Date();\n// weekday & ISO week in Yekaterinburg\nconst wd = new Date(now.toLocaleString('en-US', { timeZone: 'Asia/Yekaterinburg' }));\nconst dow = wd.getDay(); // 0 Sun .. 6 Sat\nconst oneJan = new Date(wd.getFullYear(), 0, 1);\nconst week = Math.ceil((((wd - oneJan) / 86400000) + oneJan.getDay() + 1) / 7);\nconst weekOdd = (week % 2) === 1;\n\n// Weekly rhythm from TZ (editable)\nconst RHYTHM = {\n  1: { rubric: 'news_angle', mode: 'A' },\n  2: { rubric: 'applied',    mode: 'A' },\n  3: { rubric: 'case',       mode: 'B' },\n  4: { rubric: 'applied',    mode: 'A' },\n  5: { rubric: weekOdd ? 'automation' : 'personal', mode: 'B' },\n  6: { rubric: 'digest_week',mode: 'A' },\n  0: { rubric: 'audience_q', mode: 'A' },\n};\n\n// Theme pools for Mode A applied rubric (rotated)\nconst APPLIED_POOL = [\n  'Промпт для разбора звонков отдела продаж',\n  'Как собрать 30 постов за час через ИИ',\n  'ИИ для ответов на отзывы (репутация)',\n  'КП или договор через ИИ за вечер',\n  'Генерация рилс-сценариев',\n  'Картинки для товара и рекламы через ИИ',\n  'Анализ конкурентов за 20 минут',\n  'ИИ для найма: разбор резюме',\n  '3 ИИ-инструмента, которыми пользуюсь сам',\n  'Чат-бот для бизнеса: с чего начать',\n];\n\nlet plan = RHYTHM[dow];\n// manual override via webhook body\nif (body.rubric) plan = { rubric: body.rubric, mode: body.mode || 'A' };\n\nconst store = $getWorkflowStaticData('global');\nif (!store.rot) store.rot = {};\n\nlet theme = body.theme || '';\nif (!theme && plan.rubric === 'applied') {\n  const i = (store.rot.applied || 0) % APPLIED_POOL.length;\n  theme = APPLIED_POOL[i];\n  store.rot.applied = i + 1;\n}\n\nconst dateStr = wd.toLocaleDateString('ru-RU', { day: 'numeric', month: 'long' });\nreturn [{ json: { mode: plan.mode, rubric: plan.rubric, theme, weekOdd, dateStr, dow, toAdmin: body.toAdmin === true } }];"
+      }
+    },
+    {
+      "id": "cp3",
+      "name": "Is Mode A?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        660,
+        360
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose"
+          },
+          "conditions": [
+            {
+              "id": "cpa",
+              "leftValue": "={{ $json.mode }}",
+              "rightValue": "A",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "cp4",
+      "name": "Build Claude Body",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        880,
+        260
+      ],
+      "parameters": {
+        "jsCode": "const p = $input.first().json;\n\nconst VOICE = 'Ты пишешь ЗА Дениса Видякова — челябинский режиссёр и практик, внедряет ИИ в бизнес и проверяет всё на себе. Канал «Студия ЧЕ» про ИИ для бизнеса. Пиши от ПЕРВОГО ЛИЦА, как сам Денис. Простой, прямой, живой язык — без канцелярита, без «спешу поделиться», без инфоцыганского пафоса и обещаний золотых гор. Каждый пост даёт пользу, мысль или доказательство. Короткие абзацы, одна мысль на пост, местами характер и юмор. Эмодзи — минимум, по делу. Хэштеги — 2–3 релевантных. Призывы — мягкие и редкие. Обычный текст без Markdown.';\n\nconst FORMATS = {\n  news_angle: 'Рубрика «Новость с углом». Возьми значимую свежую тему из мира ИИ для бизнеса. Формат: новость в 1–2 строки → «что это значит для малого бизнеса» → мой вывод/применю ли. Длина 4–8 строк. Без сухого пересказа — обязательно моя позиция.',\n  applied: 'Рубрика «Прикладное». Дай применимую пользу СЕГОДНЯ под конкретную бизнес-задачу: ' + (p.theme || 'выбери из бизнес-задач') + '. Формат: готовый промпт / инструмент / разбор в 3 шага. 5–10 строк. Конкретика, которую можно повторить.',\n  digest_week: 'Рубрика «Дайджест недели». 3–5 заметных ИИ-новостей недели, под каждой — ОДНА строка моего вывода. Не просто список — мой угол. Вступление 1 строка.',\n  audience_q: 'Рубрика «Вопрос аудитории / лёгкое». Короткий пост: мысль или вопрос подписчикам, который вовлекает в обсуждение. Лёгкий тон, без пользы-обязаловки. 3–6 строк.',\n};\n\nconst fmt = FORMATS[p.rubric] || FORMATS.audience_q;\nconst userContent = 'Сегодня ' + p.dateStr + '. Напиши пост.\\n\\n' + fmt;\n\nconst reqBody = JSON.stringify({\n  model: 'claude-sonnet-4-5-20250929',\n  max_tokens: 1200,\n  system: VOICE,\n  messages: [{ role: 'user', content: userContent }],\n});\nreturn [{ json: { reqBody, rubric: p.rubric, theme: p.theme } }];"
+      }
+    },
+    {
+      "id": "cp5",
+      "name": "Claude",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1100,
+        260
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.anthropic.com/v1/messages",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "x-api-key",
+              "value": "={{ $env.ANTHROPIC_DIRECT_KEY }}"
+            },
+            {
+              "name": "anthropic-version",
+              "value": "2023-06-01"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "application/json",
+        "body": "={{ $json.reqBody }}",
+        "options": {
+          "timeout": 120000
+        }
+      },
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 1500
+    },
+    {
+      "id": "cp6",
+      "name": "Extract Post",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1320,
+        260
+      ],
+      "parameters": {
+        "jsCode": "const res = $input.first().json;\nlet post = '';\nif (res.content && Array.isArray(res.content)) {\n  const tb = res.content.find(c => c.type === 'text');\n  post = (tb && tb.text ? tb.text : '').trim();\n} else if (res.choices) {\n  post = (res.choices[0] && res.choices[0].message ? res.choices[0].message.content : '').trim();\n}\nif (!post) return [{ json: { ok: false, error: 'no text' } }];\npost = post.replace(/@studiyaCHE\\s*$/i, '').trim() + '\\n\\n@studiyaCHE';\nconst rubric = $('Build Claude Body').first().json.rubric;\nconst id = 'content_' + rubric + '_' + Date.now();\nreturn [{ json: { post, id, rubric } }];"
+      }
+    },
+    {
+      "id": "cp7",
+      "name": "Save Pending",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1540,
+        260
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "https://mycheagent.ru/webhook/pwa-data",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "application/json",
+        "body": "={{ JSON.stringify({ action: 'savePending', id: $json.id, text: $json.post }) }}",
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          }
+        }
+      }
+    },
+    {
+      "id": "cp8",
+      "name": "Send Approval",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1760,
+        260
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "={{ 'https://api.telegram.org/bot' + $env.TELEGRAM_BOT_TOKEN + '/sendMessage' }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "application/json",
+        "body": "={{ (function(){ const e = $('Extract Post').first().json; const head = '🆕 Черновик [' + e.rubric + ']' + ($('Plan Day').first().json.theme ? ' — ' + $('Plan Day').first().json.theme : '') + '\\n\\n'; return JSON.stringify({ chat_id: $env.TELEGRAM_CHAT_ID, text: head + e.post, reply_markup: { inline_keyboard: [[ { text: '✅ Опубликовать', callback_data: 'cpub:' + e.id }, { text: '❌ Отклонить', callback_data: 'crej:' + e.id } ]] } }); })() }}",
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          }
+        }
+      }
+    },
+    {
+      "id": "cp9",
+      "name": "B Request",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        880,
+        460
+      ],
+      "parameters": {
+        "jsCode": "const p = $input.first().json;\nconst POOLS = {\n  case: ['Фрагмент фильма про область на ИИ','5 рилсов для компании: что зашло, цифры','ИИ-бот девелоперу: до/после','Закулисье 1736: ИИ + съёмка','Результат обучения компании'],\n  personal: ['Моя ошибка с ИИ, на которой я потерял время или деньги','Почему я не верю в «ИИ заменит всех»','Почему я сократил 20 услуг до 4','80% действий — пустые: как я отличаю важное','Как я выбираю, что автоматизировать первым','Мой путь от блогера к ИИ-продакшну'],\n  automation: ['Как я автоматизировал постинг этого канала','Автоматизировал онбординг клиента','Мониторинг по сопровождению на автомате','Контент-конвейер: снял раз — нарезал на всё','Связка, которая экономит мне N часов в неделю'],\n};\nconst RU = { case: 'Кейс / закулисье', personal: 'Личное / мнение', automation: 'Автоматизация / build-in-public' };\nconst store = $getWorkflowStaticData('global');\nif (!store.brot) store.brot = {};\nconst pool = POOLS[p.rubric] || POOLS.personal;\nconst i = (store.brot[p.rubric] || 0) % pool.length;\nstore.brot[p.rubric] = i + 1;\nconst theme = pool[i];\nconst alt = pool.filter((_, k) => k !== i).slice(0, 2);\n\nconst text = 'Нужен пост через 2 дня.\\nРубрика: ' + (RU[p.rubric] || p.rubric) + '.\\nТема: ' + theme + '.\\nФормат: тезисы / видео 30–60 сек / 5–7 фото / карусель.\\n\\nПришли материал ответом на это сообщение или командой:\\n/material ' + theme + ' — <твой текст или тезисы>\\n\\nНе заходит тема — выбери другую:\\n• ' + (alt[0]||'') + '\\n• ' + (alt[1]||'');\n// remember we are awaiting B material\nstore.awaitingB = { rubric: p.rubric, theme, askedAt: Date.now() };\nreturn [{ json: { adminText: text } }];"
+      }
+    },
+    {
+      "id": "cp10",
+      "name": "Send B Request",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1100,
+        460
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "={{ 'https://api.telegram.org/bot' + $env.TELEGRAM_BOT_TOKEN + '/sendMessage' }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "application/json",
+        "body": "={{ JSON.stringify({ chat_id: $env.TELEGRAM_CHAT_ID, text: $json.adminText }) }}",
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          }
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Daily 10:00 EKB": {
+      "main": [
+        [
+          {
+            "node": "Plan Day",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Manual Trigger": {
+      "main": [
+        [
+          {
+            "node": "Plan Day",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Plan Day": {
+      "main": [
+        [
+          {
+            "node": "Is Mode A?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Is Mode A?": {
+      "main": [
+        [
+          {
+            "node": "Build Claude Body",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "B Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Claude Body": {
+      "main": [
+        [
+          {
+            "node": "Claude",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Claude": {
+      "main": [
+        [
+          {
+            "node": "Extract Post",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract Post": {
+      "main": [
+        [
+          {
+            "node": "Save Pending",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Save Pending": {
+      "main": [
+        [
+          {
+            "node": "Send Approval",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "B Request": {
+      "main": [
+        [
+          {
+            "node": "Send B Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "versionId": "d0000001-0000-0000-0000-000000000010"
+}

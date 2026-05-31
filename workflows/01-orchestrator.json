@@ -361,10 +361,17 @@
       "name": "Prepare Prompt",
       "type": "n8n-nodes-base.executeWorkflow",
       "typeVersion": 1.1,
-      "position": [1300, 430],
+      "position": [
+        1300,
+        430
+      ],
       "parameters": {
         "source": "database",
-        "workflowId": { "__rl": true, "value": "prepare-prompt-001", "mode": "id" }
+        "workflowId": {
+          "__rl": true,
+          "value": "prepare-prompt-001",
+          "mode": "id"
+        }
       }
     },
     {
@@ -402,7 +409,11 @@
         "body": "={{ JSON.stringify({ model: 'gpt-4o-mini', messages: [{ role: 'system', content: $json.systemPrompt }, { role: 'user', content: $json.userText }], max_tokens: 500 }) }}",
         "options": {
           "timeout": 30000,
-          "response": { "response": { "neverError": true } }
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          }
         }
       }
     },
@@ -832,7 +843,10 @@
       "name": "Prep File Path",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [1410, 700],
+      "position": [
+        1410,
+        700
+      ],
       "parameters": {
         "jsCode": "const ctx = $('Is File?').first().json;\nconst chatId = String(ctx.chatId);\nconst ts = Date.now();\nconst safeName = (ctx.fileName || 'file').replace(/[^a-zA-Z0-9а-яА-ЯёЁ._-]/g, '_');\n// Flat structure: chatId prefix in filename (no subdirs)\nconst filePath = '/files/' + chatId + '_' + ts + '_' + safeName;\n\nreturn [{\n  json: {\n    chatId: ctx.chatId,\n    fileId: 'f_' + ts,\n    fileName: ctx.fileName,\n    fileType: ctx.fileType || 'document',\n    fileMime: ctx.fileMime || '',\n    fileSize: ctx.fileSize || 0,\n    filePath: filePath,\n    caption: ctx.text || '',\n    ts: new Date().toISOString()\n  },\n  binary: $input.first().binary\n}];"
       }
@@ -842,7 +856,10 @@
       "name": "Save to Server",
       "type": "n8n-nodes-base.readWriteFile",
       "typeVersion": 1,
-      "position": [1520, 700],
+      "position": [
+        1520,
+        700
+      ],
       "parameters": {
         "operation": "write",
         "fileName": "={{ $json.filePath }}",
@@ -857,18 +874,28 @@
       "name": "Route File Type",
       "type": "n8n-nodes-base.switch",
       "typeVersion": 3.2,
-      "position": [1620, 700],
+      "position": [
+        1620,
+        700
+      ],
       "parameters": {
         "rules": {
           "values": [
             {
               "conditions": {
-                "options": { "caseSensitive": false, "leftValue": "", "typeValidation": "loose" },
+                "options": {
+                  "caseSensitive": false,
+                  "leftValue": "",
+                  "typeValidation": "loose"
+                },
                 "conditions": [
                   {
                     "leftValue": "={{ $('Prep File Path').first().json.fileMime }}",
                     "rightValue": "wordprocessing",
-                    "operator": { "type": "string", "operation": "contains" }
+                    "operator": {
+                      "type": "string",
+                      "operation": "contains"
+                    }
                   }
                 ],
                 "combinator": "and"
@@ -877,12 +904,19 @@
             },
             {
               "conditions": {
-                "options": { "caseSensitive": false, "leftValue": "", "typeValidation": "loose" },
+                "options": {
+                  "caseSensitive": false,
+                  "leftValue": "",
+                  "typeValidation": "loose"
+                },
                 "conditions": [
                   {
                     "leftValue": "={{ $('Prep File Path').first().json.fileMime }}",
                     "rightValue": "pdf",
-                    "operator": { "type": "string", "operation": "contains" }
+                    "operator": {
+                      "type": "string",
+                      "operation": "contains"
+                    }
                   }
                 ],
                 "combinator": "and"
@@ -901,7 +935,10 @@
       "name": "Extract DOCX",
       "type": "n8n-nodes-base.extractFromFile",
       "typeVersion": 1,
-      "position": [1740, 600],
+      "position": [
+        1740,
+        600
+      ],
       "parameters": {
         "operation": "docx",
         "binaryPropertyName": "fileData",
@@ -914,7 +951,10 @@
       "name": "Extract PDF",
       "type": "n8n-nodes-base.extractFromFile",
       "typeVersion": 1,
-      "position": [1740, 700],
+      "position": [
+        1740,
+        700
+      ],
       "parameters": {
         "operation": "pdf",
         "binaryPropertyName": "fileData",
@@ -927,7 +967,10 @@
       "name": "No Extract",
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
-      "position": [1740, 800],
+      "position": [
+        1740,
+        800
+      ],
       "parameters": {
         "assignments": {
           "assignments": [
@@ -950,15 +993,24 @@
       "retryOnFail": true,
       "maxTries": 3,
       "waitBetweenTries": 1500,
-      "position": [1960, 700],
+      "position": [
+        1960,
+        700
+      ],
       "parameters": {
         "method": "POST",
         "url": "https://api.openai.com/v1/chat/completions",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
-            { "name": "Authorization", "value": "={{ 'Bearer ' + $env.OPENAI_API_KEY }}" },
-            { "name": "Content-Type", "value": "application/json" }
+            {
+              "name": "Authorization",
+              "value": "={{ 'Bearer ' + $env.OPENAI_API_KEY }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
           ]
         },
         "sendBody": true,
@@ -1029,16 +1081,26 @@
       "name": "Is YD Upload?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2,
-      "position": [1520, 800],
+      "position": [
+        1520,
+        800
+      ],
       "parameters": {
         "conditions": {
-          "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "strict" },
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
           "conditions": [
             {
               "id": "cyd1",
               "leftValue": "={{ ($json.caption || '').toLowerCase() }}",
               "rightValue": "диск:|yd:|яд:",
-              "operator": { "type": "string", "operation": "regex" }
+              "operator": {
+                "type": "string",
+                "operation": "regex"
+              }
             }
           ],
           "combinator": "and"
@@ -1051,17 +1113,29 @@
       "name": "Get YD Upload URL",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [1740, 800],
+      "position": [
+        1740,
+        800
+      ],
       "parameters": {
         "method": "GET",
         "url": "={{ (function() { const cap = $('Prep File Path').first().json.caption || ''; const m = cap.match(/(?:диск:|yd:|яд:)\\s*(.+)/i); const folder = m ? m[1].trim().replace(/\\/$/, '') : ''; const name = $('Prep File Path').first().json.fileName; return 'https://cloud-api.yandex.net/v1/disk/resources/upload?path=' + encodeURIComponent(folder + '/' + name) + '&overwrite=true'; })() }}",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
-            { "name": "Authorization", "value": "={{ 'OAuth ' + $env.YANDEX_DISK_TOKEN }}" }
+            {
+              "name": "Authorization",
+              "value": "={{ 'OAuth ' + $env.YANDEX_DISK_TOKEN }}"
+            }
           ]
         },
-        "options": { "response": { "response": { "neverError": true } } }
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          }
+        }
       }
     },
     {
@@ -1069,7 +1143,10 @@
       "name": "Prep YD Upload",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [1850, 800],
+      "position": [
+        1850,
+        800
+      ],
       "parameters": {
         "jsCode": "const uploadUrl = $json.href;\nif (!uploadUrl) {\n  throw new Error('No upload URL: ' + JSON.stringify($json));\n}\nconst saved = $('Prep File Path').first().json;\nreturn [{ json: { uploadUrl, filePath: saved.filePath, fileName: saved.fileName } }];"
       }
@@ -1079,7 +1156,10 @@
       "name": "Read for YD",
       "type": "n8n-nodes-base.readWriteFile",
       "typeVersion": 1,
-      "position": [1960, 800],
+      "position": [
+        1960,
+        800
+      ],
       "parameters": {
         "operation": "read",
         "fileSelector": "={{ $json.filePath }}",
@@ -1093,14 +1173,23 @@
       "name": "Upload to YD",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [2070, 800],
+      "position": [
+        2070,
+        800
+      ],
       "parameters": {
         "method": "PUT",
         "url": "={{ $('Prep YD Upload').first().json.uploadUrl }}",
         "sendBody": true,
         "contentType": "binaryData",
         "inputDataFieldName": "fileData",
-        "options": { "response": { "response": { "neverError": true } } }
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          }
+        }
       }
     },
     {
@@ -1108,14 +1197,20 @@
       "name": "Confirm YD Upload",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [2180, 800],
+      "position": [
+        2180,
+        800
+      ],
       "parameters": {
         "method": "POST",
         "url": "={{ 'https://api.telegram.org/bot' + $env.TELEGRAM_BOT_TOKEN + '/sendMessage' }}",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
-            { "name": "Content-Type", "value": "application/json" }
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
           ]
         },
         "sendBody": true,
@@ -1130,16 +1225,26 @@
       "name": "Has Email Query?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2,
-      "position": [2400, 630],
+      "position": [
+        2400,
+        630
+      ],
       "parameters": {
         "conditions": {
-          "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "strict" },
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
           "conditions": [
             {
               "id": "cem1",
               "leftValue": "={{ $json.text }}",
               "rightValue": "[EMAIL_CONTEXT:",
-              "operator": { "type": "string", "operation": "contains" }
+              "operator": {
+                "type": "string",
+                "operation": "contains"
+              }
             }
           ],
           "combinator": "and"
@@ -1152,14 +1257,20 @@
       "name": "Get Email Context",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [2620, 730],
+      "position": [
+        2620,
+        730
+      ],
       "parameters": {
         "method": "POST",
         "url": "https://mycheagent.ru/webhook/pwa-data",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
-            { "name": "Content-Type", "value": "application/json" }
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
           ]
         },
         "sendBody": true,
@@ -1177,15 +1288,24 @@
       "retryOnFail": true,
       "maxTries": 3,
       "waitBetweenTries": 1500,
-      "position": [2840, 730],
+      "position": [
+        2840,
+        730
+      ],
       "parameters": {
         "method": "POST",
         "url": "https://api.openai.com/v1/chat/completions",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
-            { "name": "Authorization", "value": "={{ 'Bearer ' + $env.OPENAI_API_KEY }}" },
-            { "name": "Content-Type", "value": "application/json" }
+            {
+              "name": "Authorization",
+              "value": "={{ 'Bearer ' + $env.OPENAI_API_KEY }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
           ]
         },
         "sendBody": true,
@@ -1200,14 +1320,20 @@
       "name": "Send Email Answer",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [3060, 730],
+      "position": [
+        3060,
+        730
+      ],
       "parameters": {
         "method": "POST",
         "url": "={{ 'https://api.telegram.org/bot' + $env.TELEGRAM_BOT_TOKEN + '/sendMessage' }}",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
-            { "name": "Content-Type", "value": "application/json" }
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
           ]
         },
         "sendBody": true,
@@ -1222,16 +1348,26 @@
       "name": "Has KB Query?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2,
-      "position": [2400, 500],
+      "position": [
+        2400,
+        500
+      ],
       "parameters": {
         "conditions": {
-          "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "strict" },
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
           "conditions": [
             {
               "id": "ckb1",
               "leftValue": "={{ $json.text }}",
               "rightValue": "[KB_SEARCH:",
-              "operator": { "type": "string", "operation": "contains" }
+              "operator": {
+                "type": "string",
+                "operation": "contains"
+              }
             }
           ],
           "combinator": "and"
@@ -1244,13 +1380,21 @@
       "name": "Get KB Context",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [2620, 430],
+      "position": [
+        2620,
+        430
+      ],
       "parameters": {
         "method": "POST",
         "url": "https://mycheagent.ru/webhook/pwa-data",
         "sendHeaders": true,
         "headerParameters": {
-          "parameters": [{ "name": "Content-Type", "value": "application/json" }]
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
         },
         "sendBody": true,
         "contentType": "raw",
@@ -1267,15 +1411,24 @@
       "retryOnFail": true,
       "maxTries": 3,
       "waitBetweenTries": 1500,
-      "position": [2840, 430],
+      "position": [
+        2840,
+        430
+      ],
       "parameters": {
         "method": "POST",
         "url": "https://api.openai.com/v1/chat/completions",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
-            { "name": "Authorization", "value": "={{ 'Bearer ' + $env.OPENAI_API_KEY }}" },
-            { "name": "Content-Type", "value": "application/json" }
+            {
+              "name": "Authorization",
+              "value": "={{ 'Bearer ' + $env.OPENAI_API_KEY }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
           ]
         },
         "sendBody": true,
@@ -1290,13 +1443,21 @@
       "name": "Send KB Answer",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [3060, 430],
+      "position": [
+        3060,
+        430
+      ],
       "parameters": {
         "method": "POST",
         "url": "={{ 'https://api.telegram.org/bot' + $env.TELEGRAM_BOT_TOKEN + '/sendMessage' }}",
         "sendHeaders": true,
         "headerParameters": {
-          "parameters": [{ "name": "Content-Type", "value": "application/json" }]
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
         },
         "sendBody": true,
         "contentType": "raw",
@@ -1370,16 +1531,26 @@
       "name": "Check Found",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2,
-      "position": [2840, 630],
+      "position": [
+        2840,
+        630
+      ],
       "parameters": {
         "conditions": {
-          "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "loose" },
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose"
+          },
           "conditions": [
             {
               "id": "cfound",
               "leftValue": "={{ ($json.files || []).length }}",
               "rightValue": 0,
-              "operator": { "type": "number", "operation": "gt" }
+              "operator": {
+                "type": "number",
+                "operation": "gt"
+              }
             }
           ],
           "combinator": "and"
@@ -1392,7 +1563,10 @@
       "name": "Prep Read",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [3060, 530],
+      "position": [
+        3060,
+        530
+      ],
       "parameters": {
         "jsCode": "const f = $json.files[0];\nconst chatId = $('Build Reply').first().json.chatId;\nreturn [{ json: { path: f.path, name: f.name, description: f.description || '', mime: f.mime || 'application/octet-stream', chatId } }];"
       }
@@ -1402,7 +1576,10 @@
       "name": "Read File",
       "type": "n8n-nodes-base.readWriteFile",
       "typeVersion": 1,
-      "position": [3280, 530],
+      "position": [
+        3280,
+        530
+      ],
       "parameters": {
         "operation": "read",
         "fileSelector": "={{ $json.path }}",
@@ -1416,7 +1593,10 @@
       "name": "Send Document",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [3500, 530],
+      "position": [
+        3500,
+        530
+      ],
       "parameters": {
         "method": "POST",
         "url": "={{ 'https://api.telegram.org/bot' + $env.TELEGRAM_BOT_TOKEN + '/sendDocument' }}",
@@ -1450,13 +1630,21 @@
       "name": "Send Not Found",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [3060, 730],
+      "position": [
+        3060,
+        730
+      ],
       "parameters": {
         "method": "POST",
         "url": "={{ 'https://api.telegram.org/bot' + $env.TELEGRAM_BOT_TOKEN + '/sendMessage' }}",
         "sendHeaders": true,
         "headerParameters": {
-          "parameters": [{ "name": "Content-Type", "value": "application/json" }]
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
         },
         "sendBody": true,
         "contentType": "raw",
@@ -1718,6 +1906,257 @@
           }
         }
       }
+    },
+    {
+      "id": "nc1",
+      "name": "Is Content Pub?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        1080,
+        120
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "nc1_c",
+              "leftValue": "={{ $json.data }}",
+              "rightValue": "^cpub:",
+              "operator": {
+                "type": "string",
+                "operation": "regex"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "nc2",
+      "name": "Is Content Rej?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        1080,
+        240
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "nc2_c",
+              "leftValue": "={{ $json.data }}",
+              "rightValue": "^crej:",
+              "operator": {
+                "type": "string",
+                "operation": "regex"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "nc3",
+      "name": "Get Content Post",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1300,
+        60
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "https://mycheagent.ru/webhook/pwa-data",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "application/json",
+        "body": "={{ JSON.stringify({ action: 'getPending', id: $json.data.replace(/^cpub:/, '') }) }}",
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          }
+        }
+      }
+    },
+    {
+      "id": "nc4",
+      "name": "Pub Content TG",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1520,
+        60
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "={{ 'https://api.telegram.org/bot' + $env.TELEGRAM_BOT_TOKEN + '/sendMessage' }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "application/json",
+        "body": "={{ JSON.stringify({ chat_id: $env.TELEGRAM_CHANNEL_MAIN, text: $json.text }) }}",
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          }
+        }
+      }
+    },
+    {
+      "id": "nc5",
+      "name": "Build VK Pub",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1740,
+        60
+      ],
+      "parameters": {
+        "jsCode": "const src = $('Get Content Post').first().json.text || '';\nlet t = src.replace(/@studiyaCHE/gi, '').replace(/\\n{3,}/g, '\\n\\n').trim();\nt = t.replace(/[\\u{1FA70}-\\u{1FAFF}]\\uFE0F?/gu, '');\nt = t.replace(/[ \\t]{2,}/g, ' ').replace(/ +([.,!?;:»)])/g, '$1').replace(/[ \\t]+\\n/g, '\\n').replace(/\\n{3,}/g, '\\n\\n').trim();\nreturn [{ json: { vkText: t } }];"
+      }
+    },
+    {
+      "id": "nc6",
+      "name": "Pub Content VK",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1960,
+        60
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.vk.com/method/wall.post",
+        "sendBody": true,
+        "contentType": "form-urlencoded",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "owner_id",
+              "value": "={{ $env.VK_OWNER_ID }}"
+            },
+            {
+              "name": "from_group",
+              "value": "1"
+            },
+            {
+              "name": "message",
+              "value": "={{ $json.vkText }}"
+            },
+            {
+              "name": "access_token",
+              "value": "={{ $env.VK_TOKEN }}"
+            },
+            {
+              "name": "v",
+              "value": "5.199"
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          }
+        }
+      },
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 2000
+    },
+    {
+      "id": "nc7",
+      "name": "Answer Content Pub",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2180,
+        60
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "={{ 'https://api.telegram.org/bot' + $env.TELEGRAM_BOT_TOKEN + '/answerCallbackQuery' }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "application/json",
+        "body": "={{ JSON.stringify({ callback_query_id: $('Is Content Pub?').item.json.callbackId, text: '✅ Опубликовано в TG + VK' }) }}",
+        "options": {}
+      }
+    },
+    {
+      "id": "nc8",
+      "name": "Answer Content Rej",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1300,
+        240
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "={{ 'https://api.telegram.org/bot' + $env.TELEGRAM_BOT_TOKEN + '/answerCallbackQuery' }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "application/json",
+        "body": "={{ JSON.stringify({ callback_query_id: $('Is Content Rej?').item.json.callbackId, text: '❌ Отклонено' }) }}",
+        "options": {}
+      }
     }
   ],
   "connections": {
@@ -1873,41 +2312,69 @@
     "Route File Type": {
       "main": [
         [
-          { "node": "Extract DOCX", "type": "main", "index": 0 }
+          {
+            "node": "Extract DOCX",
+            "type": "main",
+            "index": 0
+          }
         ],
         [
-          { "node": "Extract PDF", "type": "main", "index": 0 }
+          {
+            "node": "Extract PDF",
+            "type": "main",
+            "index": 0
+          }
         ],
         [
-          { "node": "No Extract", "type": "main", "index": 0 }
+          {
+            "node": "No Extract",
+            "type": "main",
+            "index": 0
+          }
         ]
       ]
     },
     "Extract DOCX": {
       "main": [
         [
-          { "node": "GPT Analyze", "type": "main", "index": 0 }
+          {
+            "node": "GPT Analyze",
+            "type": "main",
+            "index": 0
+          }
         ]
       ]
     },
     "Extract PDF": {
       "main": [
         [
-          { "node": "GPT Analyze", "type": "main", "index": 0 }
+          {
+            "node": "GPT Analyze",
+            "type": "main",
+            "index": 0
+          }
         ]
       ]
     },
     "No Extract": {
       "main": [
         [
-          { "node": "GPT Analyze", "type": "main", "index": 0 }
+          {
+            "node": "GPT Analyze",
+            "type": "main",
+            "index": 0
+          }
         ]
       ]
     },
     "GPT Analyze": {
       "main": [
         [
-          { "node": "Save File Index", "type": "main", "index": 0 }
+          {
+            "node": "Save File Index",
+            "type": "main",
+            "index": 0
+          }
         ]
       ]
     },
@@ -1925,14 +2392,22 @@
     "Prep YD Upload": {
       "main": [
         [
-          { "node": "Read for YD", "type": "main", "index": 0 }
+          {
+            "node": "Read for YD",
+            "type": "main",
+            "index": 0
+          }
         ]
       ]
     },
     "Read for YD": {
       "main": [
         [
-          { "node": "Upload to YD", "type": "main", "index": 0 }
+          {
+            "node": "Upload to YD",
+            "type": "main",
+            "index": 0
+          }
         ]
       ]
     },
@@ -1972,24 +2447,40 @@
     "Check Found": {
       "main": [
         [
-          { "node": "Prep Read", "type": "main", "index": 0 }
+          {
+            "node": "Prep Read",
+            "type": "main",
+            "index": 0
+          }
         ],
         [
-          { "node": "Send Not Found", "type": "main", "index": 0 }
+          {
+            "node": "Send Not Found",
+            "type": "main",
+            "index": 0
+          }
         ]
       ]
     },
     "Prep Read": {
       "main": [
         [
-          { "node": "Read File", "type": "main", "index": 0 }
+          {
+            "node": "Read File",
+            "type": "main",
+            "index": 0
+          }
         ]
       ]
     },
     "Read File": {
       "main": [
         [
-          { "node": "Send Document", "type": "main", "index": 0 }
+          {
+            "node": "Send Document",
+            "type": "main",
+            "index": 0
+          }
         ]
       ]
     },
@@ -2004,7 +2495,7 @@
         ],
         [
           {
-            "node": "Is Channel CB?",
+            "node": "Is Content Pub?",
             "type": "main",
             "index": 0
           }
@@ -2171,24 +2662,40 @@
     "Has KB Query?": {
       "main": [
         [
-          { "node": "Get KB Context", "type": "main", "index": 0 }
+          {
+            "node": "Get KB Context",
+            "type": "main",
+            "index": 0
+          }
         ],
         [
-          { "node": "Has File Request?", "type": "main", "index": 0 }
+          {
+            "node": "Has File Request?",
+            "type": "main",
+            "index": 0
+          }
         ]
       ]
     },
     "Get KB Context": {
       "main": [
         [
-          { "node": "GPT KB Answer", "type": "main", "index": 0 }
+          {
+            "node": "GPT KB Answer",
+            "type": "main",
+            "index": 0
+          }
         ]
       ]
     },
     "GPT KB Answer": {
       "main": [
         [
-          { "node": "Send KB Answer", "type": "main", "index": 0 }
+          {
+            "node": "Send KB Answer",
+            "type": "main",
+            "index": 0
+          }
         ]
       ]
     },
@@ -2375,6 +2882,86 @@
         [
           {
             "node": "Set Section",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Is Content Pub?": {
+      "main": [
+        [
+          {
+            "node": "Get Content Post",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Is Content Rej?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Is Content Rej?": {
+      "main": [
+        [
+          {
+            "node": "Answer Content Rej",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Is Channel CB?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Content Post": {
+      "main": [
+        [
+          {
+            "node": "Pub Content TG",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Pub Content TG": {
+      "main": [
+        [
+          {
+            "node": "Build VK Pub",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build VK Pub": {
+      "main": [
+        [
+          {
+            "node": "Pub Content VK",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Pub Content VK": {
+      "main": [
+        [
+          {
+            "node": "Answer Content Pub",
             "type": "main",
             "index": 0
           }
